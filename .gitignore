@@ -13,6 +13,8 @@ vendor/*/
 # local world outputs (keep the committed examples)
 deployments/*.json
 !deployments/*.example.json
+deployments/*.sqlite
+deployments/*.sqlite-*
 
 # foundry
 contracts/out/
