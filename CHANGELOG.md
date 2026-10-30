@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0-alpha.2 — 2026-10-30
+
+- `foga demo` explains why anvil did not come up instead of timing out: a port already taken (by a JSON-RPC node or by something else), anvil missing from PATH, or anvil exiting at start (its exit code and stderr are shown). The wait ends as soon as anvil exits. The WAL/SHM side files of the operation store are removed with it before a `--genesis` run.
+- CI: runner pinned to `ubuntu-24.04` ahead of the `ubuntu-latest` migration; `actions/upload-artifact@v7` (Node 24).
+- `contracts/test/FogaCellAccount.t.sol`: `_requirement` is `pure` (compiler warning).
+
 ## 0.2.0-alpha.1 — 2026-10-30 (Phase 2a-1)
 
 - `contracts/src/FogaCellAccount.sol` with `interfaces/IASFBindingRegistryLike.sol`: the cell's contract account — ERC-8468 execution gate (`ASFGuardedAccount` semantics), roles (owner, scoped operator, guardian, recovery), owner-level `adoptBinding` as the bootstrap, commitment-class selectors gated on the ERC-8434 state, de-risk allow-list, ERC-1271, ERC-721/1155 receivers, `sweep`. 15 Foundry tests. `contracts/foundry.toml` compiles with via-IR.

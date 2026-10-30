@@ -127,7 +127,7 @@ contract FogaCellAccountTest {
         input.interveners[0] = ASFLike.Intervener({account: address(0x6A), rights: 3});
     }
 
-    function _requirement() internal view returns (ASFLike.RequirementSet memory req) {
+    function _requirement() internal pure returns (ASFLike.RequirementSet memory req) {
         req.combinator = ASFLike.Combinator.All;
         req.clauses = new ASFLike.Clause[](1);
         req.clauses[0].specRegistry = address(0x5EC);
