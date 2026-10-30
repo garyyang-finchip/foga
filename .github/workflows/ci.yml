@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  world:
+    name: bundle, world, doctor
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Foundry (pinned)
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check and unit tests
+        run: |
+          npx tsc -p tsconfig.json --noEmit
+          npm test
+
+      - name: Foundry tests for the local contracts
+        working-directory: contracts
+        run: forge test -vv
+
+      - name: Materialize the locked upstream sources
+        run: npm run vendor:sync
+
+      - name: Rebuild the artifact bundle and verify its hash
+        run: npm run bundle:verify
+
+      - name: Start anvil
+        run: |
+          anvil --silent --port 8545 &
+          for i in $(seq 1 40); do
+            if curl -s -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:8545 >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          echo "anvil did not start" && exit 1
+
+      - name: Deploy the local world
+        run: npm run foga -- world deploy --world worlds/local.json --rpc http://127.0.0.1:8545 --out deployments/ci-local.json
+
+      - name: Doctor (layers 1-4; exit 3 on any Fail)
+        run: npm run foga -- doctor --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --out deployments/ci-local.doctor.json
+
+      - name: Attach the Sepolia world (address book only; no RPC in CI)
+        run: npm run foga -- world attach --world worlds/sepolia.json --out deployments/ci-sepolia.json
+
+      - name: Compile the CLI
+        run: npm run build && node bin/foga.js --help
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world-and-doctor
+          path: |
+            deployments/ci-local.json
+            deployments/ci-local.doctor.json
+            deployments/ci-sepolia.json
+            .foga-build/bundle.verify.json
+          if-no-files-found: ignore
