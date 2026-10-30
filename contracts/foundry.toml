@@ -1,0 +1,19 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = []
+test = "test"
+script = "script"
+solc_version = "0.8.30"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+bytecode_hash = "none"
+cbor_metadata = true
+auto_detect_remappings = false
+remappings = []
+
+[fmt]
+line_length = 120
+tab_width = 4

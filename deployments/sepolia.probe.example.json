@@ -1,0 +1,3500 @@
+{
+  "schema": "foga.probe/1",
+  "worldId": "sepolia-11155111-20261029T231815Z",
+  "chainId": 11155111,
+  "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109",
+  "requests": [
+    {
+      "key": "chainId",
+      "method": "eth_chainId",
+      "params": []
+    },
+    {
+      "key": "blockNumber",
+      "method": "eth_blockNumber",
+      "params": []
+    },
+    {
+      "key": "code:8338/SkillToken",
+      "method": "eth_getCode",
+      "params": [
+        "0x12cc1a5319c6F08bFB50982e3814A376A59fE550",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8338/SkillToken:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x12cc1a5319c6F08bFB50982e3814A376A59fE550",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8338/SkillToken:IOnchainSkillDocument",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x12cc1a5319c6F08bFB50982e3814A376A59fE550",
+          "data": "0x01ffc9a77050dd2c00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7050dd2c"
+    },
+    {
+      "key": "iface:8338/SkillToken:ISkillToken",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x12cc1a5319c6F08bFB50982e3814A376A59fE550",
+          "data": "0x01ffc9a7734553a600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x734553a6"
+    },
+    {
+      "key": "code:8414/TaskToken",
+      "method": "eth_getCode",
+      "params": [
+        "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8414/TaskToken:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8414/TaskToken:IERC165Probe",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8414/TaskToken:IERC20Minimal",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a75318f0ec00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x5318f0ec"
+    },
+    {
+      "key": "iface:8414/TaskToken:IERC20Payout",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a7a9059cbb00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa9059cbb"
+    },
+    {
+      "key": "iface:8414/TaskToken:IOnchainTaskDocument",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a7eb078d0500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xeb078d05"
+    },
+    {
+      "key": "iface:8414/TaskToken:ITaskTender",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a7c319d53200000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc319d532"
+    },
+    {
+      "key": "iface:8414/TaskToken:ITaskToken",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a7cdaeb26d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xcdaeb26d"
+    },
+    {
+      "key": "iface:8414/TaskToken:ITaskVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a79977db1500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9977db15"
+    },
+    {
+      "key": "iface:8414/TaskToken:ITenderSettlement",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a761ea17bf00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x61ea17bf"
+    },
+    {
+      "key": "iface:8414/TaskToken:IUpdateAuthorityView",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+          "data": "0x01ffc9a70216fcb200000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0216fcb2"
+    },
+    {
+      "key": "code:8414/HashlockVerifier",
+      "method": "eth_getCode",
+      "params": [
+        "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:IERC165Probe",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:IERC20Minimal",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a75318f0ec00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x5318f0ec"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:IERC20Payout",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a7a9059cbb00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa9059cbb"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:IOnchainTaskDocument",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a7eb078d0500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xeb078d05"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:ITaskTender",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a7c319d53200000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc319d532"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:ITaskToken",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a7cdaeb26d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xcdaeb26d"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:ITaskVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a79977db1500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9977db15"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:ITenderSettlement",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a761ea17bf00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x61ea17bf"
+    },
+    {
+      "key": "iface:8414/HashlockVerifier:IUpdateAuthorityView",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+          "data": "0x01ffc9a70216fcb200000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0216fcb2"
+    },
+    {
+      "key": "code:8414/JuryPanel",
+      "method": "eth_getCode",
+      "params": [
+        "0x7249E48c7E2131ADA0fcc25b1eaE4f4258545511",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8419/KYASchemeRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IERC8004IdentityRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a70fee0b0f00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0fee0b0f"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IERC8004ValidationRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a7d4f3f7b500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd4f3f7b5"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IGroth16Verifier15",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a7f054a9a300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xf054a9a3"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IKYAPolicyEvaluator",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a7173ff2b600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x173ff2b6"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IKYAPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a71cf9e55800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1cf9e558"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IKYARegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a75d1bec6100000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x5d1bec61"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IKYASchemeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a7e6dbd93300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xe6dbd933"
+    },
+    {
+      "key": "iface:8419/KYASchemeRegistry:IKYAVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+          "data": "0x01ffc9a7fc2b427100000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xfc2b4271"
+    },
+    {
+      "key": "code:8419/KYARegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8419/KYARegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8419/KYARegistry:IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IERC8004IdentityRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a70fee0b0f00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0fee0b0f"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IERC8004ValidationRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a7d4f3f7b500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd4f3f7b5"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IGroth16Verifier15",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a7f054a9a300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xf054a9a3"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IKYAPolicyEvaluator",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a7173ff2b600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x173ff2b6"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IKYAPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a71cf9e55800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1cf9e558"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IKYARegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a75d1bec6100000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x5d1bec61"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IKYASchemeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a7e6dbd93300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xe6dbd933"
+    },
+    {
+      "key": "iface:8419/KYARegistry:IKYAVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x01ffc9a7fc2b427100000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xfc2b4271"
+    },
+    {
+      "key": "code:8419/KYAPolicyRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x7767966702bf12C31CDD600807B77443998f0F21",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IERC8004IdentityRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a70fee0b0f00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0fee0b0f"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IERC8004ValidationRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a7d4f3f7b500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd4f3f7b5"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IGroth16Verifier15",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a7f054a9a300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xf054a9a3"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IKYAPolicyEvaluator",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a7173ff2b600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x173ff2b6"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IKYAPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a71cf9e55800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1cf9e558"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IKYARegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a75d1bec6100000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x5d1bec61"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IKYASchemeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a7e6dbd93300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xe6dbd933"
+    },
+    {
+      "key": "iface:8419/KYAPolicyRegistry:IKYAVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x01ffc9a7fc2b427100000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xfc2b4271"
+    },
+    {
+      "key": "code:8419/ValidationRegistry8004",
+      "method": "eth_getCode",
+      "params": [
+        "0x91103a508b0525B0b16146Ad5C0a7c719148b14c",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8419/KYABridge8004",
+      "method": "eth_getCode",
+      "params": [
+        "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8419/Groth16Verifier",
+      "method": "eth_getCode",
+      "params": [
+        "0x64c18C506e8a202d98822F97911dF774e9b85f85",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8419/Groth16KYAVerifierAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x7C424db1f07d5BCA5b58Dc4b573f31c32a70bCE7",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8434/AIDRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8434/AIDRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8434/AIDRegistry:IAIDRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+          "data": "0x01ffc9a772750a5400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x72750a54"
+    },
+    {
+      "key": "iface:8434/AIDRegistry:IERC1271",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+          "data": "0x01ffc9a71626ba7e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1626ba7e"
+    },
+    {
+      "key": "iface:8434/AIDRegistry:IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8434/AIDRegistry:IERC8004Identity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+          "data": "0x01ffc9a76361b41700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x6361b417"
+    },
+    {
+      "key": "code:8434/AIDRegistry(ard-fixture)",
+      "method": "eth_getCode",
+      "params": [
+        "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8434/AIDRegistry(ard-fixture):erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8434/AIDRegistry(ard-fixture):IAIDRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+          "data": "0x01ffc9a772750a5400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x72750a54"
+    },
+    {
+      "key": "iface:8434/AIDRegistry(ard-fixture):IERC1271",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+          "data": "0x01ffc9a71626ba7e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1626ba7e"
+    },
+    {
+      "key": "iface:8434/AIDRegistry(ard-fixture):IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8434/AIDRegistry(ard-fixture):IERC8004Identity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+          "data": "0x01ffc9a76361b41700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x6361b417"
+    },
+    {
+      "key": "code:8436/ACDFPolicyRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8436/ACDFPolicyRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8436/ACDFPolicyRegistry:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8436/ACDFPolicyRegistry:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8436/ACDFPolicyRegistry:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0",
+          "data": "0x01ffc9a79c66644b00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9c66644b"
+    },
+    {
+      "key": "code:8436/ACDFRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8436/ACDFRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8436/ACDFRegistry:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8436/ACDFRegistry:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8436/ACDFRegistry:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+          "data": "0x01ffc9a79c66644b00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9c66644b"
+    },
+    {
+      "key": "code:8444/ARDOnchainRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:IARDKindAdapter",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a767bde27300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x67bde273"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:IARDOnchainRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a7881908a500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x881908a5"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:IAgentIdentityRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a72c7be24100000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x2c7be241"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:IERC1271",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a71626ba7e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1626ba7e"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:IERC721View",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a76352211e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x6352211e"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:ISkillTokenKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a7734553a600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x734553a6"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:ITaskBindingView",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a7d5b36e2400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd5b36e24"
+    },
+    {
+      "key": "iface:8444/ARDOnchainRegistry:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x01ffc9a7c319d53200000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc319d532"
+    },
+    {
+      "key": "code:8444/SkillAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x08Be92a9446592fAeaaB976556e09e028662F12F",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8444/TaskAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x0BAB1fEE185A4803a1aC65F6dA59941eeCaE71dB",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8444/AgentAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x38898d038F4a8fCE3e13447bE7Eb1ECd128cE25C",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8444/RegistryAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x32C85829da0be0Fd66ac45eF54d4c393Fcd7149E",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8447/SpecValidator",
+      "method": "eth_getCode",
+      "params": [
+        "0xE27c429eb67C829312CAAd6Ac8F5359114BbCa00",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8447/LifecycleLib",
+      "method": "eth_getCode",
+      "params": [
+        "0xf0CA34139e77EE6Adae171930d330C77a75f09cd",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8447/MembershipLib",
+      "method": "eth_getCode",
+      "params": [
+        "0x8582a086749A32F7BFce5BB8D9835026eF85d121",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8447/ResourceLib",
+      "method": "eth_getCode",
+      "params": [
+        "0x77b7d8aaFe0Daa42b6E197392B29307A51c448a5",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8447/SwarmRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:IAddressAnchoredIdentity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a731e658a500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x31e658a5"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:IERC8004Identity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a76361b41700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x6361b417"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:IEligibility",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a7d0ede3d800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd0ede3d8"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:IResourceAdapter",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a78e20b29800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x8e20b298"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:ISwarmAccount",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a725e9835300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x25e98353"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:ISwarmRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a7085203a400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x085203a4"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a7d07efc7800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd07efc78"
+    },
+    {
+      "key": "iface:8447/SwarmRegistry:ITrustAssertionRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+          "data": "0x01ffc9a70e43a45700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0e43a457"
+    },
+    {
+      "key": "code:8447/AllowlistEligibility",
+      "method": "eth_getCode",
+      "params": [
+        "0x9Bd40264D0062Fb1E5550A63446b64DE4A123C20",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8447/SwarmDecisionAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:IAddressAnchoredIdentity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a731e658a500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x31e658a5"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:IERC8004Identity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a76361b41700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x6361b417"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:IEligibility",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a7d0ede3d800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd0ede3d8"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:IResourceAdapter",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a78e20b29800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x8e20b298"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:ISwarmAccount",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a725e9835300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x25e98353"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:ISwarmRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a7085203a400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x085203a4"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a7d07efc7800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd07efc78"
+    },
+    {
+      "key": "iface:8447/SwarmDecisionAdapter:ITrustAssertionRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x01ffc9a70e43a45700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0e43a457"
+    },
+    {
+      "key": "code:8447/SwarmTenderAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:IAddressAnchoredIdentity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a731e658a500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x31e658a5"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:IERC8004Identity",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a76361b41700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x6361b417"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:IEligibility",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a7d0ede3d800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd0ede3d8"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:IResourceAdapter",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a78e20b29800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x8e20b298"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:ISwarmAccount",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a725e9835300000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x25e98353"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:ISwarmRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a7085203a400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x085203a4"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a7d07efc7800000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd07efc78"
+    },
+    {
+      "key": "iface:8447/SwarmTenderAdapter:ITrustAssertionRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x01ffc9a70e43a45700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x0e43a457"
+    },
+    {
+      "key": "code:8454/AUFUnitRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8454/AUFUnitRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8454/AUFUnitRegistry:IAUFAssertionRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+          "data": "0x01ffc9a746ae6e2400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x46ae6e24"
+    },
+    {
+      "key": "iface:8454/AUFUnitRegistry:IAUFUnitRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+          "data": "0x01ffc9a77128ef2900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7128ef29"
+    },
+    {
+      "key": "iface:8454/AUFUnitRegistry:IERC1271",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+          "data": "0x01ffc9a71626ba7e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1626ba7e"
+    },
+    {
+      "key": "iface:8454/AUFUnitRegistry:IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "code:8454/AUFAssertionRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8454/AUFAssertionRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8454/AUFAssertionRegistry:IAUFAssertionRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+          "data": "0x01ffc9a746ae6e2400000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x46ae6e24"
+    },
+    {
+      "key": "iface:8454/AUFAssertionRegistry:IAUFUnitRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+          "data": "0x01ffc9a77128ef2900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7128ef29"
+    },
+    {
+      "key": "iface:8454/AUFAssertionRegistry:IERC1271",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+          "data": "0x01ffc9a71626ba7e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x1626ba7e"
+    },
+    {
+      "key": "iface:8454/AUFAssertionRegistry:IERC165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "code:8468/ASFEvaluation",
+      "method": "eth_getCode",
+      "params": [
+        "0x9b12f62D69EAfc9a240b9AB889cC1647Bf9C56db",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8468/ASFLifecycle",
+      "method": "eth_getCode",
+      "params": [
+        "0x6A6f645Ec9f161735cc22d441AFD1f513f3B143B",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8468/ASFSpecificationRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x9110b622a17F83065f1e9773D961EB10672932e5",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8468/ASFSpecificationRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x9110b622a17F83065f1e9773D961EB10672932e5",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8468/ASFSpecificationRegistry:IASFBindingRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x9110b622a17F83065f1e9773D961EB10672932e5",
+          "data": "0x01ffc9a7cff7f82600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xcff7f826"
+    },
+    {
+      "key": "iface:8468/ASFSpecificationRegistry:IASFSpecificationRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x9110b622a17F83065f1e9773D961EB10672932e5",
+          "data": "0x01ffc9a79bddde7700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9bddde77"
+    },
+    {
+      "key": "iface:8468/ASFSpecificationRegistry:IERC165Probe",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x9110b622a17F83065f1e9773D961EB10672932e5",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8468/ASFSpecificationRegistry:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x9110b622a17F83065f1e9773D961EB10672932e5",
+          "data": "0x01ffc9a79c66644b00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9c66644b"
+    },
+    {
+      "key": "code:8468/ASFBindingRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8468/ASFBindingRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8468/ASFBindingRegistry:IASFBindingRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+          "data": "0x01ffc9a7cff7f82600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xcff7f826"
+    },
+    {
+      "key": "iface:8468/ASFBindingRegistry:IASFSpecificationRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+          "data": "0x01ffc9a79bddde7700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9bddde77"
+    },
+    {
+      "key": "iface:8468/ASFBindingRegistry:IERC165Probe",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8468/ASFBindingRegistry:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+          "data": "0x01ffc9a79c66644b00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9c66644b"
+    },
+    {
+      "key": "code:8468/ASFTaskTenderAdapter",
+      "method": "eth_getCode",
+      "params": [
+        "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8468/ASFTaskTenderAdapter:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8468/ASFTaskTenderAdapter:IASFBindingRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+          "data": "0x01ffc9a7cff7f82600000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xcff7f826"
+    },
+    {
+      "key": "iface:8468/ASFTaskTenderAdapter:IASFSpecificationRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+          "data": "0x01ffc9a79bddde7700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9bddde77"
+    },
+    {
+      "key": "iface:8468/ASFTaskTenderAdapter:IERC165Probe",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x01ffc9a7"
+    },
+    {
+      "key": "iface:8468/ASFTaskTenderAdapter:ITaskTenderKernel",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+          "data": "0x01ffc9a79c66644b00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x9c66644b"
+    },
+    {
+      "key": "code:8471/ADRFPolicyRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x071093a38289b5f9578D0162727b05A52E07eed5",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IADRFDisputeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7edc59c1700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xedc59c17"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IADRFEvidenceRule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a77ff3f35900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7ff3f359"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IADRFExecutor",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a73cee8e6a00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x3cee8e6a"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IADRFJudgmentMethod",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7c29a559d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc29a559d"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IADRFObligationSource",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7a52f287000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa52f2870"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IADRFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a74413df8500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x4413df85"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IADRFVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7dfed0fe700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xdfed0fe7"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:ISettlementLedger",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7030e073500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x030e0735"
+    },
+    {
+      "key": "iface:8471/ADRFPolicyRegistry:IVersionedService",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+          "data": "0x01ffc9a7127c949500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x127c9495"
+    },
+    {
+      "key": "code:8471/ADRFDisputeRegistry",
+      "method": "eth_getCode",
+      "params": [
+        "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IADRFDisputeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7edc59c1700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xedc59c17"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IADRFEvidenceRule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a77ff3f35900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7ff3f359"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IADRFExecutor",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a73cee8e6a00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x3cee8e6a"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IADRFJudgmentMethod",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7c29a559d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc29a559d"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IADRFObligationSource",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7a52f287000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa52f2870"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IADRFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a74413df8500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x4413df85"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IADRFVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7dfed0fe700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xdfed0fe7"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:ISettlementLedger",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7030e073500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x030e0735"
+    },
+    {
+      "key": "iface:8471/ADRFDisputeRegistry:IVersionedService",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x01ffc9a7127c949500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x127c9495"
+    },
+    {
+      "key": "code:8471/ADRFBindingModule",
+      "method": "eth_getCode",
+      "params": [
+        "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8471/ADRFFilingModule",
+      "method": "eth_getCode",
+      "params": [
+        "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8471/ADRFResolutionModule",
+      "method": "eth_getCode",
+      "params": [
+        "0x75a104902744A5793306A25ea2bbDc85a0E77ce4",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8471/ADRFDecisionModule",
+      "method": "eth_getCode",
+      "params": [
+        "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8471/ADRFRecordModule",
+      "method": "eth_getCode",
+      "params": [
+        "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8471/ADRFOutcomeModule",
+      "method": "eth_getCode",
+      "params": [
+        "0x999BEf843E8ADba949e688C321D7b5bF37efea55",
+        "latest"
+      ]
+    },
+    {
+      "key": "code:8471/ADRFACDFBridge",
+      "method": "eth_getCode",
+      "params": [
+        "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IADRFDisputeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7edc59c1700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xedc59c17"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IADRFEvidenceRule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a77ff3f35900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7ff3f359"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IADRFExecutor",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a73cee8e6a00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x3cee8e6a"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IADRFJudgmentMethod",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7c29a559d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc29a559d"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IADRFObligationSource",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7a52f287000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa52f2870"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IADRFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a74413df8500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x4413df85"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IADRFVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7dfed0fe700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xdfed0fe7"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:ISettlementLedger",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7030e073500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x030e0735"
+    },
+    {
+      "key": "iface:8471/ADRFACDFBridge:IVersionedService",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x01ffc9a7127c949500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x127c9495"
+    },
+    {
+      "key": "code:8471/DuplicateSettlementVerifier",
+      "method": "eth_getCode",
+      "params": [
+        "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IADRFDisputeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7edc59c1700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xedc59c17"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IADRFEvidenceRule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a77ff3f35900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7ff3f359"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IADRFExecutor",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a73cee8e6a00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x3cee8e6a"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IADRFJudgmentMethod",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7c29a559d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc29a559d"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IADRFObligationSource",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7a52f287000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa52f2870"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IADRFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a74413df8500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x4413df85"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IADRFVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7dfed0fe700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xdfed0fe7"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:ISettlementLedger",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7030e073500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x030e0735"
+    },
+    {
+      "key": "iface:8471/DuplicateSettlementVerifier:IVersionedService",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+          "data": "0x01ffc9a7127c949500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x127c9495"
+    },
+    {
+      "key": "code:8471/DeclaredVersionVerifier",
+      "method": "eth_getCode",
+      "params": [
+        "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IADRFDisputeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7edc59c1700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xedc59c17"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IADRFEvidenceRule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a77ff3f35900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7ff3f359"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IADRFExecutor",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a73cee8e6a00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x3cee8e6a"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IADRFJudgmentMethod",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7c29a559d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc29a559d"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IADRFObligationSource",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7a52f287000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa52f2870"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IADRFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a74413df8500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x4413df85"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IADRFVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7dfed0fe700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xdfed0fe7"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:ISettlementLedger",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7030e073500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x030e0735"
+    },
+    {
+      "key": "iface:8471/DeclaredVersionVerifier:IVersionedService",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+          "data": "0x01ffc9a7127c949500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x127c9495"
+    },
+    {
+      "key": "code:8471/AttestorQuorumRule",
+      "method": "eth_getCode",
+      "params": [
+        "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IADRFDisputeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7edc59c1700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xedc59c17"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IADRFEvidenceRule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a77ff3f35900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7ff3f359"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IADRFExecutor",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a73cee8e6a00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x3cee8e6a"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IADRFJudgmentMethod",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7c29a559d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc29a559d"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IADRFObligationSource",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7a52f287000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa52f2870"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IADRFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a74413df8500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x4413df85"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IADRFVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7dfed0fe700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xdfed0fe7"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:ISettlementLedger",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7030e073500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x030e0735"
+    },
+    {
+      "key": "iface:8471/AttestorQuorumRule:IVersionedService",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+          "data": "0x01ffc9a7127c949500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x127c9495"
+    },
+    {
+      "key": "code:8471/ADRFServiceEscrow",
+      "method": "eth_getCode",
+      "params": [
+        "0xD85e5E73D385e6575342bd86263F34b17b287128",
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IACDFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7b362eb4e00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xb362eb4e"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IACDFRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7d31aae3000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xd31aae30"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IADRFDisputeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7edc59c1700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xedc59c17"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IADRFEvidenceRule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a77ff3f35900000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x7ff3f359"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IADRFExecutor",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a73cee8e6a00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x3cee8e6a"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IADRFJudgmentMethod",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7c29a559d00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xc29a559d"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IADRFObligationSource",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7a52f287000000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xa52f2870"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IADRFPolicyRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a74413df8500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x4413df85"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IADRFVerifier",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7dfed0fe700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0xdfed0fe7"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:ISettlementLedger",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7030e073500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x030e0735"
+    },
+    {
+      "key": "iface:8471/ADRFServiceEscrow:IVersionedService",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x01ffc9a7127c949500000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x127c9495"
+    },
+    {
+      "key": "code:identity8004",
+      "method": "eth_getCode",
+      "params": [
+        "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/KYARegistry:getSchemeRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+          "data": "0x7b7d4442"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/KYAPolicyRegistry:kyaRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7767966702bf12C31CDD600807B77443998f0F21",
+          "data": "0x05994a02"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/ValidationRegistry8004:getIdentityRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x91103a508b0525B0b16146Ad5C0a7c719148b14c",
+          "data": "0xbc4d861b"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/KYABridge8004:kyaRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec",
+          "data": "0x05994a02"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/KYABridge8004:validationRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec",
+          "data": "0x4c6b993a"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/KYABridge8004:identityRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec",
+          "data": "0x134e18f4"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/Groth16KYAVerifierAdapter:groth16",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7C424db1f07d5BCA5b58Dc4b573f31c32a70bCE7",
+          "data": "0x502f13ab"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/Groth16KYAVerifierAdapter:requiredIssuerSetRoot",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7C424db1f07d5BCA5b58Dc4b573f31c32a70bCE7",
+          "data": "0x35474232"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8419/Groth16KYAVerifierAdapter:epochLength",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x7C424db1f07d5BCA5b58Dc4b573f31c32a70bCE7",
+          "data": "0x57d775f8"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8434/AIDRegistry:defaultLivenessWindow",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+          "data": "0x3e6adc3d"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8434/AIDRegistry:maxLivenessWindow",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+          "data": "0x42aade61"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8436/ACDFRegistry:policies",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+          "data": "0x702e7e1f"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8444/ARDOnchainRegistry:kindAdapter(skill)",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x629fcd1375357da1ea166b9845548f84f7855b7f122cfc7dc349e5edbdca01bd8ca7b0bb"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8444/ARDOnchainRegistry:kindAdapter(task)",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x629fcd13119c021f95332a1e2d06adbfe8e298dc2484ac0daa16e4cd837d8de82fbba87c"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8444/ARDOnchainRegistry:kindAdapter(agent)",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x629fcd13283cdd5ece2ad33dc6be3a32a7a140a653c611b0296c9b54878ae0439bbef3a2"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8444/ARDOnchainRegistry:kindAdapter(registry)",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x629fcd13455d1d9d2b151bdfaa173c1cee0ee26ece8e7bdb98830e8e3ca1e180989cf3c6"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8444/AgentAdapter:identityRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x38898d038F4a8fCE3e13447bE7Eb1ECd128cE25C",
+          "data": "0x134e18f4"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8447/SwarmTenderAdapter:swarms",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0xdadf60af"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8447/SwarmTenderAdapter:task",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+          "data": "0x3283f641"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8447/SwarmDecisionAdapter:swarms",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0xdadf60af"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8447/SwarmDecisionAdapter:decisions",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+          "data": "0x6032566f"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8454/AUFAssertionRegistry:unitRegistry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+          "data": "0xba74e48f"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8468/ASFTaskTenderAdapter:registry",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+          "data": "0x7b103999"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8468/ASFTaskTenderAdapter:task",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+          "data": "0x3283f641"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFDisputeRegistry:policies",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x702e7e1f"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFDisputeRegistry:bindingModule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0xc5fde256"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFDisputeRegistry:filingModule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0x5685aa47"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFDisputeRegistry:resolutionModule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0xfd38ca0f"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFDisputeRegistry:decisionModule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0xd42a8676"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFDisputeRegistry:recordModule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0xeb535ec2"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFDisputeRegistry:outcomeModule",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+          "data": "0xfbdedd12"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFACDFBridge:adrf",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0x96e3fb84"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFACDFBridge:acdf",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+          "data": "0xd65869cf"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "wire:8471/ADRFServiceEscrow:adrf",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0x96e3fb84"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "readout:8444/ARDOnchainRegistry:owner",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+          "data": "0x8da5cb5b"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "readout:8419/KYABridge8004:owner",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec",
+          "data": "0x8da5cb5b"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "readout:8447/AllowlistEligibility:owner",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x9Bd40264D0062Fb1E5550A63446b64DE4A123C20",
+          "data": "0x8da5cb5b"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "readout:8471/ADRFServiceEscrow:admin",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0xf851a440"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "readout:8471/ADRFServiceEscrow:bindingId",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+          "data": "0xa886ec28"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "readout:8454/AUFUnitRegistry:unitCount",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+          "data": "0xf584fbf6"
+        },
+        "latest"
+      ]
+    }
+  ]
+}

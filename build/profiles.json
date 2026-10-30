@@ -1,0 +1,120 @@
+{
+  "schema": "foga.build-profiles/1",
+  "note": "One entry per upstream repository. `native` runs `forge build` inside the vendored repository with its own foundry.toml (tests and scripts skipped). `staged` is used for repositories whose upstream toolchain is solc-js: the contract tree is copied into a throw-away Foundry project whose settings mirror the upstream compile script exactly (same solc version, optimizer, runs, EVM version, metadata). Compile conditions are never changed by FOGA; only the orchestration is.",
+  "foundry": {
+    "skip": ["test", "script"],
+    "solcDirEnv": "FOGA_SOLC_DIR",
+    "solcBinaryPattern": "solc-{version}"
+  },
+  "repos": [
+    {
+      "repo": "skill-token-standard",
+      "erc": 8338,
+      "mode": "native",
+      "solc": "0.8.24",
+      "contractsRoot": "contracts",
+      "vectors": [],
+      "extras": {}
+    },
+    {
+      "repo": "task-token-standard",
+      "erc": 8414,
+      "mode": "native",
+      "solc": "0.8.24",
+      "contractsRoot": "contracts",
+      "vectors": [],
+      "extras": {}
+    },
+    {
+      "repo": "kya-standard",
+      "erc": 8419,
+      "mode": "staged",
+      "solc": "0.8.28",
+      "contractsRoot": "assets/erc-kya/contracts",
+      "stage": {
+        "copy": [
+          { "from": "assets/erc-kya/contracts", "to": "." },
+          { "from": "companions/zk-kya-groth16/build/Groth16Verifier.sol", "to": "companions/Groth16Verifier.sol" }
+        ],
+        "settings": { "optimizer": true, "runs": 200, "viaIr": false, "evmVersion": "cancun", "bytecodeHash": "ipfs" },
+        "mirrors": "tools/compile.js"
+      },
+      "vectors": ["assets/erc-kya/vectors/vectors.json"],
+      "extras": {}
+    },
+    {
+      "repo": "aid-standard",
+      "erc": 8434,
+      "mode": "staged",
+      "solc": "0.8.28",
+      "contractsRoot": "assets/erc-aid/contracts",
+      "stage": {
+        "copy": [{ "from": "assets/erc-aid/contracts", "to": "." }],
+        "settings": { "optimizer": true, "runs": 200, "viaIr": false, "evmVersion": "cancun", "bytecodeHash": "ipfs" },
+        "mirrors": "scripts/compile.js"
+      },
+      "vectors": ["assets/erc-aid/vectors/aid-vectors.json"],
+      "extras": {}
+    },
+    {
+      "repo": "acd-framework",
+      "erc": 8436,
+      "mode": "native",
+      "solc": "0.8.24",
+      "contractsRoot": "assets/erc-acdf/contracts",
+      "vectors": ["assets/erc-acdf/vectors/interface-ids.json"],
+      "extras": {}
+    },
+    {
+      "repo": "ard-onchain-framework",
+      "erc": 8444,
+      "mode": "native",
+      "solc": "0.8.24",
+      "contractsRoot": "assets/erc-8444/contracts",
+      "vectors": ["assets/erc-8444/vectors/interface-ids.json"],
+      "extras": { "kindIds": "assets/erc-8444/vectors/kind-ids.json" }
+    },
+    {
+      "repo": "swarm-ai-framework",
+      "erc": 8447,
+      "mode": "native",
+      "solc": "0.8.24",
+      "contractsRoot": "assets/erc-8447/contracts",
+      "vectors": ["assets/erc-8447/vectors/interface-ids.json"],
+      "extras": { "termIds": "assets/erc-8447/vectors/term-ids.json" }
+    },
+    {
+      "repo": "aifi-unit-framework",
+      "erc": 8454,
+      "mode": "native",
+      "solc": "0.8.30",
+      "contractsRoot": "assets/erc-auf/contracts",
+      "vectors": ["assets/erc-auf/vectors/interface-ids.json"],
+      "extras": { "identifiers": "assets/erc-auf/vectors/identifiers.json" }
+    },
+    {
+      "repo": "agent-safety-framework",
+      "erc": 8468,
+      "mode": "native",
+      "solc": "0.8.30",
+      "contractsRoot": "assets/erc-asf/contracts",
+      "vectors": ["assets/erc-asf/vectors/interface-ids.json"],
+      "extras": {}
+    },
+    {
+      "repo": "ai-dispute-resolution",
+      "erc": 8471,
+      "mode": "native",
+      "solc": "0.8.30",
+      "contractsRoot": "assets/erc-adrf/contracts",
+      "vectors": ["assets/erc-adrf/vectors/interface-ids.json"],
+      "extras": {}
+    }
+  ],
+  "local": {
+    "note": "FOGA's own local-only contracts (contracts/), compiled with contracts/foundry.toml. They never stand in for a public-chain deployment.",
+    "solc": "0.8.30",
+    "project": "contracts",
+    "contractsRoot": "src"
+  }
+}

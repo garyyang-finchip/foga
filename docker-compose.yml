@@ -1,0 +1,36 @@
+# One-command local world: anvil + world deploy + doctor.
+#   docker compose up --build
+# The address book and the doctor report land in ./deployments (local.json, local.doctor.json).
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.7.1
+    command: ["anvil", "--host", "0.0.0.0", "--port", "8545", "--silent"]
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD-SHELL", "cast chain-id --rpc-url http://127.0.0.1:8545 >/dev/null 2>&1 || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  world:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on:
+      anvil:
+        condition: service_healthy
+    volumes:
+      - ./deployments:/opt/foga/deployments
+    command: ["foga", "world", "deploy", "--world", "worlds/local.json", "--rpc", "http://anvil:8545", "--out", "deployments/local.json"]
+
+  doctor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on:
+      world:
+        condition: service_completed_successfully
+    volumes:
+      - ./deployments:/opt/foga/deployments
+    command: ["foga", "doctor", "--world", "deployments/local.json", "--rpc", "http://anvil:8545", "--out", "deployments/local.doctor.json"]

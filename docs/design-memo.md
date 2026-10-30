@@ -1,0 +1,94 @@
+# FOGA design memo (v0.1, condensed)
+
+This is the English working version of the design that Phase 1 implements the first slice of. It records decisions, not aspirations: where something is still to be built, it says so.
+
+## 1. Definition and scope
+
+FOGA is an independently runnable autonomous agent node that, within explicit identity, authorization, budget and rule boundaries, discovers resources, verifies counterparties, uses skills, fulfills tasks, takes part in organizations and collective decisions, records its economic activity, and handles safety interventions and disputes — in a way other nodes can verify independently. "Autonomous" means acting continuously within pre-authorized bounds without step-by-step human instructions; humans keep the pre-agreed powers to pause, revoke authorization and dispose.
+
+Three deliverables share one kernel: the Finch OG Agent (the first running instance), the FOGA node software (anyone's own identity, model and wallet), and the public access layer (MCP, A2A, HTTP/CLI).
+
+Compatibility with each of the ten ERCs is declared in three parts — the specification version followed, the role FOGA takes, and the run evidence — and proved per ERC (docs/compatibility-matrix.md). An interface that merely exists is never counted.
+
+The "cellular automaton" idea is the architectural inspiration: each cell is an address whose state is its on-chain facts under the ten ERCs, whose neighborhood is the set of cells it is linked to through tenders, swarms, decisions and disputes, and whose rule is a local policy that reads only on-chain state and ERC interfaces. The engineering description is an event-driven network of autonomous nodes with local state and explicit permissions; block height is a demonstration clock, the genesis phases T0–T9 are logical phases, and real runs wait for proofs, messages, confirmations, dispute windows and reorgs.
+
+## 2. Architecture
+
+| Layer | Content |
+|---|---|
+| L0 chain | Anvil, Anvil fork of Sepolia, Sepolia (public evidence), Base (hosted services, later); one address book per world |
+| L1 protocol | the ten reference implementations plus ERC-8004, locked by commit and compiled into one bundle without changing compile conditions |
+| L2 SDK (`foga-core`) | one module per ERC: views, transaction builders, event decoders, and the upstream off-chain pieces (DAG-CBOR packages, JCS canonicalization, the EIP-712 flows, the JSON schemas); ethers v6, reusing the upstream resolvers, gateway and vector tools |
+| L3 cell kernel (`foga-kernel`) | a deterministic state machine with persistence, transaction management and evidence; no LLM inside |
+| L4 cognition (optional) | a model provider adapter for judgment steps only; off in conformance runs |
+| L5 interfaces | MCP (base and extended tiers), A2A, HTTP/CLI, sharing L3's business model and authorization rules |
+
+**CellState** has three parts: an on-chain fact snapshot (chain, block height and hash, confirmations, protocol object references), verified off-chain inputs (packages, deliverables, A2A messages, evidence, signatures, content hashes; private witnesses never enter public documents or evidence logs), and local persistent runtime state (pending operations, commitments, budget reservations, nonces, pending transactions, retry and dedup records, recovery points).
+
+**Determinism** means: given the same recorded inputs, rule version and parameters, the same execution decision can be replayed. Model replaceability and non-deterministic external inputs do not conflict with this. Every judgment produces a traceable decision record with supporting evidence; signatures and hashes prove the record's integrity and attribution, not the judgment's correctness.
+
+**Harness duties**: plan and execute (a model may propose; deterministic code checks permission, budget and preconditions), task persistence, evidence, transaction management, state coordination (ACDF Final, tender paid, swarm achieved and ADRF enacted are different facts — linked, never merged), observability.
+
+**Persistence** defaults to SQLite (single file, WAL) behind a storage interface; PostgreSQL for the hosted indexer.
+
+**One local config, several documents**: a node keeps `cell.config.json`; tools generate the schema-conformant AID document, the ERC-8004 registration file (services: MCP and A2A endpoints; `x402Support` only once real), the ARD agent descriptor and the AUF unit definition, each with its own commitment, version, hash and publication status, published by whichever principal has the right to.
+
+**Skills**: `finch-extract-verify` (structured extraction, consistency check, evidence report; deterministic path without a model, model path for the real-agent acceptance) and `foga-probe` (the ten-ERC probe over a pinned block — the deterministic "known answer" of the machine-settled tender) are real ERC-8338 packages. Protocol operations (identity resolution, KYA checks, transaction building, safety checks) are deterministic code offered to models as restricted tools, not assets. MCP tools link to packages; a tool manifest hash is not a skill package.
+
+## 3. Accounts and permissions
+
+| Principal | Form | Role |
+|---|---|---|
+| World operator (W) | EOA (anvil #0 locally; the EC2 deployer key on Sepolia) | deploys or attaches the world; publishes the ASF specification, the ACDF and ADRF policies and the KYA schemes; owner of the ARD registry and deployer of the ERC-8004 stand-in on local chains |
+| Cell A, B, C | `FogaCellAccount` (contract account; an EOA in the lite profile) | the cell's body: AID anchor, ERC-8004 owner, holder of assets and funds, fulfiller on the task token, swarm member, ASF adopter, KYA subject, ARD and AUF controller |
+| operator | hot signer held by the node process | calls only through `FogaCellAccount.execute`, within allowed targets and selectors, a daily value cap, an expiry and a nonce |
+| owner | cold key | rotates the operator, sets the guardian, recovers, moves assets |
+| guardian | ASF intervener | suspends, resumes, terminates the cell's binding |
+| judges J1–J3 | EOAs (allowlist in v1; KYA-gated profile later) | voters of the ACDF policy FOGA-Council; never parties to the case |
+| evaluator E | EOA | asserts AUF measurement statements |
+| demander, buyer | B and W (tenders); C (service purchase) | funds tenders; deposits into the service escrow |
+| SwarmAccount | reference contract | the swarm's fulfiller and payee, distinct from its members |
+
+Two profiles: the **guarded** profile (default, used by the OG cell) puts the body in a contract account so the safety gate holds even for RPC calls that bypass the kernel and so ERC-1271 makes `bindWithSig`, `joinBySig`, `assertStatementBySig` and signed ballots available; the **lite** profile is an EOA, with safety enforced only by acceptance consumers and the kernel's own restraint, which the doctor reports honestly. An operator that bypasses the account and submits to a permissionless token directly acts as itself, not as the cell; such a submission earns none of the cell's rights.
+
+## 4. Genesis scenario T0–T9 (Phase 2 target)
+
+Loops: A = T1–T3 (independent order, execution, settlement), B = T4–T6 (organization, deliberation, dispute), C = T7 plus the failure and recovery cases, D = a real-agent run with unscripted task input.
+
+- **T0 world**: deploy or attach the stack; register ARD kinds; register KYA schemes `S_att` (attested), `S_cred` (proved, credential pattern, existing Groth16 companion) and `S_pred` (proved, predicate pattern, new); publish the ASF specification FOGA-Cell-v1 (commitment-class actions require an ACTIVE AID; stop must be honored; the de-risk action set is explicit); register the ACDF policy FOGA-Council (J1–J3, K = 2, windows coordinated with the tender judgment window); register the ADRF policy whose judgment tier consumes FOGA-Council through the ACDF bridge; deploy FOGA's own `ACDFTaskTenderAdapter` bound to that policy.
+- **T1 birth** (per cell): deploy `FogaCellAccount`; ERC-8004 `register(agentURI)`; AID `bind`, `heartbeat`, `setDocumentURI`; ASF `adopt` with the guardian as intervener; KYA attestation at level 2 from W for all three, a credential-pattern proof for A (and, from Phase 2b, a predicate-pattern proof); ARD agent record; AUF unit. Failure cases: bind before holding the identity, attest by a non-issuer, wrong scheme / subject / epoch, nullifier replay.
+- **T2 capability**: A mints skill tokens for `finch-extract-verify` v1 and `foga-probe` v1, registers them in ARD and as AUF units. Failure cases: tampered package rejected before execution; `updateSkill` by a non-authority; a later v2 does not move v1 commitments.
+- **T3 labor (machine acceptance)**: B computes the known answer (the `foga-probe` output at a pinned block), mints a tender with `HashlockVerifier` as the sole acceptance authority, funds 0.001 ETH, commits `sha256(answer)`; A discovers it, passes its own gates (AID ACTIVE, ASF check, budget, deadline, package verification), executes in an isolated worker, submits `resultHash = sha256(answer ‖ A)`, settles by revealing, withdraws credit. Failure cases: wrong answer; a copied proof settled by another address; a second completion beyond `maxCompletions`; a process killed between submit and settle resumes without resubmitting.
+- **T4 organization**: B forms a swarm whose eligibility is `CompositeEligibility(requireAll, [ERC8004Eligibility, IdentityStateEligibility(ACTIVE), AssertionLevelEligibility(S_att, level 2, issuers [W])])`, objective bound to the T5 tender with `SwarmTenderAdapter` as acceptance authority; A and C join; activate; deploy and set the `SwarmAccount`; register the swarm as an AUF composite unit containing the members' units at pinned versions. Failure cases: a candidate without the assertion is refused; after W revokes an assertion, `challenge` suspends the member; membership never implies who fulfills or who is paid.
+- **T5 governance**: a judged tender with FOGA's `ACDFTaskTenderAdapter` as acceptance authority; the `SwarmAccount` submits the report package; `open` → ballots by J1–J3 → `settleRound` → `finalize` → `execute` → `acceptFulfillment`; `SwarmTenderAdapter.settle` concludes the swarm ACHIEVED; a charter amendment passes through `SwarmDecisionAdapter`; a second judged tender shows NoDecision and the tender's own default path. Failure cases: wrong-round ballots, non-judge ballots, execute before Final, a judge who is also a party (configuration check).
+- **T6 dispute**: FOGA's revision-4 `ADRFServiceEscrow` bound to the ADRF policy; C deposits and opens a call to A committed to skill v1's package hash; A upgrades to v2 and delivers declaring v2; `DeclaredVersionVerifier` recognizes the breach; C files; judgment through the bridge and J1–J3; `finalize` Sustained; `enact` refunds C; a second `enact` is rejected. A conforming delivery (declared = committed) settles normally as the control case. Failure cases: filing after the dispute period, filing by a non-party, enact before Final. The generic 8414↔8471 bridge is a later increment.
+- **T7 safety**: the guardian suspends A's binding; a direct RPC call to `FogaCellAccount.execute` for a commitment-class action reverts (bypass test); de-risk actions still pass; the kernel pauses new commitments; the operator's direct submission to the token succeeds on chain but is attributed to the operator, not to A (attribution test); resume restores execution; letting A's AID go STALE (time skip, recorded) makes the account's AID clause refuse commitment-class actions until a heartbeat. Specification text alone enforces nothing; the account's gate and the acceptance consumers do.
+- **T8 value**: E registers the realized-net-cash-flow method descriptor and asserts measurement statements for A's skill unit (income 0.001 ETH, refund 0, observed gas, model fees missing — never zero) and for the swarm unit (SwarmAccount receipts only); the resolver verifies the receipts. No field is called value; no income is counted in two units.
+- **T9 succession**: (a) active migration — owner deploys A′, transfers the ERC-8004 identity, A goes STALE, A′ binds (takeover), A retires naming A′, A′ publishes a new ARD agent record; (b) asset transfer and adoption — the skill token moves to A′, the ARD record becomes unadopted, A′ re-commits the descriptor; (c) non-inheritance — A′ holds no KYA assertion, swarm seat, ASF binding or credit of A's; (d) key-loss recovery — guarded profile: the owner rotates the operator; lite profile: the old anchor stays STALE and a new identity starts from zero, documented as such.
+
+## 5. Acceptance matrix
+
+Per ERC: the minimum run acceptance in docs/compatibility-matrix.md. Loop C cases: process killed between submit and settle; duplicate inbound requests produce one economic effect; RPC timeout after broadcast is resolved by reading chain state before retrying; revoked assertion suspends membership; exhausted budget blocks new commitments; safety stop (T7); inactive member handled by the charter; the central MCP switched off leaves self-hosted nodes working through their own RPC and ARD entry. Loop D: unscripted task input, the agent chooses skills, executes and delivers without per-transaction instructions; permissions, budget, results and process evidence are checked, not the exact wording. Replication cases: `npx foga demo` in a clean environment, `docker compose up` on amd64 and arm64, two external MCP clients, an independent operator's node interacting with the OG instance.
+
+## 6. New development (listed honestly)
+
+- **Predicate-style ZK-KYA** (must): one fixed predicate — "among records signed by source S, at least K are Accepted within [t0, t1]" — as a new circuit with N record slots, EdDSA/Baby Jubjub record signatures, a source-set Merkle root, public inputs bound to subject key, scheme id, admission domain, challenge, window, K and epoch, a nullifier output; a Groth16 verifier and an adapter implementing `IKYAVerifier`; scheme `S_pred` in PROVED mode; a development trusted setup labeled as such. The proof establishes a fact about that range, not trustworthiness.
+- **FogaCellAccount** (must, small): the `ASFGuardedAccount` execution gate plus ERC-1271 with scoped operator permissions, ERC-721/1155 receivers, owner / operator / guardian / recovery roles and a configurable AID-state clause gate.
+- Later increments: the generic 8414↔8471 bridge (a rejection must become a non-final preliminary opinion with a pre-authorized final executor, within the tender's acceptance deadline), a combined acceptance authority (safety ∧ machine ∧ deliberation), a KYA-gated judge profile.
+- The bulk of the work is not Solidity: `foga-core`, `foga-kernel`, `foga-mcp`, the CLI, build/deploy/doctor tooling, scenarios, evidence, documentation.
+
+## 7. MCP, A2A and pricing boundaries
+
+One kernel, three entrances; switching entrance never changes authorization rules or task state. MCP (2026-07-28) is stateless; business operations are persistent and addressed by `operationId`; long tasks use FOGA's own start / query / cancel / receipt before any protocol extension. Two modes: embedded (the FOGA harness runs the node) and host (an external agent uses the capabilities through MCP and owns scheduling, state, authorization and recovery). The free base tier is a complete self-hosted loop over the ten ERCs — node software, adapters and acceptance tools, doctor and probe, `spec.read`, local signing and evidence, unsigned calldata for writes; the paid tier covers hosted resources — runs and queues, indexing and history, proof computation, metered model / RPC / gas, bounded standard workflows. Call permission, business authorization and wallet permission are three different checks; paid-tool execution order is validate (including header/body consistency) → operator and permission → quote and payment → bind operation → idempotent execute → receipt; payment dedup and business dedup are separate. "$1" is a prepaid credit starting point and, for fixed-scope jobs, a capped trial package with explicit scope, budget caps, gas inclusion, failure/cancel/timeout billing and reserve/settle timing; x402 is a later payment adapter. An A2A task enters as a FOGA operation and becomes or binds a tender only when the caller chooses tender mode and every term is explicit; the agent card lists enabled, executable capabilities, not held tokens.
+
+## 8. Phases
+
+| Phase | Output | Gate |
+|---|---|---|
+| 1 world | repository skeleton; vendor lock and sync; artifact bundle; deployment orchestrator; address books; doctor layers 1–4; CI | one-command world on Anvil; doctor reports for Anvil and Sepolia; CI rebuilds the bundle to the same hash |
+| 2a cells | `foga-core`, `foga-kernel`, `FogaCellAccount`; T0–T5 on Anvil; first loop-C cases | T0–T5 green; restart recovery and dedup pass |
+| 2b cells | predicate circuit and adapter; T6–T9; measurement receipts; remaining loop-C cases; doctor layer 5 | T0–T9 green; every negative case rejected as specified |
+| 2c public evidence | Sepolia run from one driver script; cells bound in both AID registries; FOGA-owned modules, adapter and escrow; evidence and Sourcify | public state re-checkable; known mismatches reported |
+| 3 interfaces | base MCP (stdio and Streamable HTTP), CLI, HTTP, A2A card and inbound mapping, documents from one config, ERC-8004 and ARD registration, MCP registry listing, documentation site; loop D | published capabilities match acceptance results; external clients work |
+| 4 hosted | indexing, proof runs, scenario runner, gas sponsorship; `operationId` and idempotency; billing units; x402 on Base | measured costs; packages match behavior |
+| 5 replication and outreach | multi-arch images; independent-node replication; central-MCP-off test; discovery materials | an external operator completes the core scenarios alone |

@@ -1,0 +1,44 @@
+{
+  "name": "foga",
+  "version": "0.1.0",
+  "description": "Finch OG Agent (FOGA): world builder, deployment orchestrator and conformance doctor for the ten-ERC agent stack (ERC-8338/8414/8419/8434/8436/8444/8447/8454/8468/8471)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "foga": "./bin/foga.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "artifacts",
+    "worlds",
+    "build/profiles.json",
+    "build/known-interface-ids.json",
+    "vendor/LOCK.json",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "foga": "tsx src/cli.ts",
+    "vendor:sync": "tsx src/cli.ts vendor sync",
+    "bundle": "tsx src/cli.ts build",
+    "bundle:verify": "tsx src/cli.ts build --verify",
+    "world:local": "tsx src/cli.ts world deploy --world worlds/local.json --out deployments/local.json",
+    "doctor:local": "tsx src/cli.ts doctor --world deployments/local.json --out deployments/local.doctor.json",
+    "demo": "tsx src/cli.ts demo",
+    "test": "node --test --import tsx test/*.test.ts"
+  },
+  "dependencies": {
+    "ethers": "6.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,21 @@
+Finch OG Agent (FOGA)
+Copyright 2026 Gary Yang (FinChip)
+
+This product includes compiled artifacts (artifacts/bundle.json) built from the following
+reference implementations, which are not modified by this project and remain under their
+own licenses:
+
+  skill-token-standard      (ERC-8338)  CC0-1.0   https://github.com/garyyang-finchip/skill-token-standard
+  task-token-standard       (ERC-8414)  CC0-1.0   https://github.com/garyyang-finchip/task-token-standard
+  kya-standard              (ERC-8419)  CC0-1.0   https://github.com/garyyang-finchip/kya-standard
+  aid-standard              (ERC-8434)  CC0-1.0   https://github.com/garyyang-finchip/aid-standard
+  acd-framework             (ERC-8436)  CC0-1.0   https://github.com/garyyang-finchip/acd-framework
+  ard-onchain-framework     (ERC-8444)  CC0-1.0, with Apache-2.0 material vendored upstream from the ards-project
+                                                  https://github.com/garyyang-finchip/ard-onchain-framework
+  swarm-ai-framework        (ERC-8447)  CC0-1.0   https://github.com/garyyang-finchip/swarm-ai-framework
+  aifi-unit-framework       (ERC-8454)  CC0-1.0   https://github.com/garyyang-finchip/aifi-unit-framework
+  agent-safety-framework    (ERC-8468)  CC0-1.0   https://github.com/garyyang-finchip/agent-safety-framework
+  ai-dispute-resolution     (ERC-8471)  CC0-1.0   https://github.com/garyyang-finchip/ai-dispute-resolution
+
+The exact commits are recorded in vendor/LOCK.json. The Groth16 verifier compiled from
+kya-standard's companion circuit is generated code (snarkjs) distributed with that repository.

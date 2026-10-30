@@ -1,0 +1,18 @@
+{
+  "skill-token-standard": {
+    "source": "README.md (compiler-verified ids published upstream; the repository has no vectors file)",
+    "ids": {
+      "ISkillToken": "0x734553a6",
+      "IOnchainSkillDocument": "0x7050dd2c"
+    }
+  },
+  "task-token-standard": {
+    "source": "README.md and examples/DEPLOYMENTS.md (published upstream; the repository has no vectors file)",
+    "ids": {
+      "ITaskToken": "0xcdaeb26d",
+      "ITaskTender": "0xc319d532",
+      "ITaskVerifier": "0x9977db15",
+      "IOnchainTaskDocument": "0xeb078d05"
+    }
+  }
+}

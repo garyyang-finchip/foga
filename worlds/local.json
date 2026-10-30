@@ -1,0 +1,34 @@
+{
+  "schema": "foga.world-config/1",
+  "name": "local",
+  "network": "anvil",
+  "chainId": 31337,
+  "rpc": "http://127.0.0.1:8545",
+  "mode": "deploy",
+  "deployer": {
+    "privateKeyEnv": "FOGA_DEPLOYER_PK",
+    "defaultPrivateKey": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    "note": "The default is anvil's well-known account #0 (0xf39F...2266). It is public and only ever used on local chains."
+  },
+  "identity8004": {
+    "mode": "stub",
+    "note": "Local worlds deploy contracts/src/Identity8004Stub.sol, a stand-in that follows the official ABI surface the ten reference implementations call. It is not the reference registry."
+  },
+  "params": {
+    "skillToken": { "name": "FOGA Skill", "symbol": "FSKL" },
+    "taskToken": { "name": "FOGA Task", "symbol": "FTSK" },
+    "aid": { "defaultLivenessWindow": 7776000, "maxLivenessWindow": 31536000 },
+    "kya": {
+      "issuerSetRoot": "0x1de029c3b70d5efa4af25f0d1ffb02831eb7c0d9f5a02f3c781d216e2c54b5e8",
+      "epochLength": 2592000,
+      "epochGrace": 1
+    },
+    "ard": {
+      "kindURIs": { "skill": "kind:skill", "task": "kind:task", "agent": "kind:agent", "registry": "kind:registry" }
+    }
+  },
+  "notes": [
+    "AID liveness windows (90 d / 365 d) and the KYA Groth16 adapter parameters (issuer set root of the upstream kya_public_v1 prover, 30 d epochs, 1 epoch grace) mirror the upstream Sepolia reference deployments so the upstream provers and resolvers work unchanged.",
+    "ARD kind URIs mirror the upstream evidence script (kind:<name>)."
+  ]
+}

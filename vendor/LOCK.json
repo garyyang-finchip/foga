@@ -1,0 +1,107 @@
+{
+  "schema": "foga.vendor-lock/1",
+  "lockedAt": "2026-10-30",
+  "note": "Reference implementations of the ten ERCs, pinned by commit. `foga vendor sync` materializes each source tree under vendor/<repo>/ at exactly this commit; the committed artifacts/bundle.json is built from these commits and CI rebuilds it to prove the hash. Spec references are recorded separately from implementation commits: a Sepolia deployment may predate the implementation commit (see docs/version-lock.md).",
+  "sources": [
+    {
+      "erc": 8338,
+      "title": "Token-Bound Executable Skills",
+      "repo": "skill-token-standard",
+      "url": "https://github.com/garyyang-finchip/skill-token-standard.git",
+      "commit": "359ad64aa698c7c206bee9329a9a5ec05f12a685",
+      "contractsRoot": "contracts",
+      "upstreamToolchain": "foundry (solc 0.8.24, optimizer on, default runs)",
+      "spec": { "status": "Draft", "where": "ethereum/ERCs PR #1879 (not in this repository)", "discussion": "https://ethereum-magicians.org/t/29005" }
+    },
+    {
+      "erc": 8414,
+      "title": "Token-Bound Task Tenders",
+      "repo": "task-token-standard",
+      "url": "https://github.com/garyyang-finchip/task-token-standard.git",
+      "commit": "b3da62e761b00ef0921860f353d7eed24c6c85ae",
+      "contractsRoot": "contracts",
+      "upstreamToolchain": "foundry (solc 0.8.24, optimizer runs 1)",
+      "spec": { "status": "Draft", "where": "ERCS/erc-9999.md in this repository (placeholder file name); ethereum/ERCs PR #2005", "discussion": "https://ethereum-magicians.org/t/29597" }
+    },
+    {
+      "erc": 8419,
+      "title": "Know-Your-Agent (KYA) Framework",
+      "repo": "kya-standard",
+      "url": "https://github.com/garyyang-finchip/kya-standard.git",
+      "commit": "f204f2ec2115bd8d1a96de60e0e844dee31cfe1b",
+      "contractsRoot": "assets/erc-kya/contracts",
+      "upstreamToolchain": "solc-js via tools/compile.js (solc 0.8.28, optimizer runs 200, evm cancun)",
+      "spec": { "status": "Draft", "where": "ERCS/erc-kya.md in this repository; ethereum/ERCs PR #2012", "discussion": "https://ethereum-magicians.org/t/29735" }
+    },
+    {
+      "erc": 8434,
+      "title": "Agent Identity (AID)",
+      "repo": "aid-standard",
+      "url": "https://github.com/garyyang-finchip/aid-standard.git",
+      "commit": "1ff7215505af0f4699d437744402bd1e1b4dd043",
+      "contractsRoot": "assets/erc-aid/contracts",
+      "upstreamToolchain": "solc-js via scripts/compile.js (solc 0.8.28, optimizer runs 200, evm cancun)",
+      "spec": { "status": "Draft", "where": "ERCS/erc-aid.md in this repository; ethereum/ERCs PR #2044", "discussion": "https://ethereum-magicians.org/t/29805" }
+    },
+    {
+      "erc": 8436,
+      "title": "Agent Collective Decision Framework (ACDF)",
+      "repo": "acd-framework",
+      "url": "https://github.com/garyyang-finchip/acd-framework.git",
+      "commit": "f8204fb9c38d47d619b9d8bc81441dfe9e8e7f91",
+      "contractsRoot": "assets/erc-acdf/contracts",
+      "upstreamToolchain": "foundry (solc 0.8.24, optimizer runs 1, via-IR)",
+      "spec": { "status": "Draft (merged into ethereum/ERCs 2026-10-14)", "where": "https://eips.ethereum.org/EIPS/eip-8436", "discussion": "https://ethereum-magicians.org/t/29850" }
+    },
+    {
+      "erc": 8444,
+      "title": "Agentic Resource Discovery (ARD) Onchain",
+      "repo": "ard-onchain-framework",
+      "url": "https://github.com/garyyang-finchip/ard-onchain-framework.git",
+      "commit": "26416854e489564fc32c4a69cf9c176b703dc089",
+      "contractsRoot": "assets/erc-8444/contracts",
+      "upstreamToolchain": "foundry (solc 0.8.24, optimizer runs 200)",
+      "spec": { "status": "Draft (merged into ethereum/ERCs 2026-10-15)", "where": "https://eips.ethereum.org/ERCS/erc-8444", "discussion": "https://ethereum-magicians.org/t/29963" }
+    },
+    {
+      "erc": 8447,
+      "title": "Swarm AI Framework (SAI)",
+      "repo": "swarm-ai-framework",
+      "url": "https://github.com/garyyang-finchip/swarm-ai-framework.git",
+      "commit": "de5bc291ab93bca0163bec47caa66136d1cf3f6a",
+      "contractsRoot": "assets/erc-8447/contracts",
+      "upstreamToolchain": "foundry (solc 0.8.24, optimizer runs 1, via-IR, external libraries)",
+      "spec": { "status": "Draft", "where": "ERCS/erc-8447.md in this repository; ethereum/ERCs PR #2081", "discussion": "https://ethereum-magicians.org/t/29998" }
+    },
+    {
+      "erc": 8454,
+      "title": "AIFi Unit Framework (AUF)",
+      "repo": "aifi-unit-framework",
+      "url": "https://github.com/garyyang-finchip/aifi-unit-framework.git",
+      "commit": "1be1da69811875bae0a6fd7b10152b4831e5538f",
+      "contractsRoot": "assets/erc-auf/contracts",
+      "upstreamToolchain": "foundry (solc 0.8.30, optimizer runs 200, evm cancun, bytecode_hash none)",
+      "spec": { "status": "Draft", "where": "ERCS/erc-auf.md in this repository; ethereum/ERCs PR #2095", "discussion": "https://ethereum-magicians.org/t/30040" }
+    },
+    {
+      "erc": 8468,
+      "title": "Agent Safety Framework (ASF)",
+      "repo": "agent-safety-framework",
+      "url": "https://github.com/garyyang-finchip/agent-safety-framework.git",
+      "commit": "a76071c0e0ab76c296a0eb878dee1365ce5a78bc",
+      "contractsRoot": "assets/erc-asf/contracts",
+      "upstreamToolchain": "foundry (solc 0.8.30, optimizer runs 200, via-IR, evm cancun, bytecode_hash none, external libraries)",
+      "spec": { "status": "Draft", "where": "ERCS/erc-asf.md in this repository; ethereum/ERCs PR #2113", "discussion": "https://ethereum-magicians.org/t/30073" }
+    },
+    {
+      "erc": 8471,
+      "title": "AI Dispute Resolution Framework (ADRF)",
+      "repo": "ai-dispute-resolution",
+      "url": "https://github.com/garyyang-finchip/ai-dispute-resolution.git",
+      "commit": "cd5a3e076d648ff5c29d87ab023b22398e0ab17a",
+      "contractsRoot": "assets/erc-adrf/contracts",
+      "upstreamToolchain": "foundry (solc 0.8.30, optimizer runs 200, via-IR, evm cancun, bytecode_hash none)",
+      "spec": { "status": "Draft", "where": "ERCS/erc-adrf.md in this repository; ethereum/ERCs PR #2123", "discussion": "https://ethereum-magicians.org/t/30121" }
+    }
+  ]
+}
