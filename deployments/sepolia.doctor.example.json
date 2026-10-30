@@ -1,0 +1,2302 @@
+{
+  "schema": "foga.doctor-report/1",
+  "at": "2026-10-30T01:34:34.821Z",
+  "world": {
+    "worldId": "sepolia-11155111-20261030T013433Z",
+    "name": "sepolia",
+    "network": "sepolia",
+    "chainId": 11155111,
+    "mode": "attached",
+    "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109"
+  },
+  "source": {
+    "rpc": "https://ethereum-sepolia-rpc.publicnode.com",
+    "collectedAt": "2026-10-30T01:34:34.706Z",
+    "mode": "live"
+  },
+  "chain": {
+    "chainId": 11155111,
+    "blockNumber": 12023430
+  },
+  "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109",
+  "layers": {
+    "1": "chain and code: the address holds code on the expected chain",
+    "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
+    "3": "version match: runtime code (metadata stripped, library/immutable slots masked) equals the locked build",
+    "4": "configuration and permissions: dependency addresses and authority slots match the world",
+    "5": "semantic validation: success, rejection, signature, proof and recovery cases (Phase 2)"
+  },
+  "results": [
+    {
+      "layer": 1,
+      "subject": "world",
+      "check": "chainId",
+      "verdict": "Pass",
+      "expected": "11155111",
+      "actual": "11155111"
+    },
+    {
+      "layer": 1,
+      "subject": "8338/SkillToken",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "8501 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8338/SkillToken",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8338/SkillToken",
+      "check": "supportsInterface(IOnchainSkillDocument)",
+      "verdict": "Pass",
+      "expected": "0x7050dd2c"
+    },
+    {
+      "layer": 2,
+      "subject": "8338/SkillToken",
+      "check": "supportsInterface(ISkillToken)",
+      "verdict": "Pass",
+      "expected": "0x734553a6"
+    },
+    {
+      "layer": 2,
+      "subject": "8338/SkillToken",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IOnchainSkillDocument=0x7050dd2c, ISkillToken=0x734553a6",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8338/SkillToken",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x862b1157d5fa0f75afad7571b82006a64d4067b2cbf79b76623c6f0918b817c8",
+      "actual": "0x862b1157d5fa0f75afad7571b82006a64d4067b2cbf79b76623c6f0918b817c8",
+      "detail": "8501 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8414/TaskToken",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "23766 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/TaskToken",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/TaskToken",
+      "check": "supportsInterface(IOnchainTaskDocument)",
+      "verdict": "Pass",
+      "expected": "0xeb078d05"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/TaskToken",
+      "check": "supportsInterface(ITaskTender)",
+      "verdict": "Pass",
+      "expected": "0xc319d532"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/TaskToken",
+      "check": "supportsInterface(ITaskToken)",
+      "verdict": "Pass",
+      "expected": "0xcdaeb26d"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/TaskToken",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IERC165Probe=0x01ffc9a7, IOnchainTaskDocument=0xeb078d05, ITaskTender=0xc319d532, ITaskToken=0xcdaeb26d",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8414/TaskToken",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x099cc776ce0a068bc7ae80def23c49a1ae3665ec1aeb4552c9fc13f8ff8da3c0",
+      "actual": "0x099cc776ce0a068bc7ae80def23c49a1ae3665ec1aeb4552c9fc13f8ff8da3c0",
+      "detail": "23766 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8414/HashlockVerifier",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "1651 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/HashlockVerifier",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/HashlockVerifier",
+      "check": "supportsInterface(ITaskVerifier)",
+      "verdict": "Pass",
+      "expected": "0x9977db15"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/HashlockVerifier",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IERC165Probe=0x01ffc9a7, ITaskVerifier=0x9977db15",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8414/HashlockVerifier",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x58da61420be46f1c99aa990bf08ab062c8d318b3b33b1c9c9a6a177a34ffb1c3",
+      "actual": "0x58da61420be46f1c99aa990bf08ab062c8d318b3b33b1c9c9a6a177a34ffb1c3",
+      "detail": "1651 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8414/JuryPanel",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "2720 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8414/JuryPanel",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8414/JuryPanel",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xc6d0bff6c75b039ed5b39d52e29f0fe04bfbc59fda186cab92224ab7202e2c82",
+      "actual": "0xc6d0bff6c75b039ed5b39d52e29f0fe04bfbc59fda186cab92224ab7202e2c82",
+      "detail": "2720 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8419/KYASchemeRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4224 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYASchemeRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYASchemeRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYASchemeRegistry",
+      "check": "supportsInterface(IKYASchemeRegistry)",
+      "verdict": "Pass",
+      "expected": "0xe6dbd933"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYASchemeRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IERC165=0x01ffc9a7, IKYASchemeRegistry=0xe6dbd933",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8419/KYASchemeRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xe99427d8d6d464017c8d176b5b62f355c0e7e5e398eff234665eb3bce70b4305",
+      "actual": "0xe99427d8d6d464017c8d176b5b62f355c0e7e5e398eff234665eb3bce70b4305",
+      "detail": "4224 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8419/KYARegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "8886 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYARegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYARegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYARegistry",
+      "check": "supportsInterface(IKYARegistry)",
+      "verdict": "Pass",
+      "expected": "0x5d1bec61"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYARegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IERC165=0x01ffc9a7, IKYARegistry=0x5d1bec61",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8419/KYARegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x160c8a39399ad422745226bcb5d5f89e95acd748f11efc7f0448051a38b7a71d",
+      "actual": "0x160c8a39399ad422745226bcb5d5f89e95acd748f11efc7f0448051a38b7a71d",
+      "detail": "8886 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4736 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "supportsInterface(IKYAPolicyEvaluator)",
+      "verdict": "Pass",
+      "expected": "0x173ff2b6"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "supportsInterface(IKYAPolicyRegistry)",
+      "verdict": "Pass",
+      "expected": "0x1cf9e558"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IERC165=0x01ffc9a7, IKYAPolicyEvaluator=0x173ff2b6, IKYAPolicyRegistry=0x1cf9e558",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x3036f43cf634b407a668d260c721165ca9b5b7c878c1343b7167f26dd6c9a3f7",
+      "actual": "0x3036f43cf634b407a668d260c721165ca9b5b7c878c1343b7167f26dd6c9a3f7",
+      "detail": "4736 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8419/ValidationRegistry8004",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4296 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/ValidationRegistry8004",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8419/ValidationRegistry8004",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x14521f9923fd71e6f9214c6c568a53c36d6ac0efaf169da9f2a52758adc4de83",
+      "actual": "0x14521f9923fd71e6f9214c6c568a53c36d6ac0efaf169da9f2a52758adc4de83",
+      "detail": "4296 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8419/KYABridge8004",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "6055 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/KYABridge8004",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8419/KYABridge8004",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xae4892981c0b9420179777ba642c27b7add2a5c02761dc1881e9be45a75ed0f1",
+      "actual": "0xae4892981c0b9420179777ba642c27b7add2a5c02761dc1881e9be45a75ed0f1",
+      "detail": "6055 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8419/Groth16Verifier",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "2665 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/Groth16Verifier",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8419/Groth16Verifier",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xb9fb2de120429e15e0b73f1978feb87224065c9b955fbc76543372cdf9343020",
+      "actual": "0xb9fb2de120429e15e0b73f1978feb87224065c9b955fbc76543372cdf9343020",
+      "detail": "2665 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8419/Groth16KYAVerifierAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "2963 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8419/Groth16KYAVerifierAdapter",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8419/Groth16KYAVerifierAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x80cf6e63cf472eb50bcb40938940529ddb2820ab5ce47b82b4ca47886cb41b57",
+      "actual": "0x80cf6e63cf472eb50bcb40938940529ddb2820ab5ce47b82b4ca47886cb41b57",
+      "detail": "2963 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8434/AIDRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "8525 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry",
+      "check": "supportsInterface(IAIDRegistry)",
+      "verdict": "Pass",
+      "expected": "0x72750a54"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIDRegistry=0x72750a54, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8434/AIDRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x6fda5d5f2fda9073cc96b53ca570375cc26ab2de5e511b86e8fc1e2ce9894c42",
+      "actual": "0x6fda5d5f2fda9073cc96b53ca570375cc26ab2de5e511b86e8fc1e2ce9894c42",
+      "detail": "8525 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8434/AIDRegistry(ard-fixture)",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "8521 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry(ard-fixture)",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry(ard-fixture)",
+      "check": "supportsInterface(IAIDRegistry)",
+      "verdict": "Pass",
+      "expected": "0x72750a54"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry(ard-fixture)",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8434/AIDRegistry(ard-fixture)",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIDRegistry=0x72750a54, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8434/AIDRegistry(ard-fixture)",
+      "check": "runtimeIdentity",
+      "verdict": "Fail",
+      "expected": "0x6fda5d5f2fda9073cc96b53ca570375cc26ab2de5e511b86e8fc1e2ce9894c42",
+      "actual": "0x73689ee8f813555a1080c8c8694a16ac042816754c0a422a58a695ad06fe219f",
+      "detail": "known: deployed from ard-onchain-framework fixture (aid-standard commit 32ce5f7b), 30 d / 365 d; bundle is built from the locked commit"
+    },
+    {
+      "layer": 1,
+      "subject": "8436/ACDFPolicyRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "10201 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8436/ACDFPolicyRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8436/ACDFPolicyRegistry",
+      "check": "supportsInterface(IACDFPolicyRegistry)",
+      "verdict": "Pass",
+      "expected": "0xb362eb4e"
+    },
+    {
+      "layer": 2,
+      "subject": "8436/ACDFPolicyRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IACDFPolicyRegistry=0xb362eb4e",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8436/ACDFPolicyRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xb13eba4236545f5cd0522f45bcfae031d52512416227f6bb15408a84cedd98dc",
+      "actual": "0xb13eba4236545f5cd0522f45bcfae031d52512416227f6bb15408a84cedd98dc",
+      "detail": "10201 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8436/ACDFRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "24212 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8436/ACDFRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8436/ACDFRegistry",
+      "check": "supportsInterface(IACDFRegistry)",
+      "verdict": "Pass",
+      "expected": "0xd31aae30"
+    },
+    {
+      "layer": 2,
+      "subject": "8436/ACDFRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IACDFRegistry=0xd31aae30",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8436/ACDFRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xa7a5ff6d62ac65edfd92e2bc0de0ac7583e54f9ab4a3172f8a74946159c38b7d",
+      "actual": "0xa7a5ff6d62ac65edfd92e2bc0de0ac7583e54f9ab4a3172f8a74946159c38b7d",
+      "detail": "24212 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "9939 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "supportsInterface(IARDOnchainRegistry)",
+      "verdict": "Pass",
+      "expected": "0x881908a5"
+    },
+    {
+      "layer": 2,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IARDOnchainRegistry=0x881908a5, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xf54128573d2203d259c845b1dea004fd1deae65f14f11f50fa94a2bd900000f8",
+      "actual": "0xf54128573d2203d259c845b1dea004fd1deae65f14f11f50fa94a2bd900000f8",
+      "detail": "9939 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8444/SkillAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "1248 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8444/SkillAdapter",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8444/SkillAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x719b7c78c1f3d8eeb36cb9f8cb507e28b21038764f5d58aeb01195cbfa04db4e",
+      "actual": "0x719b7c78c1f3d8eeb36cb9f8cb507e28b21038764f5d58aeb01195cbfa04db4e",
+      "detail": "1248 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8444/TaskAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "1933 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8444/TaskAdapter",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8444/TaskAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x3915e61694e81341db6e52d4c5be2bc696acc81cbbe8ebb9cb97651ca411781d",
+      "actual": "0x3915e61694e81341db6e52d4c5be2bc696acc81cbbe8ebb9cb97651ca411781d",
+      "detail": "1933 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8444/AgentAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "1288 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8444/AgentAdapter",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8444/AgentAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xb2a7a88e4a986ba44b9b714d8c1f6eb57369731107613ec712ae1db77398e0cb",
+      "actual": "0xb2a7a88e4a986ba44b9b714d8c1f6eb57369731107613ec712ae1db77398e0cb",
+      "detail": "1288 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8444/RegistryAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "470 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8444/RegistryAdapter",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8444/RegistryAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x5cd8910037d6ec4fa2536bbf03b768f099a6780ca668409041fbd1d67c18b0bf",
+      "actual": "0x5cd8910037d6ec4fa2536bbf03b768f099a6780ca668409041fbd1d67c18b0bf",
+      "detail": "470 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/SpecValidator",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "2759 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/SpecValidator",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/SpecValidator",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xdb8c46584aeb5e96b9560e9cc1b453d7e3b898c30f6c40b0dd04c41730ccf75b",
+      "actual": "0xdb8c46584aeb5e96b9560e9cc1b453d7e3b898c30f6c40b0dd04c41730ccf75b",
+      "detail": "2759 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/LifecycleLib",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "20903 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/LifecycleLib",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/LifecycleLib",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x9c10ca868e419d4003ebc944fd39e52d02c3677f4b20a185e410c42066149bb6",
+      "actual": "0x9c10ca868e419d4003ebc944fd39e52d02c3677f4b20a185e410c42066149bb6",
+      "detail": "20903 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/MembershipLib",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "12047 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/MembershipLib",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/MembershipLib",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x0bb4a559e5e741ffc1d7754a428ab31c17b314133f17a4d3beaa0a26c90e879b",
+      "actual": "0x0bb4a559e5e741ffc1d7754a428ab31c17b314133f17a4d3beaa0a26c90e879b",
+      "detail": "12047 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/ResourceLib",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4819 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/ResourceLib",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/ResourceLib",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x623a512103d087f237c4e14c1f7a300c1361a845dce4db48dd62996685ab1fc7",
+      "actual": "0x623a512103d087f237c4e14c1f7a300c1361a845dce4db48dd62996685ab1fc7",
+      "detail": "4819 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/SwarmRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "16480 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/SwarmRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/SwarmRegistry",
+      "check": "supportsInterface(ISwarmRegistry)",
+      "verdict": "Pass",
+      "expected": "0x085203a4"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/SwarmRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "ISwarmRegistry=0x085203a4",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/SwarmRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x2978641080d653de1778e905a3d66b4686d47859b093668ad9403a0525a2af1d",
+      "actual": "0x2978641080d653de1778e905a3d66b4686d47859b093668ad9403a0525a2af1d",
+      "detail": "16480 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/AllowlistEligibility",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "625 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/AllowlistEligibility",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/AllowlistEligibility",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x7ca9189390fd79d48d218707704791e583d5192684e201ef4fd5c0f5eb8f5543",
+      "actual": "0x7ca9189390fd79d48d218707704791e583d5192684e201ef4fd5c0f5eb8f5543",
+      "detail": "625 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/SwarmDecisionAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "12319 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/SwarmDecisionAdapter",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/SwarmDecisionAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x1d5b451c135f1fd2c7ce401bb27586ff235af4426c3779181a56f5a29e5c2d25",
+      "actual": "0x1d5b451c135f1fd2c7ce401bb27586ff235af4426c3779181a56f5a29e5c2d25",
+      "detail": "12319 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/SwarmTenderAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "3753 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/SwarmTenderAdapter",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/SwarmTenderAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x1dd9f024e6c9ebcafdecff351d3eef64979d713ba5a234f5e2614ca1af97d475",
+      "actual": "0x1dd9f024e6c9ebcafdecff351d3eef64979d713ba5a234f5e2614ca1af97d475",
+      "detail": "3753 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8454/AUFUnitRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4360 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFUnitRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFUnitRegistry",
+      "check": "supportsInterface(IAUFUnitRegistry)",
+      "verdict": "Pass",
+      "expected": "0x7128ef29"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFUnitRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFUnitRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAUFUnitRegistry=0x7128ef29, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8454/AUFUnitRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x66f78dcc39bdf9a9360bf7b31e52640e79ecf147a0da621c9af165eb2905d67c",
+      "actual": "0x66f78dcc39bdf9a9360bf7b31e52640e79ecf147a0da621c9af165eb2905d67c",
+      "detail": "4360 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8454/AUFAssertionRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "9683 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFAssertionRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFAssertionRegistry",
+      "check": "supportsInterface(IAUFAssertionRegistry)",
+      "verdict": "Pass",
+      "expected": "0x46ae6e24"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFAssertionRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8454/AUFAssertionRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAUFAssertionRegistry=0x46ae6e24, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8454/AUFAssertionRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xaa6e0b83a39161fd851c1ded01ca41b625f03898839c8198ab89b548ec9da986",
+      "actual": "0xaa6e0b83a39161fd851c1ded01ca41b625f03898839c8198ab89b548ec9da986",
+      "detail": "9683 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8468/ASFEvaluation",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "3923 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFEvaluation",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8468/ASFEvaluation",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x61a224caf19476eca5be784104f6c2b7ec19c9f9113b151af6b63f5b8aa0c978",
+      "actual": "0x61a224caf19476eca5be784104f6c2b7ec19c9f9113b151af6b63f5b8aa0c978",
+      "detail": "3923 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8468/ASFLifecycle",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "5546 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFLifecycle",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8468/ASFLifecycle",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xfe777fe0d29abd283d34fc1820ea1971ae590349ad9a8c392dc6cc21d5ff331e",
+      "actual": "0xfe777fe0d29abd283d34fc1820ea1971ae590349ad9a8c392dc6cc21d5ff331e",
+      "detail": "5546 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8468/ASFSpecificationRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "3260 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFSpecificationRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFSpecificationRegistry",
+      "check": "supportsInterface(IASFSpecificationRegistry)",
+      "verdict": "Pass",
+      "expected": "0x9bddde77"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFSpecificationRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IASFSpecificationRegistry=0x9bddde77, IERC165Probe=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8468/ASFSpecificationRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xbad924f451c276549582c6835016020186109b8b170d3abdb1216350e4cb0444",
+      "actual": "0xbad924f451c276549582c6835016020186109b8b170d3abdb1216350e4cb0444",
+      "detail": "3260 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8468/ASFBindingRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "7637 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFBindingRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFBindingRegistry",
+      "check": "supportsInterface(IASFBindingRegistry)",
+      "verdict": "Pass",
+      "expected": "0xcff7f826"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFBindingRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IASFBindingRegistry=0xcff7f826, IERC165Probe=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8468/ASFBindingRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xa9e651c9215de65491b1aebe135545e0b08ade8f187b4582de2d41a83a408a5e",
+      "actual": "0xa9e651c9215de65491b1aebe135545e0b08ade8f187b4582de2d41a83a408a5e",
+      "detail": "7637 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8468/ASFTaskTenderAdapter",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "6406 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFTaskTenderAdapter",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8468/ASFTaskTenderAdapter",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IERC165Probe=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8468/ASFTaskTenderAdapter",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x9981178d1ebac8f869898ad2f62fa816189f607591919600028520df390d7878",
+      "actual": "0x9981178d1ebac8f869898ad2f62fa816189f607591919600028520df390d7878",
+      "detail": "6406 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFPolicyRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "8540 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFPolicyRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFPolicyRegistry",
+      "check": "supportsInterface(IADRFPolicyRegistry)",
+      "verdict": "Pass",
+      "expected": "0x4413df85"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFPolicyRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFPolicyRegistry=0x4413df85",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFPolicyRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x8a9c841ba7c342f73694e0ef1190399cf1678a82aecada8adcffa6a99cf91904",
+      "actual": "0x8a9c841ba7c342f73694e0ef1190399cf1678a82aecada8adcffa6a99cf91904",
+      "detail": "8540 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "2043 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFDisputeRegistry=0xedc59c17",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x3388c11716822257523b9870d641464069be28d60e867f0d27624480a50f15a6",
+      "actual": "0x3388c11716822257523b9870d641464069be28d60e867f0d27624480a50f15a6",
+      "detail": "2043 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFBindingModule",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "5801 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFBindingModule",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFBindingModule",
+      "check": "runtimeIdentity",
+      "verdict": "Fail",
+      "expected": "0x23ab54cf9032057dbce4f27223c11552f8d1a59b0a9e08139641f148711b27c1",
+      "actual": "0xae043cf0a179bded25746c3633f865a763f0f9749cd5b3a76927566f29f5dd6e",
+      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFFilingModule",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "8483 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFFilingModule",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFFilingModule",
+      "check": "runtimeIdentity",
+      "verdict": "Fail",
+      "expected": "0x248a0be50ac46db2db7cafe95a42c836bd8c70e4225d4b0bb833e4d4fe16ef9b",
+      "actual": "0x67120d0c20f77f7c97e7c1b653219ff1ead544c29aa611d7e1643aa4fe79a71b",
+      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFResolutionModule",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "7062 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFResolutionModule",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFResolutionModule",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xaae4cb838d86ba9e118ddea19e3472704f8d90575b1efa63add6d148229be06d",
+      "actual": "0xaae4cb838d86ba9e118ddea19e3472704f8d90575b1efa63add6d148229be06d",
+      "detail": "7062 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFDecisionModule",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "8535 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFDecisionModule",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFDecisionModule",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x370139390ca3ccb7a44934b569b70f91e5d43e87c7277d32a758c550a39433b3",
+      "actual": "0x370139390ca3ccb7a44934b569b70f91e5d43e87c7277d32a758c550a39433b3",
+      "detail": "8535 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFRecordModule",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "3895 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFRecordModule",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFRecordModule",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xbe89761ac4cbb84f22cff26158e0f83b1f9ebb8ab4fb75087fd4a8831f018207",
+      "actual": "0xbe89761ac4cbb84f22cff26158e0f83b1f9ebb8ab4fb75087fd4a8831f018207",
+      "detail": "3895 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFOutcomeModule",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "5830 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFOutcomeModule",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFOutcomeModule",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xb0bc89f046cab33d06da9e6c908a2f66283660f8dc32244bbd965e3d19e5934b",
+      "actual": "0xb0bc89f046cab33d06da9e6c908a2f66283660f8dc32244bbd965e3d19e5934b",
+      "detail": "5830 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4782 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "supportsInterface(IADRFJudgmentMethod)",
+      "verdict": "Pass",
+      "expected": "0xc29a559d"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFJudgmentMethod=0xc29a559d",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x128023a79d659b5363f907e3af4fba457cd4ff1a4bc2ee2edbe9bbb09a1ec568",
+      "actual": "0x128023a79d659b5363f907e3af4fba457cd4ff1a4bc2ee2edbe9bbb09a1ec568",
+      "detail": "4782 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/DuplicateSettlementVerifier",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "806 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/DuplicateSettlementVerifier",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/DuplicateSettlementVerifier",
+      "check": "supportsInterface(IADRFVerifier)",
+      "verdict": "Pass",
+      "expected": "0xdfed0fe7"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/DuplicateSettlementVerifier",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFVerifier=0xdfed0fe7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/DuplicateSettlementVerifier",
+      "check": "runtimeIdentity",
+      "verdict": "Fail",
+      "expected": "0xc04fb8f86bdafb0ea37643ee58c628f7e9c4d31c0fc3329dfaff0f22feec1bf5",
+      "actual": "0xa28e8091ccbab5c1a96d39f63b75701832c5a4b3b1dfd341083c66f9dde8aced",
+      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/DeclaredVersionVerifier",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "900 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/DeclaredVersionVerifier",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/DeclaredVersionVerifier",
+      "check": "supportsInterface(IADRFVerifier)",
+      "verdict": "Pass",
+      "expected": "0xdfed0fe7"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/DeclaredVersionVerifier",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFVerifier=0xdfed0fe7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/DeclaredVersionVerifier",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xfe89e8e6a169ba9b79479c7faa66aa94b074dd9c1613dcc6965fd55d1adcea1b",
+      "actual": "0xfe89e8e6a169ba9b79479c7faa66aa94b074dd9c1613dcc6965fd55d1adcea1b",
+      "detail": "900 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/AttestorQuorumRule",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "2048 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/AttestorQuorumRule",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/AttestorQuorumRule",
+      "check": "supportsInterface(IADRFEvidenceRule)",
+      "verdict": "Pass",
+      "expected": "0x7ff3f359"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/AttestorQuorumRule",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFEvidenceRule=0x7ff3f359",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/AttestorQuorumRule",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xfe1f209642854de3cf0436632a83c333b3315ec02fe1e4f6d7beefb93d6d6972",
+      "actual": "0xfe1f209642854de3cf0436632a83c333b3315ec02fe1e4f6d7beefb93d6d6972",
+      "detail": "2048 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "7175 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "supportsInterface(IADRFExecutor)",
+      "verdict": "Unknown",
+      "expected": "0x3cee8e6a",
+      "detail": "built from this interface but does not declare it; upstream publishes no id for it, so this is a design choice rather than a defect"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "supportsInterface(IADRFObligationSource)",
+      "verdict": "Fail",
+      "expected": "0xa52f2870",
+      "detail": "known: deployed from revision 3 (2026-10-29); the interface id in the locked source may differ from the one that revision declares"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "supportsInterface(ISettlementLedger)",
+      "verdict": "Unknown",
+      "expected": "0x030e0735",
+      "detail": "built from this interface but does not declare it; upstream publishes no id for it, so this is a design choice rather than a defect"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "runtimeIdentity",
+      "verdict": "Fail",
+      "expected": "0x85876e20753ad93ea5877e3066b6c5d703cb23f0af66f59bfbf134242543827a",
+      "actual": "0x4e2fd18fcc674da554b7f6642e16195a6f2aff8ab6a1f704c37ba3ba9bcfbd96",
+      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
+    },
+    {
+      "layer": 1,
+      "subject": "identity8004",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "130 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "identity8004",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "identity8004",
+      "check": "supportsInterface(ERC-721 0x80ac58cd)",
+      "verdict": "Pass",
+      "detail": "the ERC-8004 Identity Registry is an ERC-721 registry; FOGA does not build it, so this is the only interface check available"
+    },
+    {
+      "layer": 3,
+      "subject": "identity8004",
+      "check": "runtimeIdentity",
+      "verdict": "NotApplicable",
+      "detail": "official ERC-8004 registry, not built by FOGA; no locked build to compare against"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/KYARegistry",
+      "check": "getSchemeRegistry",
+      "verdict": "Pass",
+      "expected": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0 (8419/KYASchemeRegistry)",
+      "actual": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/KYAPolicyRegistry",
+      "check": "kyaRegistry",
+      "verdict": "Pass",
+      "expected": "0xE06FBA26561E7A385B32514f6657De68723d5cF1 (8419/KYARegistry)",
+      "actual": "0xE06FBA26561E7A385B32514f6657De68723d5cF1"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/ValidationRegistry8004",
+      "check": "getIdentityRegistry",
+      "verdict": "Pass",
+      "expected": "0x8004A818BFB912233c491871b3d84c89A494BD9e (identity8004)",
+      "actual": "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/KYABridge8004",
+      "check": "kyaRegistry",
+      "verdict": "Pass",
+      "expected": "0xE06FBA26561E7A385B32514f6657De68723d5cF1 (8419/KYARegistry)",
+      "actual": "0xE06FBA26561E7A385B32514f6657De68723d5cF1"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/KYABridge8004",
+      "check": "validationRegistry",
+      "verdict": "Pass",
+      "expected": "0x91103a508b0525B0b16146Ad5C0a7c719148b14c (8419/ValidationRegistry8004)",
+      "actual": "0x91103a508b0525B0b16146Ad5C0a7c719148b14c"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/KYABridge8004",
+      "check": "identityRegistry",
+      "verdict": "Pass",
+      "expected": "0x8004A818BFB912233c491871b3d84c89A494BD9e (identity8004)",
+      "actual": "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/Groth16KYAVerifierAdapter",
+      "check": "groth16",
+      "verdict": "Pass",
+      "expected": "0x64c18C506e8a202d98822F97911dF774e9b85f85 (8419/Groth16Verifier)",
+      "actual": "0x64c18C506e8a202d98822F97911dF774e9b85f85"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/Groth16KYAVerifierAdapter",
+      "check": "requiredIssuerSetRoot",
+      "verdict": "Pass",
+      "expected": "0x1de029c3b70d5efa4af25f0d1ffb02831eb7c0d9f5a02f3c781d216e2c54b5e8 (world params)",
+      "actual": "0x1de029c3b70d5efa4af25f0d1ffb02831eb7c0d9f5a02f3c781d216e2c54b5e8"
+    },
+    {
+      "layer": 4,
+      "subject": "8419/Groth16KYAVerifierAdapter",
+      "check": "epochLength",
+      "verdict": "Pass",
+      "expected": "2592000 (world params)",
+      "actual": "2592000"
+    },
+    {
+      "layer": 4,
+      "subject": "8434/AIDRegistry",
+      "check": "defaultLivenessWindow",
+      "verdict": "Pass",
+      "expected": "7776000 (world params)",
+      "actual": "7776000"
+    },
+    {
+      "layer": 4,
+      "subject": "8434/AIDRegistry",
+      "check": "maxLivenessWindow",
+      "verdict": "Pass",
+      "expected": "31536000 (world params)",
+      "actual": "31536000"
+    },
+    {
+      "layer": 4,
+      "subject": "8436/ACDFRegistry",
+      "check": "policies",
+      "verdict": "Pass",
+      "expected": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0 (8436/ACDFPolicyRegistry)",
+      "actual": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0"
+    },
+    {
+      "layer": 4,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "kindAdapter(skill)",
+      "verdict": "Pass",
+      "expected": "0x08Be92a9446592fAeaaB976556e09e028662F12F (8444/SkillAdapter)",
+      "actual": "0x08Be92a9446592fAeaaB976556e09e028662F12F"
+    },
+    {
+      "layer": 4,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "kindAdapter(task)",
+      "verdict": "Pass",
+      "expected": "0x0BAB1fEE185A4803a1aC65F6dA59941eeCaE71dB (8444/TaskAdapter)",
+      "actual": "0x0BAB1fEE185A4803a1aC65F6dA59941eeCaE71dB"
+    },
+    {
+      "layer": 4,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "kindAdapter(agent)",
+      "verdict": "Pass",
+      "expected": "0x38898d038F4a8fCE3e13447bE7Eb1ECd128cE25C (8444/AgentAdapter)",
+      "actual": "0x38898d038F4a8fCE3e13447bE7Eb1ECd128cE25C"
+    },
+    {
+      "layer": 4,
+      "subject": "8444/ARDOnchainRegistry",
+      "check": "kindAdapter(registry)",
+      "verdict": "Pass",
+      "expected": "0x32C85829da0be0Fd66ac45eF54d4c393Fcd7149E (8444/RegistryAdapter)",
+      "actual": "0x32C85829da0be0Fd66ac45eF54d4c393Fcd7149E"
+    },
+    {
+      "layer": 4,
+      "subject": "8444/AgentAdapter",
+      "check": "identityRegistry",
+      "verdict": "Pass",
+      "expected": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E (world expectation)",
+      "actual": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E"
+    },
+    {
+      "layer": 4,
+      "subject": "8447/SwarmTenderAdapter",
+      "check": "swarms",
+      "verdict": "Pass",
+      "expected": "0x2C1065a0a892619c1c4288abaf319326C303a1bc (8447/SwarmRegistry)",
+      "actual": "0x2C1065a0a892619c1c4288abaf319326C303a1bc"
+    },
+    {
+      "layer": 4,
+      "subject": "8447/SwarmTenderAdapter",
+      "check": "task",
+      "verdict": "Pass",
+      "expected": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7 (8414/TaskToken)",
+      "actual": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7"
+    },
+    {
+      "layer": 4,
+      "subject": "8447/SwarmDecisionAdapter",
+      "check": "swarms",
+      "verdict": "Pass",
+      "expected": "0x2C1065a0a892619c1c4288abaf319326C303a1bc (8447/SwarmRegistry)",
+      "actual": "0x2C1065a0a892619c1c4288abaf319326C303a1bc"
+    },
+    {
+      "layer": 4,
+      "subject": "8447/SwarmDecisionAdapter",
+      "check": "decisions",
+      "verdict": "Pass",
+      "expected": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01 (8436/ACDFRegistry)",
+      "actual": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01"
+    },
+    {
+      "layer": 4,
+      "subject": "8454/AUFAssertionRegistry",
+      "check": "unitRegistry",
+      "verdict": "Pass",
+      "expected": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8 (8454/AUFUnitRegistry)",
+      "actual": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8"
+    },
+    {
+      "layer": 4,
+      "subject": "8468/ASFTaskTenderAdapter",
+      "check": "registry",
+      "verdict": "Pass",
+      "expected": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919 (8468/ASFBindingRegistry)",
+      "actual": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919"
+    },
+    {
+      "layer": 4,
+      "subject": "8468/ASFTaskTenderAdapter",
+      "check": "task",
+      "verdict": "Pass",
+      "expected": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7 (8414/TaskToken)",
+      "actual": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "policies",
+      "verdict": "Pass",
+      "expected": "0x071093a38289b5f9578D0162727b05A52E07eed5 (8471/ADRFPolicyRegistry)",
+      "actual": "0x071093a38289b5f9578D0162727b05A52E07eed5"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "bindingModule",
+      "verdict": "Pass",
+      "expected": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2 (8471/ADRFBindingModule)",
+      "actual": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "filingModule",
+      "verdict": "Pass",
+      "expected": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209 (8471/ADRFFilingModule)",
+      "actual": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "resolutionModule",
+      "verdict": "Pass",
+      "expected": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4 (8471/ADRFResolutionModule)",
+      "actual": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "decisionModule",
+      "verdict": "Pass",
+      "expected": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52 (8471/ADRFDecisionModule)",
+      "actual": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "recordModule",
+      "verdict": "Pass",
+      "expected": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69 (8471/ADRFRecordModule)",
+      "actual": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFDisputeRegistry",
+      "check": "outcomeModule",
+      "verdict": "Pass",
+      "expected": "0x999BEf843E8ADba949e688C321D7b5bF37efea55 (8471/ADRFOutcomeModule)",
+      "actual": "0x999BEf843E8ADba949e688C321D7b5bF37efea55"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "adrf",
+      "verdict": "Pass",
+      "expected": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9 (8471/ADRFDisputeRegistry)",
+      "actual": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "acdf",
+      "verdict": "Pass",
+      "expected": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01 (8436/ACDFRegistry)",
+      "actual": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01"
+    },
+    {
+      "layer": 4,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "adrf",
+      "verdict": "Pass",
+      "expected": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9 (8471/ADRFDisputeRegistry)",
+      "actual": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8338",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8414",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8419",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8434",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8436",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8444",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8447",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8454",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8468",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8471",
+      "check": "semantic validation",
+      "verdict": "NotTested",
+      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+    }
+  ],
+  "readouts": [
+    {
+      "subject": "8444/ARDOnchainRegistry",
+      "fn": "owner",
+      "value": "0xCcFDEE360c9CDc79005e4ddA9845f3A24EE37A25"
+    },
+    {
+      "subject": "8419/KYABridge8004",
+      "fn": "owner",
+      "value": "0x0690119CF9C484cf1700122e6b2075Ba6b7A1492"
+    },
+    {
+      "subject": "8447/AllowlistEligibility",
+      "fn": "owner",
+      "value": "0x91E946F5633306f173D6E5d93aD3a040c4211da1"
+    },
+    {
+      "subject": "8471/ADRFServiceEscrow",
+      "fn": "admin",
+      "value": "0x2cF07458835437ce44C06f92BbfD30CCd3794dCF"
+    },
+    {
+      "subject": "8471/ADRFServiceEscrow",
+      "fn": "bindingId",
+      "value": "0x4fe9f35788f6f53142542c2fd83c32ab447961985228a97f3ce60522d3f593f2"
+    },
+    {
+      "subject": "8454/AUFUnitRegistry",
+      "fn": "unitCount",
+      "value": "7"
+    }
+  ],
+  "summary": {
+    "Pass": 210,
+    "Fail": 6,
+    "Unknown": 2,
+    "NotTested": 10,
+    "NotApplicable": 23
+  },
+  "perContract": {
+    "8338/SkillToken": {
+      "address": "0x12cc1a5319c6F08bFB50982e3814A376A59fE550",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8414/TaskToken": {
+      "address": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8414/HashlockVerifier": {
+      "address": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8414/JuryPanel": {
+      "address": "0x7249E48c7E2131ADA0fcc25b1eaE4f4258545511",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8419/KYASchemeRegistry": {
+      "address": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8419/KYARegistry": {
+      "address": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8419/KYAPolicyRegistry": {
+      "address": "0x7767966702bf12C31CDD600807B77443998f0F21",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8419/ValidationRegistry8004": {
+      "address": "0x91103a508b0525B0b16146Ad5C0a7c719148b14c",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8419/KYABridge8004": {
+      "address": "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8419/Groth16Verifier": {
+      "address": "0x64c18C506e8a202d98822F97911dF774e9b85f85",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8419/Groth16KYAVerifierAdapter": {
+      "address": "0x7C424db1f07d5BCA5b58Dc4b573f31c32a70bCE7",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8434/AIDRegistry": {
+      "address": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8434/AIDRegistry(ard-fixture)": {
+      "address": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Fail",
+      "layer4": "NotApplicable"
+    },
+    "8436/ACDFPolicyRegistry": {
+      "address": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8436/ACDFRegistry": {
+      "address": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8444/ARDOnchainRegistry": {
+      "address": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8444/SkillAdapter": {
+      "address": "0x08Be92a9446592fAeaaB976556e09e028662F12F",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8444/TaskAdapter": {
+      "address": "0x0BAB1fEE185A4803a1aC65F6dA59941eeCaE71dB",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8444/AgentAdapter": {
+      "address": "0x38898d038F4a8fCE3e13447bE7Eb1ECd128cE25C",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8444/RegistryAdapter": {
+      "address": "0x32C85829da0be0Fd66ac45eF54d4c393Fcd7149E",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8447/SpecValidator": {
+      "address": "0xE27c429eb67C829312CAAd6Ac8F5359114BbCa00",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8447/LifecycleLib": {
+      "address": "0xf0CA34139e77EE6Adae171930d330C77a75f09cd",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8447/MembershipLib": {
+      "address": "0x8582a086749A32F7BFce5BB8D9835026eF85d121",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8447/ResourceLib": {
+      "address": "0x77b7d8aaFe0Daa42b6E197392B29307A51c448a5",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8447/SwarmRegistry": {
+      "address": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8447/AllowlistEligibility": {
+      "address": "0x9Bd40264D0062Fb1E5550A63446b64DE4A123C20",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8447/SwarmDecisionAdapter": {
+      "address": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8447/SwarmTenderAdapter": {
+      "address": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8454/AUFUnitRegistry": {
+      "address": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8454/AUFAssertionRegistry": {
+      "address": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8468/ASFEvaluation": {
+      "address": "0x9b12f62D69EAfc9a240b9AB889cC1647Bf9C56db",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8468/ASFLifecycle": {
+      "address": "0x6A6f645Ec9f161735cc22d441AFD1f513f3B143B",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8468/ASFSpecificationRegistry": {
+      "address": "0x9110b622a17F83065f1e9773D961EB10672932e5",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8468/ASFBindingRegistry": {
+      "address": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8468/ASFTaskTenderAdapter": {
+      "address": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8471/ADRFPolicyRegistry": {
+      "address": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFDisputeRegistry": {
+      "address": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8471/ADRFBindingModule": {
+      "address": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Fail",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFFilingModule": {
+      "address": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Fail",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFResolutionModule": {
+      "address": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFDecisionModule": {
+      "address": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFRecordModule": {
+      "address": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFOutcomeModule": {
+      "address": "0x999BEf843E8ADba949e688C321D7b5bF37efea55",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFACDFBridge": {
+      "address": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8471/DuplicateSettlementVerifier": {
+      "address": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Fail",
+      "layer4": "NotApplicable"
+    },
+    "8471/DeclaredVersionVerifier": {
+      "address": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/AttestorQuorumRule": {
+      "address": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFServiceEscrow": {
+      "address": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+      "layer1": "Pass",
+      "layer2": "Fail",
+      "layer3": "Fail",
+      "layer4": "Pass"
+    },
+    "identity8004": {
+      "address": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "NotApplicable",
+      "layer4": "NotApplicable"
+    }
+  }
+}
