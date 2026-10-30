@@ -8,13 +8,13 @@ on:
 
 jobs:
   world:
-    name: bundle, world, doctor
+    name: bundle, world, doctor, genesis
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -57,19 +57,50 @@ jobs:
       - name: Doctor (layers 1-4; exit 3 on any Fail)
         run: npm run foga -- doctor --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --out deployments/ci-local.doctor.json
 
+      - name: Genesis T0-T3, crashed after the submit of T3 (exit 75 expected)
+        run: |
+          set +e
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T3 --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json --crash-after T3.A.submit
+          code=$?
+          set -e
+          test "$code" -eq 75 || { echo "expected the injected crash (75), got $code"; exit 1; }
+
+      - name: Genesis resumed (recovers the submit by hash, settles; exit 0)
+        run: |
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T3 --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json
+          node -e '
+            const e = require("./deployments/ci-local.genesis.json");
+            if (e.summary.failed !== 0) throw new Error("checks failed: " + JSON.stringify(e.checks.filter(c => !c.pass)));
+            if (e.summary.recovered !== 1) throw new Error("expected exactly one recovered operation, got " + e.summary.recovered);
+            const one = e.checks.find(c => c.name === "submissions.one");
+            if (!one || !one.pass) throw new Error("the tender does not have exactly one submission");
+          '
+
+      - name: Genesis replayed (nothing sent, end state re-checked)
+        run: |
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T3 --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.replay.json
+          node -e '
+            const e = require("./deployments/ci-local.genesis.replay.json");
+            if (e.summary.failed !== 0) throw new Error("checks failed on replay");
+            if (e.summary.sent !== 0) throw new Error("a replay sent " + e.summary.sent + " transactions");
+          '
+          npm run foga -- genesis status --world deployments/ci-local.json --store deployments/ci-local.genesis.sqlite
+
       - name: Attach the Sepolia world (address book only; no RPC in CI)
         run: npm run foga -- world attach --world worlds/sepolia.json --out deployments/ci-sepolia.json
 
       - name: Compile the CLI
         run: npm run build && node bin/foga.js --help
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: world-and-doctor
+          name: world-doctor-genesis
           path: |
             deployments/ci-local.json
             deployments/ci-local.doctor.json
+            deployments/ci-local.genesis.json
+            deployments/ci-local.genesis.replay.json
             deployments/ci-sepolia.json
             .foga-build/bundle.verify.json
           if-no-files-found: ignore
