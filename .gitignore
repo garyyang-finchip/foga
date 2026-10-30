@@ -1,0 +1,24 @@
+# dependencies and build output
+node_modules/
+dist/
+out/
+cache/
+.foga-build/
+
+# vendored upstream sources are materialized by `foga vendor sync` from vendor/LOCK.json
+vendor/*/
+!vendor/LOCK.json
+!vendor/README.md
+
+# local world outputs (keep the committed examples)
+deployments/*.json
+!deployments/*.example.json
+
+# foundry
+contracts/out/
+contracts/cache/
+
+# misc
+.env
+*.log
+.DS_Store
