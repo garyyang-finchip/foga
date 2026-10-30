@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
+import { closeSync, openSync, readFileSync } from "node:fs";
 import { createConnection } from "node:net";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { buildBundle } from "./build/bundle.js";
 import { syncVendor, verifyVendor } from "./build/vendor.js";
 import { runDoctor } from "./doctor/doctor.js";
-import { exists, readJson, repoRoot, writeJson } from "./util/fs.js";
+import { ensureDir, exists, readJson, repoRoot, writeJson } from "./util/fs.js";
 import { fail, log } from "./util/log.js";
 import { attachWorld, deployWorld, loadWorldConfig } from "./world/deploy.js";
 import { loadBundle } from "./bundle/load.js";
@@ -223,12 +224,14 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
   // FOGA_FOUNDRY_DIR points at a Foundry install of its own (scripts/install-foundry.sh puts the static build there).
   const foundryDir = process.env.FOGA_FOUNDRY_DIR;
   const anvilBin = foundryDir ? join(foundryDir, "anvil") : "anvil";
-  log.info(`starting anvil on ${rpc}${foundryDir ? ` (${anvilBin})` : ""}`);
-  const anvil = spawn(anvilBin, ["--port", String(opts.port), "--silent"], { stdio: ["ignore", "ignore", "pipe"] });
-  let stderr = "";
-  anvil.stderr?.on("data", (d) => {
-    stderr = (stderr + String(d)).slice(-8000);
-  });
+  // anvil's output goes to a log file rather than a pipe: with --keep the node survives this process, and a
+  // Rust program whose stderr pipe has gone away dies on its next write.
+  const logPath = join(root, ".foga-build", "anvil.log");
+  ensureDir(join(root, ".foga-build"));
+  const logFd = openSync(logPath, "w");
+  log.info(`starting anvil on ${rpc}${foundryDir ? ` (${anvilBin})` : ""}; log ${relative(root, logPath)}`);
+  const anvil = spawn(anvilBin, ["--port", String(opts.port), "--silent"], { stdio: ["ignore", logFd, logFd], detached: opts.keep });
+  closeSync(logFd);
   let exited: string | null = null;
   anvil.on("exit", (code, signal) => {
     exited = code !== null ? `exit code ${code}` : `signal ${signal}`;
@@ -253,11 +256,17 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
   try {
     await waitForRpc(rpc, 20000, () => exited !== null);
   } catch (e: any) {
+    let output = "";
+    try {
+      output = readFileSync(logPath, "utf8").slice(-8000);
+    } catch {
+      /* no log */
+    }
     const why = exited ? `anvil stopped (${exited}) before serving ${rpc}` : `anvil did not serve ${rpc} within 20 s`;
-    const glibc = /GLIBC_[0-9.]+' not found/.test(stderr)
+    const glibc = /GLIBC_[0-9.]+' not found/.test(output)
       ? "\nThis anvil is the glibc build and this machine's glibc is older than it needs (GLIBC >= 2.35: Ubuntu 22.04 or newer). Install the static build next to it: `scripts/install-foundry.sh` then `export FOGA_FOUNDRY_DIR=~/.foga/foundry` (or put that directory first on PATH)."
       : "";
-    fail(`${why}.${stderr.trim() ? `\n--- anvil stderr ---\n${stderr.trim()}\n--------------------` : ""}${glibc}\nRun \`${anvilBin} --port ${opts.port}\` by hand to see its output; \`${anvilBin} --version\` shows the installed version (CI uses Foundry v1.7.1).`);
+    fail(`${why}.${output.trim() ? `\n--- anvil output ---\n${output.trim()}\n--------------------` : ""}${glibc}\nRun \`${anvilBin} --port ${opts.port}\` by hand to see its output; \`${anvilBin} --version\` shows the installed version (CI uses Foundry v1.7.1).`);
   }
   const worldConfig = join(root, "worlds", "local.json");
   const out = join(root, "deployments", "local.json");
@@ -272,8 +281,11 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
     const { failed } = await runGenesis({ worldPath: out, rpc, storePath, until: opts.genesis as any });
     if (failed > 0) process.exitCode = 4;
   }
-  if (opts.keep) log.info(`anvil left running on ${rpc} (pid ${anvil.pid}); world at deployments/local.json`);
-  else stop();
+  if (opts.keep) {
+    // Let this process return while anvil, started detached, keeps serving.
+    anvil.unref();
+    log.info(`anvil left running on ${rpc} (pid ${anvil.pid}, log ${relative(root, logPath)}); world at deployments/local.json. Stop it with: kill ${anvil.pid}`);
+  } else stop();
 }
 
 /** True when something accepts TCP connections on 127.0.0.1:port. */

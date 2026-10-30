@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0-alpha.4 — 2026-10-31
+
+- `foga demo --keep` returns once the run is done and leaves anvil running detached (it printed the pid before but kept the process alive until anvil exited). anvil's output goes to `.foga-build/anvil.log` instead of a pipe, so a kept node cannot die on a closed stderr; the startup diagnostics read that file. README: the interrupt-and-resume example starts from `demo --keep --genesis T2`.
+
 ## 0.2.0-alpha.3 — 2026-10-30
 
 - `scripts/install-foundry.sh`: installs the statically linked (musl) build of the pinned Foundry release for Linux machines whose glibc is older than 2.35 (Amazon Linux 2/2023, CentOS 7, Debian 11), verifying the release checksum. `FOGA_FOUNDRY_DIR` makes `foga demo` start anvil from that directory; the demo recognizes the `GLIBC_x.y not found` failure and points at the script. README and docs/build.md note it.

@@ -63,9 +63,14 @@ The genesis against a running node, step by step:
 npm run foga -- world deploy --world worlds/local.json --rpc http://127.0.0.1:8545 --out deployments/local.json
 npm run foga -- genesis run --world deployments/local.json --rpc http://127.0.0.1:8545 --until T3
 npm run foga -- genesis status --world deployments/local.json         # the operation store
-# interrupt and resume: the same command again replays what was done and continues
-npm run foga -- genesis run --world deployments/local.json --until T3 --crash-after T3.A.submit   # exits 75
-npm run foga -- genesis run --world deployments/local.json --until T3                              # recovers, settles
+```
+
+Interrupt and resume (the same command again replays what was done and continues). `demo --keep` leaves its anvil running in the background and returns:
+
+```bash
+npm run foga -- demo --keep --genesis T2                                                           # chain, world, doctor, T0-T2
+npm run foga -- genesis run --world deployments/local.json --until T3 --crash-after T3.A.submit   # exits 75 after the submit is broadcast
+npm run foga -- genesis run --world deployments/local.json --until T3                              # recovers the submit by hash, settles
 ```
 
 Against a running node:
