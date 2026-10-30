@@ -31,6 +31,7 @@ usage:
 
 environment:
   FOGA_SOLC_DIR   directory with solc-<version> static binaries (offline builds; otherwise forge downloads solc)
+  FOGA_FOUNDRY_DIR  directory holding anvil (scripts/install-foundry.sh: the static Foundry build for older Linux)
   FOGA_RPC_URL    default RPC for doctor and genesis
   FOGA_DEPLOYER_PK  deployer key for world deploy (worlds/local.json falls back to anvil account #0)
   FOGA_KEY_<ROLE>   genesis keys on non-anvil chains (W, G, OWNER_A, OPERATOR_A, ... ); anvil derives them
@@ -219,8 +220,11 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
     );
   }
 
-  log.info(`starting anvil on ${rpc}`);
-  const anvil = spawn("anvil", ["--port", String(opts.port), "--silent"], { stdio: ["ignore", "ignore", "pipe"] });
+  // FOGA_FOUNDRY_DIR points at a Foundry install of its own (scripts/install-foundry.sh puts the static build there).
+  const foundryDir = process.env.FOGA_FOUNDRY_DIR;
+  const anvilBin = foundryDir ? join(foundryDir, "anvil") : "anvil";
+  log.info(`starting anvil on ${rpc}${foundryDir ? ` (${anvilBin})` : ""}`);
+  const anvil = spawn(anvilBin, ["--port", String(opts.port), "--silent"], { stdio: ["ignore", "ignore", "pipe"] });
   let stderr = "";
   anvil.stderr?.on("data", (d) => {
     stderr = (stderr + String(d)).slice(-8000);
@@ -235,7 +239,9 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
   anvil.on("error", (e: NodeJS.ErrnoException) =>
     fail(
       e.code === "ENOENT"
-        ? "anvil not found on PATH. Install Foundry (https://getfoundry.sh: `curl -L https://foundry.sh | bash && foundryup`) or use docker compose."
+        ? foundryDir
+          ? `${anvilBin} not found (FOGA_FOUNDRY_DIR=${foundryDir}). Run scripts/install-foundry.sh ${foundryDir} first.`
+          : "anvil not found on PATH. Install Foundry (https://getfoundry.sh: `curl -L https://foundry.sh | bash && foundryup`), or run scripts/install-foundry.sh and export FOGA_FOUNDRY_DIR, or use docker compose."
         : `could not start anvil: ${e.message}`,
     ),
   );
@@ -248,7 +254,10 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
     await waitForRpc(rpc, 20000, () => exited !== null);
   } catch (e: any) {
     const why = exited ? `anvil stopped (${exited}) before serving ${rpc}` : `anvil did not serve ${rpc} within 20 s`;
-    fail(`${why}.${stderr.trim() ? `\n--- anvil stderr ---\n${stderr.trim()}\n--------------------` : ""}\nRun \`anvil --port ${opts.port}\` by hand to see its output; \`anvil --version\` shows the installed version (CI uses Foundry v1.7.1).`);
+    const glibc = /GLIBC_[0-9.]+' not found/.test(stderr)
+      ? "\nThis anvil is the glibc build and this machine's glibc is older than it needs (GLIBC >= 2.35: Ubuntu 22.04 or newer). Install the static build next to it: `scripts/install-foundry.sh` then `export FOGA_FOUNDRY_DIR=~/.foga/foundry` (or put that directory first on PATH)."
+      : "";
+    fail(`${why}.${stderr.trim() ? `\n--- anvil stderr ---\n${stderr.trim()}\n--------------------` : ""}${glibc}\nRun \`${anvilBin} --port ${opts.port}\` by hand to see its output; \`${anvilBin} --version\` shows the installed version (CI uses Foundry v1.7.1).`);
   }
   const worldConfig = join(root, "worlds", "local.json");
   const out = join(root, "deployments", "local.json");

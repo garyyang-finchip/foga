@@ -14,6 +14,8 @@
 
 ## Compiler binaries
 
+The Foundry release binaries are glibc builds that need GLIBC 2.35 or newer; on an older Linux (Amazon Linux 2/2023, CentOS 7, Debian 11) `scripts/install-foundry.sh` installs the statically linked ("alpine", musl) build of the pinned release into a directory of its own, and `FOGA_FOUNDRY_DIR` tells `foga demo` where its anvil is.
+
 Foundry downloads solc from the Solidity binary mirror on demand. On a machine that cannot reach the mirror, run `scripts/install-solc.sh` (which fetches the three static Linux binaries from the Solidity GitHub releases) and export `FOGA_SOLC_DIR`; `foga build` then passes `--use <dir>/solc-<version>` to forge. The compiler commits used for the committed bundle are `0.8.24+commit.e11b9ed9`, `0.8.28+commit.7893614a` and `0.8.30+commit.73712a01` — the same commits recorded in the upstream Sepolia deployments.
 
 ## What goes into the bundle

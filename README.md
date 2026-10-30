@@ -91,6 +91,8 @@ npm run foga -- doctor --world worlds/sepolia.json --attach --import-results sep
 
 Offline builds: if the machine cannot reach the solc binary mirror, download the three static binaries from the Solidity GitHub releases with `scripts/install-solc.sh` and export `FOGA_SOLC_DIR`.
 
+Older Linux (Amazon Linux 2 and 2023, CentOS 7, Debian 11, …): the regular Foundry binaries need glibc 2.35 and fail with ``version `GLIBC_2.35' not found``. `scripts/install-foundry.sh` installs the statically linked build of the pinned release (v1.7.1) into `~/.foga/foundry`; export `FOGA_FOUNDRY_DIR=~/.foga/foundry` for `foga demo`, or put that directory first on `PATH` to use its anvil, forge and cast everywhere.
+
 ## Layout
 
 ```
@@ -101,7 +103,7 @@ deployments/         world files, doctor reports, genesis evidence (local output
 docker/, docker-compose.yml
 docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis
 scenarios/skills/    the two ERC-8338 skill packages of the genesis: foga-probe, finch-extract-verify
-scripts/             install-solc.sh, relay.mjs
+scripts/             install-solc.sh, install-foundry.sh, relay.mjs
 src/                 TypeScript: build/ (vendor + bundle), world/ (plan + deploy), doctor/ (probe + evaluate),
                      core/ (foga-core: one module per ERC, canonicalization, DAG-CBOR packager),
                      kernel/ (store, transaction manager, cell, kernel), genesis/ (roles, probe, scenario, runner), cli.ts

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0-alpha.3 — 2026-10-30
+
+- `scripts/install-foundry.sh`: installs the statically linked (musl) build of the pinned Foundry release for Linux machines whose glibc is older than 2.35 (Amazon Linux 2/2023, CentOS 7, Debian 11), verifying the release checksum. `FOGA_FOUNDRY_DIR` makes `foga demo` start anvil from that directory; the demo recognizes the `GLIBC_x.y not found` failure and points at the script. README and docs/build.md note it.
+
 ## 0.2.0-alpha.2 — 2026-10-30
 
 - `foga demo` explains why anvil did not come up instead of timing out: a port already taken (by a JSON-RPC node or by something else), anvil missing from PATH, or anvil exiting at start (its exit code and stderr are shown). The wait ends as soon as anvil exits. The WAL/SHM side files of the operation store are removed with it before a `--genesis` run.
