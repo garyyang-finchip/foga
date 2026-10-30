@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0",
+  "name": "finch-extract-verify",
+  "skillVersion": "1.0.0",
+  "summary": "Extract named fields from a fixed-version public document and verify their mutual consistency",
+  "entrypoint": "SKILL.md",
+  "skillType": "business",
+  "scopes": ["read:document"],
+  "standard": "ERC-8338",
+  "x-entry-profile": "llm-markdown-v1",
+  "x-foga": {
+    "runner": "foga.kernel.llm/1",
+    "deterministic": false,
+    "fields": "fields.json"
+  }
+}

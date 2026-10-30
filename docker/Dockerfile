@@ -2,7 +2,7 @@
 # The committed artifacts/bundle.json means no Solidity build is needed to deploy a world.
 #
 #   docker build -f docker/Dockerfile -t foga:dev .
-#   docker run --rm --network host foga:dev foga demo
+#   docker run --rm --network host foga:dev foga demo --genesis T3
 #
 # Multi-arch: docker buildx build --platform linux/amd64,linux/arm64 -f docker/Dockerfile .
 
@@ -19,6 +19,7 @@ COPY src ./src
 COPY build ./build
 COPY artifacts ./artifacts
 COPY worlds ./worlds
+COPY scenarios ./scenarios
 COPY vendor/LOCK.json ./vendor/LOCK.json
 COPY contracts ./contracts
 COPY scripts ./scripts

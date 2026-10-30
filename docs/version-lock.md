@@ -8,7 +8,7 @@ FOGA locks five things separately, because they drift separately:
 | Reference implementation | `vendor/LOCK.json` → `commit` | which code FOGA compiles and deploys |
 | Build | `artifacts/bundle.json` → `builtWith`, per-contract `compiler`, `settings`, `sourceKeccak`, and the bundle `hash` | whether anyone can rebuild the same contracts |
 | Deployment | `deployments/<world>.json` → `worldId`, `chainId`, `bundleHash`, `batch`, per-contract tx/block/args/libraries | which world instance a run talks to |
-| Evidence | doctor reports (`*.doctor.json`) and, from Phase 2, genesis evidence files, each naming the world and bundle they were produced against | what has actually been verified on that instance |
+| Evidence | doctor reports (`*.doctor.json`) and genesis evidence files (`*.genesis.json`), each naming the world they were produced against | what has actually been verified on that instance |
 
 ## Locked commits (2026-10-30)
 
@@ -29,12 +29,12 @@ FOGA locks five things separately, because they drift separately:
 
 ## Deployed revision versus locked source (Sepolia)
 
-The upstream reference deployments on Sepolia were made at various revisions. `worlds/sepolia.json` records the deployed revision per contract so the doctor can label a layer-3 mismatch as *known* rather than as a defect. The first Sepolia doctor run (2026-10-30, block 12023355, publicnode RPC) confirmed the table below; the report is kept as `deployments/sepolia.doctor.example.json` once committed.
+The upstream reference deployments on Sepolia were made at various revisions. `worlds/sepolia.json` records the deployed revision per contract so the doctor can label a layer-3 mismatch as *known* rather than as a defect. Two Sepolia doctor runs on 2026-10-30 (blocks 12023355 and 12023430, publicnode RPC, run from the project's EC2 box) confirmed the table below; the second run's report is committed as `deployments/sepolia.doctor.example.json` (Pass 210, Fail 6 — all known —, Unknown 2, Not tested 10, Not applicable 23).
 
 | ERC | Deployed on Sepolia | Locked source | Doctor layer 3 (2026-10-30) |
 |---|---|---|---|
 | 8338 | KERNEL v4.3 (frozen) | same | Pass |
-| 8414 | TASK-KERNEL v3.2.1 (2026-09-05) | kernel sources unchanged since 2026-08-23; later commits add companions and tests | first run reported Fail for `TaskToken` with identical code size (23,766 bytes); cause: the TaskVault creation code embedded in TaskToken carries its own metadata hash, which depends on build paths. The identity rule now masks nested metadata hashes (v0.1.1); Pass expected on the next run |
+| 8414 | TASK-KERNEL v3.2.1 (2026-09-05) | kernel sources unchanged since 2026-08-23; later commits add companions and tests | Pass (second run). The first run had reported Fail for `TaskToken` at identical code size (23,766 bytes): the TaskVault creation code embedded in TaskToken carries its own metadata hash, which depends on build paths; since v0.1.1 the identity rule masks nested metadata hashes |
 | 8419 | registries rev 5, bridge rev 6, verifier and adapter rev 4 | rev 6 sources | Pass for all seven |
 | 8434 | 2026-10-15 (solc-js 0.8.28) | R2.10 (documentation and vectors revised since) | Pass — the staged solc 0.8.28 build matches the solc-js deployment |
 | 8434 (ARD fixture) | ard-onchain-framework fixture from aid-standard commit 32ce5f7b, 30 d / 365 d | R2.10 | Fail (known: older source) |

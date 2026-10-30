@@ -1,0 +1,65 @@
+# The cell kernel (foga-kernel)
+
+`src/kernel/` is the deterministic part of a node: it holds the keys, decides what to send, sends each thing once, and keeps the record a reviewer or a restarted process needs. There is no model inside it. `src/core/` (foga-core) underneath is one module per ERC — views, calldata builders, event decoders, canonicalization and the DAG-CBOR skill packager — with no transaction management of its own.
+
+## Pieces
+
+| File | What it is |
+|---|---|
+| `kernel/store.ts` | `OperationStore`: the operation table, scenario facts and an append-only journal in one SQLite file (`node:sqlite`, WAL, `synchronous=FULL`). `:memory:` for tests. |
+| `kernel/tx.ts` | `TxManager`: exactly-once sending by idempotency key, receipt recovery, re-send rules, fault injection. |
+| `kernel/cell.ts` | `Cell`: one FogaCellAccount driven through its owner and operator keys (`deploy`, `execute`, `admin`, `adoptBinding`, `status`). |
+| `kernel/kernel.ts` | `Kernel`: a world, a store, the signers, the ten modules opened on that world, `call` / `deploy` / `transfer`, facts, `memo`, evidence. |
+| `kernel/errors.ts` | `RevertDecoder`: custom errors across every world ABI, `Error(string)`, `Panic`, and `CallFailed` unwrapping. |
+
+## Exactly once
+
+Every chain write has a key chosen by the caller (`T3.A.submit`). `TxManager.send` runs this sequence for a new key:
+
+1. fix the nonce (`getTransactionCount(signer, "pending")`);
+2. build the request — the builder receives the nonce, so a deployment can predict its own address;
+3. estimate gas on the pending state and add a margin (25 % + 20 000): the inclusion state differs from the estimate's at least by the block timestamp, and an `SSTORE` that was a no-op during the estimate (a heartbeat written in the same second) costs 2 900 more when the second ticks;
+4. sign, compute the hash, **write the row as `sent` with hash and nonce**;
+5. broadcast;
+6. wait for the receipt; write the row as `confirmed` with block, gas and log count, or `failed` with the reason.
+
+Step 4 before step 5 is what makes a crash recoverable: whatever happens afterwards, the store knows which transaction may be out there.
+
+### What a resumed run does with a row
+
+| Row status | The chain says | Decision |
+|---|---|---|
+| `confirmed` | receipt for the hash exists | answered from the store; the receipt is re-read for its logs (`replayed`) |
+| `confirmed` | no receipt for the hash | the store and the chain have diverged: refuse (`OperationAmbiguous`) |
+| `sent` | receipt exists | finish from the receipt, nothing re-sent (`recovered-receipt`) |
+| `sent` | the transaction is known and pending | wait for it (`recovered-pending`) |
+| `sent` | unknown hash, the signer's nonce still equals the row's | the transaction never reached the chain: re-send with the same nonce (`resend`) |
+| `sent` | unknown hash, the signer's nonce has moved past the row's | something else consumed the nonce; the outcome cannot be decided by code (`OperationAmbiguous`): never retried automatically |
+| `failed` | — | retried as a new send (a `failed` row means a known revert, usually after a fix) |
+| none | — | a new send |
+
+A store also records the hash of block 0 the first time it opens. A later open against a chain with a different block 0 (a restarted anvil) is refused with an explicit message rather than replaying a history into a world where it never happened.
+
+### Fault injection
+
+`--crash-before <key>` exits the process (code 75, `EX_TEMPFAIL`) right after the row is written as `sent`, before the broadcast; `--crash-after <key>` exits right after the broadcast, before the receipt is read. Both leave the store in the state a real crash would, and the next run must resolve it by the table above. CI runs both against `T3.A.submit` and `T3.A.settle` and then a third, pure-replay run, and asserts that the tender still has exactly one submission.
+
+## Facts and `memo`
+
+Values a later step needs (ids, addresses, hashes) are facts in the store, written when known. Values that enter a transaction and depend on the clock or on chain state at run time — deadlines, the probe block — go through `kernel.memo(key, compute)`: computed once, read back on every later run, so a resumed run rebuilds exactly the inputs the recorded transactions were made from. Rebuilding them from the clock again would make the store's account of a replayed operation disagree with the chain.
+
+## Evidence
+
+`kernel.evidence(step, label, values)` records what a reviewer needs per step (addresses, ids, hashes, transaction hashes, run receipts). The genesis writes it, together with the checks, facts, operation summary and the journal of the run, to `deployments/<world>.genesis.json` (`foga.genesis-evidence/1`). `deployments/local.genesis.example.json` is a committed run.
+
+## Keys
+
+The kernel's signers are named by role (`W`, `G`, `owner.A`, `operator.A`, …). On anvil they are derived from anvil's well-known mnemonic in a fixed order (`src/genesis/roles.ts`), so every local run uses the same addresses; on any other chain each role's key comes from `FOGA_KEY_<ROLE>` (`FOGA_KEY_W`, `FOGA_KEY_OWNER_A`, `FOGA_KEY_OPERATOR_A`, …). Keys never leave the kernel: the skill worker (below) is started with an environment reduced to `PATH`.
+
+## Running a skill
+
+Before a cell executes a skill it holds, the kernel rebuilds the package from the local directory and compares `mdHash` and `packageHash` with the token's on-chain commitment (`skillOf`); a tampered file changes both and the run is refused. `foga-probe` then runs in a separate process (`src/genesis/probe-worker.ts`) with a time limit, holding no key and making view calls only; the parent receives the canonical answer and decides what to commit to. The isolation boundary is a process today; the sandboxed runtime of the hosted node is Phase 3 work.
+
+## `node:sqlite`
+
+Node 22 ships `node:sqlite` unflagged but still prints an experimental notice on first load. The store silences that one notice during its own load and nothing else; Node 24 prints none.

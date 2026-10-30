@@ -1,24 +1,24 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-10-30T01:29:57.176Z",
+  "at": "2026-10-30T03:44:52.144Z",
   "world": {
-    "worldId": "anvil-31337-20261030T012951Z",
+    "worldId": "anvil-31337-20261030T034434Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
     "mode": "deployed",
-    "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109"
+    "bundleHash": "0xab27f3830e40a122106893f85110ed7a28e83c6a0a79b4e4d087b7779db37c9a"
   },
   "source": {
     "rpc": "http://127.0.0.1:8545",
-    "collectedAt": "2026-10-30T01:29:57.051Z",
+    "collectedAt": "2026-10-30T03:44:52.017Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 31337,
-    "blockNumber": 51
+    "blockNumber": 124
   },
-  "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109",
+  "bundleHash": "0xab27f3830e40a122106893f85110ed7a28e83c6a0a79b4e4d087b7779db37c9a",
   "layers": {
     "1": "chain and code: the address holds code on the expected chain",
     "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
@@ -40,7 +40,7 @@
       "subject": "identity8004",
       "check": "code",
       "verdict": "Pass",
-      "actual": "8581 bytes"
+      "actual": "6982 bytes"
     },
     {
       "layer": 2,
@@ -53,9 +53,9 @@
       "subject": "identity8004",
       "check": "runtimeIdentity",
       "verdict": "Pass",
-      "expected": "0xc01bf46b0e901f48890a762f67bc88ffc61085fd0082f1b29112fd9bb803decd",
-      "actual": "0xc01bf46b0e901f48890a762f67bc88ffc61085fd0082f1b29112fd9bb803decd",
-      "detail": "8581 bytes, 0.8.30+commit.73712a01"
+      "expected": "0x5facbaa36b75ef8ae182c42ef65106779caeeb86ec7fc7eb95b68de431a320a1",
+      "actual": "0x5facbaa36b75ef8ae182c42ef65106779caeeb86ec7fc7eb95b68de431a320a1",
+      "detail": "6982 bytes, 0.8.30+commit.73712a01"
     },
     {
       "layer": 1,
@@ -1857,7 +1857,7 @@
     {
       "subject": "8454/AUFUnitRegistry",
       "fn": "unitCount",
-      "value": "0"
+      "value": "5"
     }
   ],
   "summary": {

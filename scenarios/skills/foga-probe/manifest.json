@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0",
+  "name": "foga-probe",
+  "skillVersion": "1.0.0",
+  "summary": "Probe one address against the ten-ERC agent stack at one block and produce a canonical report",
+  "entrypoint": "SKILL.md",
+  "skillType": "protocol",
+  "scopes": ["read:chain"],
+  "standard": "ERC-8338",
+  "x-entry-profile": "llm-markdown-v1",
+  "x-foga": {
+    "runner": "foga.kernel.probe/1",
+    "deterministic": true,
+    "outputSchema": "probe.schema.json"
+  }
+}

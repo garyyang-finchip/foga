@@ -1,0 +1,14 @@
+{
+  "schema": "finch.extract-verify.fields/1",
+  "fields": [
+    { "name": "issuer", "kind": "text", "where": "cover page" },
+    { "name": "periodEnd", "kind": "date", "where": "cover page" },
+    { "name": "totalAssets", "kind": "amount", "where": "balance sheet" },
+    { "name": "totalLiabilities", "kind": "amount", "where": "balance sheet" },
+    { "name": "totalEquity", "kind": "amount", "where": "balance sheet" }
+  ],
+  "rules": [
+    { "id": "balance", "check": "totalAssets == totalLiabilities + totalEquity", "tolerance": "1" },
+    { "id": "period", "check": "periodEnd is a calendar date not after the document date" }
+  ]
+}

@@ -9,7 +9,7 @@ import { fail, log } from "./util/log.js";
 import { attachWorld, deployWorld, loadWorldConfig } from "./world/deploy.js";
 import { loadBundle } from "./bundle/load.js";
 
-const USAGE = `foga — Finch OG Agent toolchain (Phase 1: world layer)
+const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2a cells and genesis)
 
 usage:
   foga vendor sync [--only <repo,repo>]          fetch the locked upstream sources into vendor/
@@ -22,13 +22,17 @@ usage:
   foga doctor --world <...> --export-probe <probe.json>      write the JSON-RPC probe plan instead of calling an RPC
   foga doctor --world <...> --import-results <results.json>  evaluate results collected by a relay (offline replay)
   foga probe relay-script                        print a dependency-free node script that runs a probe plan
-  foga demo [--port <n>] [--keep]                start anvil, deploy the local world, run the doctor
+  foga genesis run --world <world.json> [--rpc <url>] [--until T0|T1|T2|T3] [--store <file.sqlite>] [--out <evidence.json>]
+                   [--crash-after <opKey>] [--crash-before <opKey>]   run the genesis scenario (idempotent; re-run to resume)
+  foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
+  foga demo [--port <n>] [--keep] [--genesis <T0..T3>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga bundle info                               summarize the committed bundle
 
 environment:
   FOGA_SOLC_DIR   directory with solc-<version> static binaries (offline builds; otherwise forge downloads solc)
-  FOGA_RPC_URL    default RPC for doctor
+  FOGA_RPC_URL    default RPC for doctor and genesis
   FOGA_DEPLOYER_PK  deployer key for world deploy (worlds/local.json falls back to anvil account #0)
+  FOGA_KEY_<ROLE>   genesis keys on non-anvil chains (W, G, OWNER_A, OPERATOR_A, ... ); anvil derives them
 `;
 
 interface Args {
@@ -155,8 +159,43 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (group === "genesis" && cmd === "run") {
+    const worldPath = str(flags, "world");
+    if (!worldPath) fail("--world <world.json> is required (a deployed world)");
+    const { runGenesis } = await import("./genesis/run.js");
+    const { failed } = await runGenesis({
+      worldPath,
+      rpc: str(flags, "rpc"),
+      storePath: str(flags, "store"),
+      evidencePath: str(flags, "out"),
+      skillsDir: str(flags, "skills"),
+      until: str(flags, "until") as any,
+      crashAfterBroadcast: str(flags, "crash-after"),
+      crashBeforeBroadcast: str(flags, "crash-before"),
+    });
+    if (failed > 0) process.exitCode = 4;
+    return;
+  }
+
+  if (group === "genesis" && cmd === "status") {
+    const worldPath = str(flags, "world");
+    if (!worldPath) fail("--world <world.json> is required");
+    const { OperationStore } = await import("./kernel/store.js");
+    const name = worldPath.replace(/^.*\//, "").replace(/\.json$/, "");
+    const storePath = resolve(str(flags, "store") ?? join(root, "deployments", `${name}.genesis.sqlite`));
+    if (!exists(storePath)) fail(`no operation store at ${storePath}`);
+    const store = OperationStore.open(storePath);
+    const ops = store.all();
+    console.log(`store ${storePath}: ${ops.length} operations (chain ${store.getMeta("chainId")}, world ${store.getMeta("worldId")})`);
+    for (const op of ops) console.log(`  ${op.status.padEnd(9)} ${op.key.padEnd(36)} ${op.signer.padEnd(11)} nonce ${String(op.nonce ?? "-").padStart(3)}  ${op.txHash ?? ""}${op.error ? "  error: " + op.error : ""}`);
+    const s = store.summary();
+    console.log(`  facts ${s.facts}, journal entries ${s.journal}`);
+    store.close();
+    return;
+  }
+
   if (group === "demo") {
-    await demo({ port: Number(str(flags, "port") ?? 8545), keep: Boolean(flags.keep) });
+    await demo({ port: Number(str(flags, "port") ?? 8545), keep: Boolean(flags.keep), genesis: str(flags, "genesis") as any });
     return;
   }
 
@@ -164,7 +203,7 @@ async function main(): Promise<void> {
   fail(`unknown command: ${positional.join(" ")}`);
 }
 
-async function demo(opts: { port: number; keep: boolean }): Promise<void> {
+async function demo(opts: { port: number; keep: boolean; genesis?: string }): Promise<void> {
   const root = repoRoot();
   const rpc = `http://127.0.0.1:${opts.port}`;
   log.info(`starting anvil on ${rpc}`);
@@ -184,6 +223,14 @@ async function demo(opts: { port: number; keep: boolean }): Promise<void> {
   await deployWorld({ worldConfigPath: worldConfig, rpc, outPath: out });
   const { report } = await runDoctor({ worldPath: out, rpc, outPath: join(root, "deployments", "local.doctor.json") });
   if (report && report.summary.Fail > 0) process.exitCode = 3;
+  if (opts.genesis) {
+    const { runGenesis } = await import("./genesis/run.js");
+    const { rmSync } = await import("node:fs");
+    const storePath = join(root, "deployments", "local.genesis.sqlite");
+    rmSync(storePath, { force: true }); // a fresh chain means a fresh store
+    const { failed } = await runGenesis({ worldPath: out, rpc, storePath, until: opts.genesis as any });
+    if (failed > 0) process.exitCode = 4;
+  }
   if (opts.keep) log.info(`anvil left running on ${rpc} (pid ${anvil.pid}); world at deployments/local.json`);
   else stop();
 }

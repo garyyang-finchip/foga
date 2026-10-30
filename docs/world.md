@@ -24,7 +24,7 @@ A **world** is one deployed (or attached) instance of the ten-ERC stack on one c
 10. ERC-8468 `ASFEvaluation`, `ASFLifecycle` (links ASFEvaluation), `ASFSpecificationRegistry()`, `ASFBindingRegistry()` (links both)
 11. ERC-8471 `ADRFPolicyRegistry()` → six modules `(policies)` → `ADRFDisputeRegistry(policies, binding, filing, resolution, decision, record, outcome)` → `DuplicateSettlementVerifier()`, `DeclaredVersionVerifier()`, `AttestorQuorumRule()` → `ADRFACDFBridge(adrf, acdf)` → `ADRFServiceEscrow(adrf)`
 
-Scenario-dependent components are deliberately **not** part of a world: KYA schemes, ASF specifications, ACDF and ADRF policies, the eligibility modules that need a scheme id (AssertionLevelEligibility, CompositeEligibility), adapters bound to a policy (ACDFTaskTenderAdapter, SwarmDecisionAdapter, ASFTaskTenderAdapter) and per-cell accounts. The genesis runner creates them in T0/T1 (Phase 2).
+Scenario-dependent components are deliberately **not** part of a world: KYA schemes, ASF specifications, ACDF and ADRF policies, the eligibility modules that need a scheme id (AssertionLevelEligibility, CompositeEligibility), adapters bound to a policy (ACDFTaskTenderAdapter, SwarmDecisionAdapter, ASFTaskTenderAdapter) and per-cell accounts. The genesis runner creates them in T0/T1 (`foga genesis run`, docs/genesis.md); scheme-dependent eligibility modules and policy-bound adapters follow in T4/T5.
 
 ## Resumability
 
