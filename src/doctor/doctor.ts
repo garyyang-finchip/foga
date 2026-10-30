@@ -131,7 +131,13 @@ export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, prob
     }
 
     let l2: Verdict = "NotApplicable";
-    if (!art) {
+    if (!art && id === "identity8004" && r(`iface:${id}:erc165`)) {
+      const erc165 = decodeBool(hexOf(`iface:${id}:erc165`));
+      const erc721 = decodeBool(hexOf(`iface:${id}:ERC721`));
+      l2 = erc165 && erc721 ? "Pass" : "Fail";
+      results.push({ layer: 2, subject: id, check: "supportsInterface(0x01ffc9a7)", verdict: erc165 ? "Pass" : "Fail" });
+      results.push({ layer: 2, subject: id, check: "supportsInterface(ERC-721 0x80ac58cd)", verdict: erc721 ? "Pass" : "Fail", detail: "the ERC-8004 Identity Registry is an ERC-721 registry; FOGA does not build it, so this is the only interface check available" });
+    } else if (!art) {
       results.push({ layer: 2, subject: id, check: "supportsInterface", verdict: "Unknown", detail: "no bundle key for this address" });
       l2 = "Unknown";
     } else if (!r(`iface:${id}:erc165`)) {
@@ -156,7 +162,13 @@ export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, prob
             check: `supportsInterface(${iface.name})`,
             verdict: v,
             expected: iface.interfaceId ?? undefined,
-            detail: ok ? undefined : published ? "built from a published interface but does not declare it" : "built from this interface but does not declare it; upstream publishes no id for it, so this is a design choice rather than a defect",
+            detail: ok
+              ? undefined
+              : published
+                ? entry.deployedRevision
+                  ? `known: deployed from ${entry.deployedRevision}; the interface id in the locked source may differ from the one that revision declares`
+                  : "built from a published interface but does not declare it"
+                : "built from this interface but does not declare it; upstream publishes no id for it, so this is a design choice rather than a defect",
           });
         }
       }
@@ -164,7 +176,10 @@ export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, prob
     }
 
     let l3: Verdict;
-    if (!art) {
+    if (!art && id === "identity8004") {
+      l3 = "NotApplicable";
+      results.push({ layer: 3, subject: id, check: "runtimeIdentity", verdict: l3, detail: "official ERC-8004 registry, not built by FOGA; no locked build to compare against" });
+    } else if (!art) {
       l3 = "Unknown";
       results.push({ layer: 3, subject: id, check: "runtimeIdentity", verdict: l3, detail: "no bundle key" });
     } else {

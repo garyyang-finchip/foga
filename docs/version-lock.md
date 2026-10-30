@@ -29,22 +29,23 @@ FOGA locks five things separately, because they drift separately:
 
 ## Deployed revision versus locked source (Sepolia)
 
-The upstream reference deployments on Sepolia were made at various revisions. `worlds/sepolia.json` records the deployed revision per contract so the doctor can label a layer-3 mismatch as *known* rather than as a defect:
+The upstream reference deployments on Sepolia were made at various revisions. `worlds/sepolia.json` records the deployed revision per contract so the doctor can label a layer-3 mismatch as *known* rather than as a defect. The first Sepolia doctor run (2026-10-30, block 12023355, publicnode RPC) confirmed the table below; the report is kept as `deployments/sepolia.doctor.example.json` once committed.
 
-| ERC | Deployed on Sepolia | Locked source | Expected doctor verdict on layer 3 |
+| ERC | Deployed on Sepolia | Locked source | Doctor layer 3 (2026-10-30) |
 |---|---|---|---|
-| 8338 | KERNEL v4.3 (frozen) | same | Pass expected |
-| 8414 | TASK-KERNEL v3.2.1 (2026-09-05) | later commits add companions and tests only | Pass expected for the kernel; to be confirmed by the first Sepolia run |
-| 8419 | registries rev 5, bridge rev 6, verifier/adapter rev 4 | rev 6 sources | to be confirmed |
-| 8434 | 2026-10-15 (solc-js 0.8.28) | R2.10 (documentation and vectors revised since) | Pass expected |
-| 8436 | revision 3 (2026-10-15) | revision 3 | Pass expected |
-| 8444 | v1.1 adoption (2026-10-16); adapters from v1.0 | v1.1 | Pass expected |
-| 8447 | revision 2.1 + revision 2.2 decision adapter | v0.3.2 | to be confirmed |
-| 8454 | 2026-10-21 | same contracts | Pass expected |
-| 8468 | revision 7 (2026-10-27) | v0.8.2 = revision 7 | Pass expected |
-| 8471 | **revision 3** (2026-10-29) | **revision 4** | Fail (known) for ADRFBindingModule, ADRFFilingModule, DuplicateSettlementVerifier, ADRFServiceEscrow |
+| 8338 | KERNEL v4.3 (frozen) | same | Pass |
+| 8414 | TASK-KERNEL v3.2.1 (2026-09-05) | kernel sources unchanged since 2026-08-23; later commits add companions and tests | first run reported Fail for `TaskToken` with identical code size (23,766 bytes); cause: the TaskVault creation code embedded in TaskToken carries its own metadata hash, which depends on build paths. The identity rule now masks nested metadata hashes (v0.1.1); Pass expected on the next run |
+| 8419 | registries rev 5, bridge rev 6, verifier and adapter rev 4 | rev 6 sources | Pass for all seven |
+| 8434 | 2026-10-15 (solc-js 0.8.28) | R2.10 (documentation and vectors revised since) | Pass — the staged solc 0.8.28 build matches the solc-js deployment |
+| 8434 (ARD fixture) | ard-onchain-framework fixture from aid-standard commit 32ce5f7b, 30 d / 365 d | R2.10 | Fail (known: older source) |
+| 8436 | revision 3 (2026-10-15) | revision 3 | Pass |
+| 8444 | v1.1 adoption (2026-10-16); adapters from v1.0 | v1.1 | Pass for all five |
+| 8447 | revision 2.1 + revision 2.2 decision adapter | v0.3.2 | Pass for all eight |
+| 8454 | 2026-10-21 | same contracts | Pass |
+| 8468 | revision 7 (2026-10-27) | v0.8.2 = revision 7 | Pass for all five |
+| 8471 | **revision 3** (2026-10-29) | **revision 4** | Fail (known) for ADRFBindingModule, ADRFFilingModule, DuplicateSettlementVerifier and ADRFServiceEscrow, exactly the four units revision 4 changed; the escrow also declares revision 3's `IADRFObligationSource` id, not the revision-4 id `0xa52f2870` (revision 4 added `recognizesBreach` to that interface), which the doctor reports on layer 2 as known |
 
-"To be confirmed" rows become facts the first time `foga doctor --world worlds/sepolia.json --attach` runs against a Sepolia RPC; the report is then committed under `deployments/`.
+Layer 4 on Sepolia: every wiring check passed, including `AgentAdapter.identityRegistry` against the recorded fixture registry (seam 1 below). Authority readouts: ARD registry owner `0xCcFDEE360c9CDc79005e4ddA9845f3A24EE37A25` (session-held upstream key), KYA bridge owner `0x0690119CF9C484cf1700122e6b2075Ba6b7A1492`, Allowlist owner `0x91E946F5633306f173D6E5d93aD3a040c4211da1`, ADRF escrow admin `0x2cF07458835437ce44C06f92BbfD30CCd3794dCF`, AUF unit count 7.
 
 ## Three seams found while locking
 

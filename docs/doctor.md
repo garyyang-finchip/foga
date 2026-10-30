@@ -8,7 +8,7 @@
 |---|---|---|
 | 1 chain and code | is there code at the address, on the expected chain? | `eth_chainId`, `eth_getCode` |
 | 2 interfaces | which interfaces does the contract declare, and does it declare the ones it was built from? | `supportsInterface` probes for ERC-165 and for every interface of the same repository; expected = the contract's direct base interfaces |
-| 3 version match | is the runtime code the locked build? | keccak256 of the on-chain code after stripping the CBOR metadata trailer and zeroing library-address and immutable slots, compared with the bundle's `runtimeIdentity` |
+| 3 version match | is the runtime code the locked build? | keccak256 of the on-chain code after stripping the CBOR metadata trailer, zeroing every embedded metadata hash (a contract that creates other contracts embeds their creation code and metadata — TaskToken embeds TaskVault), and zeroing library-address and immutable slots, compared with the bundle's `runtimeIdentity` |
 | 4 configuration and permissions | are dependencies wired as the world says, and who holds the authority slots? | view calls listed in `src/doctor/checks.ts` (`WIRING_CHECKS`), compared with world addresses, world parameters or explicit `expectations`; `READOUTS` print owner / admin / counters |
 | 5 semantic validation | do the success, rejection, signature, proof and recovery cases hold? | Phase 2 (genesis scenario and acceptance matrix); reported as Not tested until then |
 
@@ -16,7 +16,7 @@
 
 `Pass`, `Fail`, `Unknown` (the doctor could not decide — no bundle key, an undecodable answer, an unpublished interface the contract was built from but does not declare), `NotTested` (not probed), `NotApplicable` (nothing to assert — the contract has no ERC-165, the reference is absent from this world, the arguments are unavailable).
 
-A layer-3 `Fail` on a contract whose world entry carries `deployedRevision` is labeled *known*: the chain holds an earlier revision than the locked source. That is information about the world, not a defect in either.
+A layer-3 (or layer-2) `Fail` on a contract whose world entry carries `deployedRevision` is labeled *known*: the chain holds an earlier revision than the locked source. That is information about the world, not a defect in either. The official ERC-8004 Identity Registry is not built by FOGA: layer 2 checks its ERC-165 and ERC-721 declarations, layer 3 is Not applicable.
 
 ## Probe plans and replay
 

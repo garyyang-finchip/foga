@@ -51,6 +51,12 @@ export function buildProbePlan(world: WorldFile, bundle: Bundle): ProbePlan {
   for (const [id, entry] of Object.entries(world.contracts)) {
     requests.push({ key: `code:${id}`, method: "eth_getCode", params: [entry.address, "latest"] });
     const art = entry.bundleKey ? bundle.contracts[entry.bundleKey] : undefined;
+    if (!art && id === "identity8004") {
+      // The official ERC-8004 Identity Registry is not built by FOGA; probe the ERC-721 surface it must expose.
+      requests.push({ key: `iface:${id}:erc165`, method: "eth_call", params: [{ to: entry.address, data: erc165.encodeFunctionData("supportsInterface", ["0x01ffc9a7"]) }, "latest"] });
+      requests.push({ key: `iface:${id}:ERC721`, method: "eth_call", params: [{ to: entry.address, data: erc165.encodeFunctionData("supportsInterface", ["0x80ac58cd"]) }, "latest"], note: "0x80ac58cd" });
+      continue;
+    }
     if (!art || !art.abi.some((f: any) => f.type === "function" && f.name === "supportsInterface")) continue;
     requests.push({ key: `iface:${id}:erc165`, method: "eth_call", params: [{ to: entry.address, data: erc165.encodeFunctionData("supportsInterface", ["0x01ffc9a7"]) }, "latest"] });
     for (const iface of ifacesByRepo.get(art.repo) ?? []) {

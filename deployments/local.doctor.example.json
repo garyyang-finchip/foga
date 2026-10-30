@@ -1,8 +1,8 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-10-29T23:26:17.405Z",
+  "at": "2026-10-30T01:29:57.176Z",
   "world": {
-    "worldId": "anvil-31337-20261029T232611Z",
+    "worldId": "anvil-31337-20261030T012951Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
@@ -11,7 +11,7 @@
   },
   "source": {
     "rpc": "http://127.0.0.1:8545",
-    "collectedAt": "2026-10-29T23:26:17.287Z",
+    "collectedAt": "2026-10-30T01:29:57.051Z",
     "mode": "live"
   },
   "chain": {
@@ -148,8 +148,8 @@
       "subject": "8414/TaskToken",
       "check": "runtimeIdentity",
       "verdict": "Pass",
-      "expected": "0xc949783b9a90a1a5b4d1ddbe4935cc441d2ffdd2b424759ec203cfbd76df449e",
-      "actual": "0xc949783b9a90a1a5b4d1ddbe4935cc441d2ffdd2b424759ec203cfbd76df449e",
+      "expected": "0x099cc776ce0a068bc7ae80def23c49a1ae3665ec1aeb4552c9fc13f8ff8da3c0",
+      "actual": "0x099cc776ce0a068bc7ae80def23c49a1ae3665ec1aeb4552c9fc13f8ff8da3c0",
       "detail": "23766 bytes, 0.8.24+commit.e11b9ed9"
     },
     {

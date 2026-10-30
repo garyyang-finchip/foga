@@ -78,13 +78,13 @@
     "8471/DuplicateSettlementVerifier": { "address": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae", "bundleKey": "ai-dispute-resolution:DuplicateSettlementVerifier", "deployedRevision": "revision 3 (2026-10-29)" },
     "8471/DeclaredVersionVerifier": { "address": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC", "bundleKey": "ai-dispute-resolution:DeclaredVersionVerifier", "deployedRevision": "revision 3 (2026-10-29)" },
     "8471/AttestorQuorumRule": { "address": "0xDe666e792730efE4E633D8E185a10Df4291dE597", "bundleKey": "ai-dispute-resolution:AttestorQuorumRule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFServiceEscrow": { "address": "0xD85e5E73D385e6575342bd86263F34b17b287128", "bundleKey": "ai-dispute-resolution:ADRFServiceEscrow", "deployedRevision": "revision 3 (2026-10-29)", "note": "FOGA deploys its own revision-4 escrow in Phase 2c rather than reusing this one" }
+    "8471/ADRFServiceEscrow": { "address": "0xD85e5E73D385e6575342bd86263F34b17b287128", "bundleKey": "ai-dispute-resolution:ADRFServiceEscrow", "deployedRevision": "revision 3 (2026-10-29)", "note": "FOGA deploys its own revision-4 escrow in Phase 2c rather than reusing this one; this instance declares revision 3's IADRFObligationSource id (revision 4 added recognizesBreach), so its layer-2 check is a known mismatch" }
   },
   "notes": [
     "Attach-mode world: every address comes from the upstream repositories' deployment records at the locked commits; FOGA deploys nothing here in Phase 1.",
     "Seam 1: the ARD AgentAdapter is bound to ARD's fixture AIDRegistry (0x36E4...), not to aid-standard's reference instance (0x01C0...). The registry owner key is session-held upstream, so the binding cannot be changed; cells bind in both registries.",
     "Seam 2: only AllowlistEligibility is deployed for ERC-8447; the ERC-8004, identity-state, assertion-level and composite modules are deployed by FOGA (no owner restriction).",
-    "Seam 3: ERC-8471 is deployed at revision 3 while the locked source is revision 4; layer-3 verdicts for the differing units are expected to be Fail (known) until the upstream rev-4 run.",
+    "Seam 3: ERC-8471 is deployed at revision 3 while the locked source is revision 4; layer-3 verdicts for ADRFBindingModule, ADRFFilingModule, DuplicateSettlementVerifier and ADRFServiceEscrow are Fail (known) until the upstream rev-4 run, confirmed 2026-10-30.",
     "Layer-4 expectations below record the upstream wiring as it is, so a Pass means 'matches the recorded upstream state', not 'matches what FOGA would deploy'."
   ],
   "expectations": {

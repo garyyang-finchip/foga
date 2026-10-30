@@ -24,6 +24,37 @@ export function stripMetadata(hex: string): string {
   return "0x" + body.slice(0, body.length - total);
 }
 
+/**
+ * Zero the content hash inside every CBOR metadata block found anywhere in the code, not only the
+ * trailer. A contract that creates other contracts (TaskToken deploys a TaskVault per token) embeds
+ * their creation code, including their metadata trailer; that nested hash depends on source names and
+ * build paths, so two builds of identical code can differ there. Handles the `ipfs` form
+ * (a2 64 "ipfs" 58 22 <34-byte multihash> ... ) and the legacy `bzzr0`/`bzzr1` form (a1/a2 65 "bzzr?" 58 20 <32 bytes>).
+ * Metadata written with `bytecode_hash = none` carries no hash and is left untouched.
+ */
+export function maskEmbeddedMetadataHashes(hex: string): string {
+  let body = hexBody(hex).toLowerCase();
+  const patterns: { marker: string; hashHex: number }[] = [
+    { marker: "a2646970667358" + "22", hashHex: 68 }, // a2 64 'ipfs' 58 22 + 34 bytes
+    { marker: "a165627a7a72305820", hashHex: 64 }, // a1 65 'bzzr0' 58 20 + 32 bytes
+    { marker: "a265627a7a72305820", hashHex: 64 },
+    { marker: "a265627a7a72315820", hashHex: 64 }, // bzzr1
+  ];
+  for (const { marker, hashHex } of patterns) {
+    let from = 0;
+    for (;;) {
+      const at = body.indexOf(marker, from);
+      if (at < 0) break;
+      if (at % 2 === 0 && at + marker.length + hashHex <= body.length) {
+        const start = at + marker.length;
+        body = body.slice(0, start) + "0".repeat(hashHex) + body.slice(start + hashHex);
+      }
+      from = at + 2;
+    }
+  }
+  return "0x" + body;
+}
+
 /** Immutable value slots as emitted by solc / forge: { "<astId|library_deploy_address>": [{ start, length }] }. */
 export type ImmutableReferences = Record<string, { start: number; length: number }[]>;
 
@@ -83,12 +114,13 @@ export function linkBytecode(
 }
 
 /**
- * keccak256 of runtime code with the metadata trailer stripped and every deployment-dependent slot
- * (linked library addresses, immutables, a library's own address) masked: the "code identity" the doctor
- * compares between a build and a chain.
+ * keccak256 of runtime code with the metadata trailer stripped, every embedded metadata hash zeroed and
+ * every deployment-dependent slot (linked library addresses, immutables, a library's own address) masked:
+ * the "code identity" the doctor compares between a build and a chain. Two builds of the same source with
+ * the same compiler and settings share it whatever their source names or build paths were.
  */
 export function runtimeIdentity(deployedBytecode: string, links?: LinkReferences, immutables?: ImmutableReferences): string {
-  return keccak256(stripMetadata(maskImmutables(maskLinks(deployedBytecode, links), immutables)));
+  return keccak256(stripMetadata(maskEmbeddedMetadataHashes(maskImmutables(maskLinks(deployedBytecode, links), immutables))));
 }
 
 export function codeSize(hex: string): number {

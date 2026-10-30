@@ -1,6 +1,6 @@
 {
   "schema": "foga.bundle/1",
-  "builtAt": "2026-10-29T23:09:55.833Z",
+  "builtAt": "2026-10-30T01:27:11.014Z",
   "builtWith": {
     "forge": "1.7.1",
     "solc": {
@@ -70757,7 +70757,7 @@
       "linkReferences": {},
       "deployedLinkReferences": {},
       "immutableReferences": {},
-      "runtimeIdentity": "0xc949783b9a90a1a5b4d1ddbe4935cc441d2ffdd2b424759ec203cfbd76df449e",
+      "runtimeIdentity": "0x099cc776ce0a068bc7ae80def23c49a1ae3665ec1aeb4552c9fc13f8ff8da3c0",
       "creationCodeSize": 24515,
       "runtimeCodeSize": 23766,
       "compiler": "0.8.24+commit.e11b9ed9",

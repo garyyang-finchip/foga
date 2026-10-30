@@ -41,3 +41,15 @@ test("runtimeIdentity is the same for a build and its deployed, patched runtime"
   assert.equal(runtimeIdentity(built, {}, immutableSlot), runtimeIdentity(deployed, {}, immutableSlot));
   assert.equal(runtimeIdentity(built, {}, immutableSlot), keccak256("0x" + "6080" + "00".repeat(32) + "fe"));
 });
+
+test("maskEmbeddedMetadataHashes zeroes nested ipfs hashes but keeps structure and version", async () => {
+  const { maskEmbeddedMetadataHashes } = await import("../src/util/bytecode.js");
+  const ipfsBlock = (hash: string) => "a2646970667358" + "22" + hash + "64736f6c6343" + "000818" + "0033";
+  const inner = "6080" + ipfsBlock("ab".repeat(34)) + "fe";
+  const outer = "0x" + inner + ipfsBlock("cd".repeat(34));
+  const masked = maskEmbeddedMetadataHashes(outer);
+  assert.equal(masked, "0x" + "6080" + ipfsBlock("00".repeat(34)) + "fe" + ipfsBlock("00".repeat(34)));
+  // an odd-offset coincidence is not touched
+  const odd = "0x" + "a" + "a2646970667358" + "22" + "11".repeat(34) + "b";
+  assert.equal(maskEmbeddedMetadataHashes(odd), odd.toLowerCase());
+});

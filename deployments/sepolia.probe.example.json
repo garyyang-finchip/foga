@@ -1,6 +1,6 @@
 {
   "schema": "foga.probe/1",
-  "worldId": "sepolia-11155111-20261029T231815Z",
+  "worldId": "sepolia-11155111-20261030T012957Z",
   "chainId": 11155111,
   "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109",
   "requests": [
@@ -3055,6 +3055,29 @@
         "0x8004A818BFB912233c491871b3d84c89A494BD9e",
         "latest"
       ]
+    },
+    {
+      "key": "iface:identity8004:erc165",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+          "data": "0x01ffc9a701ffc9a700000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ]
+    },
+    {
+      "key": "iface:identity8004:ERC721",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+          "data": "0x01ffc9a780ac58cd00000000000000000000000000000000000000000000000000000000"
+        },
+        "latest"
+      ],
+      "note": "0x80ac58cd"
     },
     {
       "key": "wire:8419/KYARegistry:getSchemeRegistry",
