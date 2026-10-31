@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install the proving libraries (prover/)
+        run: npm run zk:install
+
       - name: Type-check and unit tests
         run: |
           npx tsc -p tsconfig.json --noEmit
@@ -57,28 +60,31 @@ jobs:
       - name: Doctor (layers 1-4; exit 3 on any Fail)
         run: npm run foga -- doctor --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --out deployments/ci-local.doctor.json
 
-      - name: Genesis T0-T3, crashed after the submit of T3 (exit 75 expected)
+      - name: Genesis T0-T5 with the ZK path required, crashed after the submit of T3 (exit 75 expected)
         run: |
           set +e
-          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T3 --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json --crash-after T3.A.submit
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T5 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json --crash-after T3.A.submit
           code=$?
           set -e
           test "$code" -eq 75 || { echo "expected the injected crash (75), got $code"; exit 1; }
 
-      - name: Genesis resumed (recovers the submit by hash, settles; exit 0)
+      - name: Genesis resumed (recovers the submit by hash, settles, carries on to T5; exit 0)
         run: |
-          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T3 --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T5 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json
           node -e '
             const e = require("./deployments/ci-local.genesis.json");
             if (e.summary.failed !== 0) throw new Error("checks failed: " + JSON.stringify(e.checks.filter(c => !c.pass)));
             if (e.summary.recovered !== 1) throw new Error("expected exactly one recovered operation, got " + e.summary.recovered);
-            const one = e.checks.find(c => c.name === "submissions.one");
-            if (!one || !one.pass) throw new Error("the tender does not have exactly one submission");
+            for (const name of ["submissions.one", "A.kya.S_cred.level4", "swarm.active", "council.final.yes", "nd.claimUnjudged", "swarm.achieved"]) {
+              const c = e.checks.find(c => c.name === name);
+              if (!c || !c.pass) throw new Error("check missing or failed: " + name);
+            }
+            if (e.facts["T0.zk"] !== "on") throw new Error("the ZK path did not run");
           '
 
       - name: Genesis replayed (nothing sent, end state re-checked)
         run: |
-          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T3 --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.replay.json
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T5 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.replay.json
           node -e '
             const e = require("./deployments/ci-local.genesis.replay.json");
             if (e.summary.failed !== 0) throw new Error("checks failed on replay");
