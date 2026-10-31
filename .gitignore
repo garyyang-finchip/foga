@@ -25,3 +25,7 @@ contracts/cache/
 .env
 *.log
 .DS_Store
+
+# predicate circuit build output (prover/build-predicate.mjs); the verification key is committed, the rest rebuilt
+zk/build/*
+!zk/build/verification_key.json
