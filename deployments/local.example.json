@@ -1,12 +1,12 @@
 {
   "schema": "foga.world/1",
-  "worldId": "anvil-31337-20261030T034434Z",
+  "worldId": "anvil-31337-20261031T071243Z",
   "name": "local",
   "network": "anvil",
   "chainId": 31337,
   "mode": "deployed",
   "bundleHash": "0xab27f3830e40a122106893f85110ed7a28e83c6a0a79b4e4d087b7779db37c9a",
-  "batch": "2026-10-30T03:44:34.337Z",
+  "batch": "2026-10-31T07:12:43.054Z",
   "forkSourceBlock": null,
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "identity8004": {

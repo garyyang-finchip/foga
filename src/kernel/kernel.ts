@@ -1,10 +1,12 @@
 import { Contract, Interface, Wallet, getCreateAddress, type ContractRunner, type TransactionReceipt } from "ethers";
+import { ACDF } from "../core/acdf.js";
 import { AID } from "../core/aid.js";
 import { ARD } from "../core/ard.js";
 import { ASF } from "../core/asf.js";
 import { ERC8004_ABI, Identity8004 } from "../core/erc8004.js";
 import { KYA } from "../core/kya.js";
 import { Skills } from "../core/skills.js";
+import { Swarms } from "../core/swarm.js";
 import { Tenders } from "../core/tenders.js";
 import { Units } from "../core/units.js";
 import { World } from "../core/world.js";
@@ -44,6 +46,8 @@ export class Kernel {
   readonly skills: Skills;
   readonly tenders: Tenders;
   readonly identity: Identity8004;
+  readonly acdf: ACDF;
+  readonly swarms: Swarms;
   private readonly evidenceList: EvidenceRecord[] = [];
 
   private constructor(
@@ -62,6 +66,8 @@ export class Kernel {
     this.skills = new Skills(world);
     this.tenders = new Tenders(world);
     this.identity = new Identity8004(world);
+    this.acdf = new ACDF(world);
+    this.swarms = new Swarms(world);
     for (const id of Object.keys(world.file.contracts)) {
       if (id === "identity8004") continue;
       try {
@@ -71,6 +77,13 @@ export class Kernel {
       }
     }
     this.tx.decoder.add(world.ifaceOf("foga:FogaCellAccount"), "foga:FogaCellAccount");
+    for (const key of ["swarm-ai-framework:SwarmAccount", "swarm-ai-framework:SwarmDecisionAdapter", "swarm-ai-framework:CompositeEligibility", "swarm-ai-framework:AssertionLevelEligibility", "acd-framework:ACDFTaskTenderAdapter", "kya-standard:Groth16KYAVerifierAdapter"]) {
+      try {
+        this.tx.decoder.add(world.ifaceOf(key), key);
+      } catch {
+        /* not in this bundle */
+      }
+    }
     this.tx.decoder.add(new Interface(ERC8004_ABI), "erc8004");
   }
 
@@ -112,9 +125,12 @@ export class Kernel {
 
   // ---------------------------------------------------------------------------- sending
 
-  /** Call a function on a contract as an EOA signer. */
-  async call(key: string, signer: string, target: string, iface: Interface, fn: string, args: unknown[], value = 0n, kind = "call"): Promise<Confirmed> {
-    return this.tx.send({ key, signer, kind, build: () => ({ to: target, data: iface.encodeFunctionData(fn, args), value }) });
+  /**
+   * Call a function on a contract as an EOA signer. `gasLimit` overrides the estimate for calls whose outcome
+   * depends on the gas left (a registry that treats a module's `false` with little gas left as unevaluable).
+   */
+  async call(key: string, signer: string, target: string, iface: Interface, fn: string, args: unknown[], value = 0n, kind = "call", gasLimit?: bigint): Promise<Confirmed> {
+    return this.tx.send({ key, signer, kind, build: () => ({ to: target, data: iface.encodeFunctionData(fn, args), value, ...(gasLimit ? { gasLimit } : {}) }) });
   }
 
   /** Deploy a bundle contract as an EOA signer. The predicted address is derived from the signer's nonce. */
@@ -194,6 +210,33 @@ export class Kernel {
 
   async blockNumber(): Promise<number> {
     return this.world.provider.getBlockNumber();
+  }
+
+  async blockTimestamp(): Promise<number> {
+    return this.world.blockTimestamp();
+  }
+
+  /** True for a local development chain whose clock the kernel may move. */
+  get isLocalChain(): boolean {
+    return this.world.file.network === "anvil";
+  }
+
+  /**
+   * Let `seconds` of chain time pass. On anvil the clock is moved and a block mined (recorded in the journal:
+   * a skipped interval is part of the evidence); on any other chain the kernel waits for real time.
+   */
+  async advanceTime(seconds: number, why: string): Promise<void> {
+    const before = await this.blockTimestamp();
+    if (this.isLocalChain) {
+      await (this.world.provider as any).send("evm_increaseTime", [seconds]);
+      await (this.world.provider as any).send("evm_mine", []);
+      const after = await this.blockTimestamp();
+      this.store.journal("time-skipped", { seconds, from: before, to: after, why });
+      return;
+    }
+    const target = before + seconds;
+    this.store.journal("time-waited", { seconds, from: before, until: target, why });
+    while ((await this.blockTimestamp()) < target) await new Promise((r) => setTimeout(r, 5_000));
   }
 
   /** Decode the first event `name` from a receipt with the ABI of world contract `id` (or any interface). */

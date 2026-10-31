@@ -10,7 +10,7 @@
 | 2 interfaces | which interfaces does the contract declare, and does it declare the ones it was built from? | `supportsInterface` probes for ERC-165 and for every interface of the same repository; expected = the contract's direct base interfaces |
 | 3 version match | is the runtime code the locked build? | keccak256 of the on-chain code after stripping the CBOR metadata trailer, zeroing every embedded metadata hash (a contract that creates other contracts embeds their creation code and metadata — TaskToken embeds TaskVault), and zeroing library-address and immutable slots, compared with the bundle's `runtimeIdentity` |
 | 4 configuration and permissions | are dependencies wired as the world says, and who holds the authority slots? | view calls listed in `src/doctor/checks.ts` (`WIRING_CHECKS`), compared with world addresses, world parameters or explicit `expectations`; `READOUTS` print owner / admin / counters |
-| 5 semantic validation | do the success, rejection, signature, proof and recovery cases hold? | the genesis scenario provides the evidence (`foga genesis run`, docs/genesis.md: T0–T3 since Phase 2a-1); the doctor itself reports Not tested until it consumes that evidence (Phase 2b) |
+| 5 semantic validation | do the success, rejection, signature, proof and recovery cases hold? | the genesis scenario provides the evidence (`foga genesis run`, docs/genesis.md: T0–T5 since Phase 2a); the doctor itself reports Not tested until it consumes that evidence (Phase 2b) |
 
 ## Verdicts
 

@@ -1,14 +1,56 @@
 {
   "schema": "finch.extract-verify.fields/1",
   "fields": [
-    { "name": "issuer", "kind": "text", "where": "cover page" },
-    { "name": "periodEnd", "kind": "date", "where": "cover page" },
-    { "name": "totalAssets", "kind": "amount", "where": "balance sheet" },
-    { "name": "totalLiabilities", "kind": "amount", "where": "balance sheet" },
-    { "name": "totalEquity", "kind": "amount", "where": "balance sheet" }
+    {
+      "name": "issuer",
+      "kind": "text",
+      "label": "Issuer",
+      "where": "cover page"
+    },
+    {
+      "name": "documentDate",
+      "kind": "date",
+      "label": "Document date",
+      "where": "cover page"
+    },
+    {
+      "name": "periodEnd",
+      "kind": "date",
+      "label": "Period end",
+      "where": "cover page"
+    },
+    {
+      "name": "totalAssets",
+      "kind": "amount",
+      "label": "Total assets",
+      "where": "balance sheet"
+    },
+    {
+      "name": "totalLiabilities",
+      "kind": "amount",
+      "label": "Total liabilities",
+      "where": "balance sheet"
+    },
+    {
+      "name": "totalEquity",
+      "kind": "amount",
+      "label": "Total equity",
+      "where": "balance sheet"
+    }
   ],
   "rules": [
-    { "id": "balance", "check": "totalAssets == totalLiabilities + totalEquity", "tolerance": "1" },
-    { "id": "period", "check": "periodEnd is a calendar date not after the document date" }
-  ]
+    {
+      "id": "balance",
+      "check": "totalAssets == totalLiabilities + totalEquity",
+      "tolerance": "1"
+    },
+    {
+      "id": "period",
+      "check": "periodEnd is a calendar date not after documentDate"
+    }
+  ],
+  "extraction": {
+    "method": "line-label",
+    "description": "A field's value is the text after `<label>:` on the first line that starts with the label; amounts drop thousands separators; dates are ISO 8601."
+  }
 }

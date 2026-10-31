@@ -1,7 +1,10 @@
 {
   "name": "foga",
-  "version": "0.2.0-alpha.4",
-  "repository": { "type": "git", "url": "https://github.com/garyyang-finchip/foga.git" },
+  "version": "0.3.0-alpha.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/garyyang-finchip/foga.git"
+  },
   "homepage": "https://github.com/garyyang-finchip/foga#readme",
   "description": "Finch OG Agent (FOGA): world builder, conformance doctor, cell kernel and genesis scenario for the ten-ERC agent stack (ERC-8338/8414/8419/8434/8436/8444/8447/8454/8468/8471)",
   "license": "Apache-2.0",
@@ -18,6 +21,10 @@
     "artifacts",
     "worlds",
     "scenarios",
+    "prover/package.json",
+    "prover/package-lock.json",
+    "prover/run.cjs",
+    "prover/README.md",
     "build/profiles.json",
     "build/known-interface-ids.json",
     "vendor/LOCK.json",
@@ -34,10 +41,11 @@
     "world:local": "tsx src/cli.ts world deploy --world worlds/local.json --out deployments/local.json",
     "doctor:local": "tsx src/cli.ts doctor --world deployments/local.json --out deployments/local.doctor.json",
     "demo": "tsx src/cli.ts demo",
-    "demo:genesis": "tsx src/cli.ts demo --genesis T3",
-    "genesis:local": "tsx src/cli.ts genesis run --world deployments/local.json --until T3",
+    "demo:genesis": "tsx src/cli.ts demo --genesis T5",
+    "genesis:local": "tsx src/cli.ts genesis run --world deployments/local.json --until T5",
     "test": "node --test --import tsx test/*.test.ts",
-    "test:contracts": "cd contracts && forge test -vv"
+    "test:contracts": "cd contracts && forge test -vv",
+    "zk:install": "npm --prefix prover ci"
   },
   "dependencies": {
     "ethers": "6.17.0"

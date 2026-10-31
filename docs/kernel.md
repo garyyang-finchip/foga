@@ -46,7 +46,15 @@ A store also records the hash of block 0 the first time it opens. A later open a
 
 ## Facts and `memo`
 
-Values a later step needs (ids, addresses, hashes) are facts in the store, written when known. Values that enter a transaction and depend on the clock or on chain state at run time — deadlines, the probe block — go through `kernel.memo(key, compute)`: computed once, read back on every later run, so a resumed run rebuilds exactly the inputs the recorded transactions were made from. Rebuilding them from the clock again would make the store's account of a replayed operation disagree with the chain.
+Values a later step needs (ids, addresses, hashes) are facts in the store, written when known. Values that enter a transaction and depend on the clock or on chain state at run time — deadlines, the probe block, a Groth16 proof bound to an epoch — go through `kernel.memo(key, compute)`: computed once, read back on every later run, so a resumed run rebuilds exactly the inputs the recorded transactions were made from. Rebuilding them from the clock again would make the store's account of a replayed operation disagree with the chain.
+
+## Chain time
+
+`kernel.advanceTime(seconds, why)` lets a window pass. On anvil it moves the clock (`evm_increaseTime`, then a block) and writes a `time-skipped` journal entry with the interval and the reason, so a skipped window is visible in the evidence; on any other chain it waits for real time (`time-waited`). The genesis chooses realistic windows on a local chain and short ones elsewhere (docs/genesis.md).
+
+## Gas
+
+Every estimate gets a margin (see above). A call whose outcome depends on the gas it is given — the SwarmRegistry's `challenge`, which treats an eligibility module's `false` returned with little gas left as unevaluable — takes an explicit `gasLimit` through `kernel.call`, because an estimate stops at the first non-reverting path, and "unevaluable, nothing changed" is one.
 
 ## Evidence
 
@@ -59,6 +67,10 @@ The kernel's signers are named by role (`W`, `G`, `owner.A`, `operator.A`, …).
 ## Running a skill
 
 Before a cell executes a skill it holds, the kernel rebuilds the package from the local directory and compares `mdHash` and `packageHash` with the token's on-chain commitment (`skillOf`); a tampered file changes both and the run is refused. `foga-probe` then runs in a separate process (`src/genesis/probe-worker.ts`) with a time limit, holding no key and making view calls only; the parent receives the canonical answer and decides what to commit to. The isolation boundary is a process today; the sandboxed runtime of the hosted node is Phase 3 work.
+
+## The prover
+
+The credential-pattern ZK path of ERC-8419 runs through `prover/run.cjs`: a stdin/stdout bridge over the upstream prover (`vendor/kya-standard/companions/zk-kya-groth16/prover.js`, with the circuit's wasm and proving key next to it). `prover/` is a sub-package with its own dependencies (snarkjs, circomlibjs; `npm run zk:install`), so the kernel's own dependency tree stays at ethers. The bridge keeps the roles apart: `commit` (the prover's Poseidon commitment to its secret), `attest` (the attestor signs the credential over the commitment, never seeing the secret), `root` (the issuer set from attestor keys) and `prove` (the prover's secret plus public material only). FOGA's attestor key and the cells' prover secrets are derived from the signers' keys, so a run is reproducible and nothing extra is stored; a resumed run reuses the recorded proof.
 
 ## `node:sqlite`
 

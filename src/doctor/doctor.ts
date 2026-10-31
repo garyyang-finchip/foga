@@ -356,5 +356,5 @@ function printReport(r: DoctorReport): void {
     console.log("\nreadouts:");
     for (const x of r.readouts) console.log(`  ${x.subject}.${x.fn} = ${x.value}`);
   }
-  console.log(`\nsummary: ${Object.entries(r.summary).map(([k, v]) => `${k} ${v}`).join(", ")}; layer 5 (semantic) is Not tested by the doctor yet: the genesis evidence (foga genesis run) covers T0-T3\n`);
+  console.log(`\nsummary: ${Object.entries(r.summary).map(([k, v]) => `${k} ${v}`).join(", ")}; layer 5 (semantic) is Not tested by the doctor yet: the genesis evidence (foga genesis run) covers T0-T5\n`);
 }

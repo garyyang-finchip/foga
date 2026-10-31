@@ -1,8 +1,8 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-10-30T03:44:52.144Z",
+  "at": "2026-10-31T07:12:48.825Z",
   "world": {
-    "worldId": "anvil-31337-20261030T034434Z",
+    "worldId": "anvil-31337-20261031T071243Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
@@ -10,13 +10,13 @@
     "bundleHash": "0xab27f3830e40a122106893f85110ed7a28e83c6a0a79b4e4d087b7779db37c9a"
   },
   "source": {
-    "rpc": "http://127.0.0.1:8545",
-    "collectedAt": "2026-10-30T03:44:52.017Z",
+    "rpc": "http://127.0.0.1:8563",
+    "collectedAt": "2026-10-31T07:12:48.689Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 31337,
-    "blockNumber": 124
+    "blockNumber": 51
   },
   "bundleHash": "0xab27f3830e40a122106893f85110ed7a28e83c6a0a79b4e4d087b7779db37c9a",
   "layers": {
@@ -1857,7 +1857,7 @@
     {
       "subject": "8454/AUFUnitRegistry",
       "fn": "unitCount",
-      "value": "5"
+      "value": "0"
     }
   ],
   "summary": {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0-alpha.1 — 2026-10-31 (Phase 2a-2)
+
+- Genesis T4 (organization) and T5 (governance): the judged tender, eligibility modules (AssertionLevel, Composite) and the decision adapter deployed by the scenario, the swarm formed, joined, activated and bound to its account through the cells' accounts, the swarm AUF unit, the council's acceptance (Provisional, appeal window, Final, enactment), the workers' charter amendment, the NoDecision path with the tender's own `claimUnjudged`, the swarm concluded ACHIEVED; negatives: ineligible join, revoked assertion suspending and a fresh one reinstating a seat, wrong-round and non-judge ballots, premature and repeated execution, a worker driving the swarm account, the coordinator voting on the workers' decision.
+- The credential-pattern ZK path (ERC-8419 `kya-public-v1`): FOGA's own issuer set and `Groth16KYAVerifierAdapter` instance in T0, S_cred bound to it, A's proof and `attestWithProof` in T1; replay, subject and epoch negatives. `prover/` is a sub-package holding snarkjs and circomlibjs and `run.cjs`, a bridge over the upstream prover that keeps the attestor's and the prover's material apart; `npm run zk:install`; `--zk auto|require|skip`.
+- T0 also registers the FOGA-Council policy, deploys FOGA's instance of the upstream `ACDFTaskTenderAdapter` and funds the judges on local chains; T1 marks `castBallot` commitment-class.
+- `src/core/acdf.ts` and `src/core/swarm.ts` (policy and spec builders, pack hashes byte-exact against the upstream vectors, adapters, views); `src/genesis/extract.ts`, the deterministic path of `finch-extract-verify` over `scenarios/fixtures/sample-filing.txt`; `fields.json` of the skill gains labels (new package hash).
+- Kernel: `advanceTime` (anvil clock skips recorded in the journal; waits elsewhere), `call` with an explicit gas limit, decoders for the scenario-deployed contracts; the store records a scenario version and refuses one written by another.
+- 125 operations and 89 checks on anvil (about 40 s); `demo:genesis` runs to T5. Unit tests for the swarm/ACDF vectors and the extractor. CI installs the proving libraries and requires the ZK path.
+- Docs: docs/genesis.md (T4, T5, the ZK path, windows), docs/kernel.md (chain time, gas, the prover), README, compatibility matrix, design memo.
+
 ## 0.2.0-alpha.4 — 2026-10-31
 
 - `foga demo --keep` returns once the run is done and leaves anvil running detached (it printed the pid before but kept the process alive until anvil exited). anvil's output goes to `.foga-build/anvil.log` instead of a pipe, so a kept node cannot die on a closed stderr; the startup diagnostics read that file. README: the interrupt-and-resume example starts from `demo --keep --genesis T2`.

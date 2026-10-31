@@ -1,0 +1,11 @@
+{
+  "name": "foga-prover",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Proving-side dependencies of the ERC-8419 credential-pattern ZK path (kya-public-v1), kept apart from the kernel's own dependencies",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "circomlibjs": "0.1.7",
+    "snarkjs": "0.7.6"
+  }
+}

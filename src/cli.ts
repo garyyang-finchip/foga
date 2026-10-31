@@ -24,10 +24,11 @@ usage:
   foga doctor --world <...> --export-probe <probe.json>      write the JSON-RPC probe plan instead of calling an RPC
   foga doctor --world <...> --import-results <results.json>  evaluate results collected by a relay (offline replay)
   foga probe relay-script                        print a dependency-free node script that runs a probe plan
-  foga genesis run --world <world.json> [--rpc <url>] [--until T0|T1|T2|T3] [--store <file.sqlite>] [--out <evidence.json>]
-                   [--crash-after <opKey>] [--crash-before <opKey>]   run the genesis scenario (idempotent; re-run to resume)
+  foga genesis run --world <world.json> [--rpc <url>] [--until T0..T5] [--store <file.sqlite>] [--out <evidence.json>]
+                   [--zk auto|require|skip] [--crash-after <opKey>] [--crash-before <opKey>]
+                                                 run the genesis scenario (idempotent; re-run to resume)
   foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
-  foga demo [--port <n>] [--keep] [--genesis <T0..T3>]   start anvil, deploy the local world, run the doctor (and the genesis)
+  foga demo [--port <n>] [--keep] [--genesis <T0..T5>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga bundle info                               summarize the committed bundle
 
 environment:
@@ -173,6 +174,7 @@ async function main(): Promise<void> {
       evidencePath: str(flags, "out"),
       skillsDir: str(flags, "skills"),
       until: str(flags, "until") as any,
+      zk: str(flags, "zk") as any,
       crashAfterBroadcast: str(flags, "crash-after"),
       crashBeforeBroadcast: str(flags, "crash-before"),
     });

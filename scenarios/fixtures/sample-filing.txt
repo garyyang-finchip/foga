@@ -1,0 +1,16 @@
+EXAMPLE HOLDINGS LTD
+Condensed interim financial statement (synthetic fixture for the FOGA genesis; no real company)
+
+Document date: 2026-08-15
+Issuer: Example Holdings Ltd
+Period end: 2026-06-30
+Reporting currency: USD thousands
+
+BALANCE SHEET
+Total assets: 1,250
+Total liabilities: 800
+Total equity: 450
+
+NOTES
+1. The figures above are invented for a software test and carry no financial meaning.
+2. Total equity equals total assets less total liabilities by construction.

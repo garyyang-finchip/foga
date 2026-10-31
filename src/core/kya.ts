@@ -111,6 +111,15 @@ export class KYA {
     return this.registry().interface.encodeFunctionData("attest", [p.subject, p.schemeId, p.level, p.claimDigest, p.expiresAt, p.evidenceURI ?? "", p.evidenceHash ?? "0x" + "00".repeat(32)]);
   }
 
+  /** attestWithProof(subject, schemeId, publicInputs, proof, evidenceURI): the proved path; the verifier adapter becomes the issuer. */
+  encodeAttestWithProof(subject: Subject, schemeId: string, publicInputs: string, proof: string, evidenceURI = ""): string {
+    return this.registry().interface.encodeFunctionData("attestWithProof", [subject, schemeId, publicInputs, proof, evidenceURI]);
+  }
+
+  async isNullifierUsed(schemeId: string, nullifier: string): Promise<boolean> {
+    return this.registry().isNullifierUsed(schemeId, nullifier);
+  }
+
   encodeRevoke(assertionId: string, reasonCode: number): string {
     return this.registry().interface.encodeFunctionData("revoke", [assertionId, reasonCode]);
   }

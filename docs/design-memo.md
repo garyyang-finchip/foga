@@ -1,6 +1,6 @@
 # FOGA design memo (v0.1, condensed)
 
-This is the English working version of the design. Phase 1 (the world layer) and Phase 2a-1 (cells, kernel, genesis T0–T3; docs/genesis.md) implement its first slices. It records decisions, not aspirations: where something is still to be built, it says so.
+This is the English working version of the design. Phase 1 (the world layer) and Phase 2a (cells, kernel, genesis T0–T5; docs/genesis.md) implement its first slices. It records decisions, not aspirations: where something is still to be built, it says so.
 
 ## 1. Definition and scope
 
@@ -51,7 +51,7 @@ The "cellular automaton" idea is the architectural inspiration: each cell is an 
 
 Two profiles: the **guarded** profile (default, used by the OG cell) puts the body in a contract account so the safety gate holds even for RPC calls that bypass the kernel and so ERC-1271 makes `bindWithSig`, `joinBySig`, `assertStatementBySig` and signed ballots available; the **lite** profile is an EOA, with safety enforced only by acceptance consumers and the kernel's own restraint, which the doctor reports honestly. An operator that bypasses the account and submits to a permissionless token directly acts as itself, not as the cell; such a submission earns none of the cell's rights.
 
-## 4. Genesis scenario T0–T9 (T0–T3 implemented in Phase 2a-1; docs/genesis.md records the implemented form and its two deviations: the binding is adopted before the ERC-8004 registration because the account executes nothing before a binding is presented, and the settlement pays the account directly, so `withdrawCredit` is only the fallback)
+## 4. Genesis scenario T0–T9 (T0–T5 implemented in Phase 2a; docs/genesis.md records the implemented form and its deviations: the binding is adopted before the ERC-8004 registration because the account executes nothing before a binding is presented; settlements pay the accounts directly, so `withdrawCredit` is only the fallback; the judged tender is minted before the swarm forms because the objective binds to it; the governance vote is 2 of 2 workers because the upstream decision adapter takes its roster from one role)
 
 Loops: A = T1–T3 (independent order, execution, settlement), B = T4–T6 (organization, deliberation, dispute), C = T7 plus the failure and recovery cases, D = a real-agent run with unscripted task input.
 
@@ -86,7 +86,7 @@ One kernel, three entrances; switching entrance never changes authorization rule
 | Phase | Output | Gate |
 |---|---|---|
 | 1 world | repository skeleton; vendor lock and sync; artifact bundle; deployment orchestrator; address books; doctor layers 1–4; CI | one-command world on Anvil; doctor reports for Anvil and Sepolia; CI rebuilds the bundle to the same hash |
-| 2a cells | `foga-core`, `foga-kernel`, `FogaCellAccount`; T0–T5 on Anvil; first loop-C cases. **2a-1 done (0.2.0-alpha.1): account, core, kernel, T0–T3, four loop-C cases.** 2a-2: T4, T5, the credential-pattern proof for A | T0–T5 green; restart recovery and dedup pass |
+| 2a cells | `foga-core`, `foga-kernel`, `FogaCellAccount`; T0–T5 on Anvil; first loop-C cases. **Done: 2a-1 (0.2.0) account, core, kernel, T0–T3, four loop-C cases; 2a-2 (0.3.0-alpha.1) T4, T5, the credential-pattern proof for A, the FOGA-Council.** | T0–T5 green; restart recovery and dedup pass |
 | 2b cells | predicate circuit and adapter; T6–T9; measurement receipts; remaining loop-C cases; doctor layer 5 | T0–T9 green; every negative case rejected as specified |
 | 2c public evidence | Sepolia run from one driver script; cells bound in both AID registries; FOGA-owned modules, adapter and escrow; evidence and Sourcify | public state re-checkable; known mismatches reported |
 | 3 interfaces | base MCP (stdio and Streamable HTTP), CLI, HTTP, A2A card and inbound mapping, documents from one config, ERC-8004 and ARD registration, MCP registry listing, documentation site; loop D | published capabilities match acceptance results; external clients work |

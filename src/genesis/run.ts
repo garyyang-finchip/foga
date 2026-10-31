@@ -11,6 +11,8 @@ export interface GenesisRunOptions {
   storePath?: string;
   evidencePath?: string;
   skillsDir?: string;
+  fixturesDir?: string;
+  zk?: "auto" | "require" | "skip";
   until?: StepName;
   crashBeforeBroadcast?: string;
   crashAfterBroadcast?: string;
@@ -44,11 +46,12 @@ export async function runGenesis(opts: GenesisRunOptions): Promise<{ evidence: G
   const storePath = resolve(opts.storePath ?? join(root, "deployments", `${name}.genesis.sqlite`));
   const evidencePath = resolve(opts.evidencePath ?? join(root, "deployments", `${name}.genesis.json`));
   const skillsDir = resolve(opts.skillsDir ?? join(root, "scenarios", "skills"));
-  const until = opts.until ?? "T3";
+  const fixturesDir = resolve(opts.fixturesDir ?? join(root, "scenarios", "fixtures"));
+  const until = opts.until ?? "T5";
   if (!STEPS.includes(until)) throw new Error(`--until must be one of ${STEPS.join(", ")}`);
 
   const say = opts.quiet ? () => {} : (line: string) => log.step(line);
-  const g = await Genesis.open({ worldPath, rpc, bundlePath: opts.bundlePath, storePath, skillsDir, crashBeforeBroadcast: opts.crashBeforeBroadcast, crashAfterBroadcast: opts.crashAfterBroadcast, log: say });
+  const g = await Genesis.open({ worldPath, rpc, bundlePath: opts.bundlePath, storePath, skillsDir, fixturesDir, zk: opts.zk ?? "auto", crashBeforeBroadcast: opts.crashBeforeBroadcast, crashAfterBroadcast: opts.crashAfterBroadcast, log: say });
   log.info(`genesis on world ${world.worldId} (chain ${world.chainId}) via ${rpc}; store ${storePath}`);
   const before = g.kernel.store.summary();
   if (before.ops.confirmed + before.ops.sent + before.ops.failed > 0) log.info(`resuming: store holds ${before.ops.confirmed} confirmed, ${before.ops.sent} sent, ${before.ops.failed} failed operations`);
