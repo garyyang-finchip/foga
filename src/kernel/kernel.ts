@@ -1,5 +1,6 @@
 import { Contract, Interface, Wallet, getCreateAddress, type ContractRunner, type TransactionReceipt } from "ethers";
 import { ACDF } from "../core/acdf.js";
+import { ADRF } from "../core/adrf.js";
 import { AID } from "../core/aid.js";
 import { ARD } from "../core/ard.js";
 import { ASF } from "../core/asf.js";
@@ -47,6 +48,7 @@ export class Kernel {
   readonly tenders: Tenders;
   readonly identity: Identity8004;
   readonly acdf: ACDF;
+  readonly adrf: ADRF;
   readonly swarms: Swarms;
   private readonly evidenceList: EvidenceRecord[] = [];
 
@@ -67,6 +69,7 @@ export class Kernel {
     this.tenders = new Tenders(world);
     this.identity = new Identity8004(world);
     this.acdf = new ACDF(world);
+    this.adrf = new ADRF(world);
     this.swarms = new Swarms(world);
     for (const id of Object.keys(world.file.contracts)) {
       if (id === "identity8004") continue;
@@ -77,7 +80,7 @@ export class Kernel {
       }
     }
     this.tx.decoder.add(world.ifaceOf("foga:FogaCellAccount"), "foga:FogaCellAccount");
-    for (const key of ["swarm-ai-framework:SwarmAccount", "swarm-ai-framework:SwarmDecisionAdapter", "swarm-ai-framework:CompositeEligibility", "swarm-ai-framework:AssertionLevelEligibility", "acd-framework:ACDFTaskTenderAdapter", "kya-standard:Groth16KYAVerifierAdapter"]) {
+    for (const key of ["swarm-ai-framework:SwarmAccount", "swarm-ai-framework:SwarmDecisionAdapter", "swarm-ai-framework:CompositeEligibility", "swarm-ai-framework:AssertionLevelEligibility", "acd-framework:ACDFTaskTenderAdapter", "kya-standard:Groth16KYAVerifierAdapter", "foga:Groth16PredicateKYAVerifierAdapter", "ai-dispute-resolution:ADRFErrors", "ai-dispute-resolution:IADRFDisputeRegistry", "ai-dispute-resolution:ADRFACDFBridge"]) {
       try {
         this.tx.decoder.add(world.ifaceOf(key), key);
       } catch {

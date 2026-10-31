@@ -1,30 +1,30 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-10-31T07:12:48.825Z",
+  "at": "2026-10-31T08:54:03.209Z",
   "world": {
-    "worldId": "anvil-31337-20261031T071243Z",
+    "worldId": "anvil-31337-20261031T085035Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
     "mode": "deployed",
-    "bundleHash": "0xab27f3830e40a122106893f85110ed7a28e83c6a0a79b4e4d087b7779db37c9a"
+    "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275"
   },
   "source": {
-    "rpc": "http://127.0.0.1:8563",
-    "collectedAt": "2026-10-31T07:12:48.689Z",
+    "rpc": "http://127.0.0.1:8545",
+    "collectedAt": "2026-10-31T08:54:03.082Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 31337,
-    "blockNumber": 51
+    "blockNumber": 245
   },
-  "bundleHash": "0xab27f3830e40a122106893f85110ed7a28e83c6a0a79b4e4d087b7779db37c9a",
+  "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275",
   "layers": {
     "1": "chain and code: the address holds code on the expected chain",
     "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
     "3": "version match: runtime code (metadata stripped, library/immutable slots masked) equals the locked build",
     "4": "configuration and permissions: dependency addresses and authority slots match the world",
-    "5": "semantic validation: success, rejection, signature, proof and recovery cases (Phase 2)"
+    "5": "semantic validation: success, rejection, signature, proof and recovery cases, from the genesis evidence (foga genesis run; pass it with --genesis)"
   },
   "results": [
     {
@@ -1759,73 +1759,110 @@
     },
     {
       "layer": 5,
+      "subject": "genesis",
+      "check": "evidence",
+      "verdict": "Pass",
+      "expected": "anvil-31337-20261031T085035Z (chain 31337)",
+      "actual": "anvil-31337-20261031T085035Z (chain 31337), until T9, 165 checks, 0 failed, ran 2026-10-31T08:52:15.630Z"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8004",
+      "check": "semantic validation",
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "8 pass, 0 fail, 0 skipped",
+      "detail": "8/8 checks pass over T1, T9"
+    },
+    {
+      "layer": 5,
       "subject": "ERC-8338",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "12 pass, 0 fail, 0 skipped",
+      "detail": "12/12 checks pass over T2, T3, T6, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8414",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "20 pass, 0 fail, 0 skipped",
+      "detail": "20/20 checks pass over T3, T4, T5, T7"
     },
     {
       "layer": 5,
       "subject": "ERC-8419",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "24 pass, 0 fail, 0 skipped",
+      "detail": "24/24 checks pass over T0, T1, T3, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8434",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "16 pass, 0 fail, 0 skipped",
+      "detail": "16/16 checks pass over T1, T2, T7, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8436",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "20 pass, 0 fail, 0 skipped",
+      "detail": "20/20 checks pass over T0, T5, T6"
     },
     {
       "layer": 5,
       "subject": "ERC-8444",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "10 pass, 0 fail, 0 skipped",
+      "detail": "10/10 checks pass over T1, T2, T3, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8447",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "15 pass, 0 fail, 0 skipped",
+      "detail": "15/15 checks pass over T4, T5, T8, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8454",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "12 pass, 0 fail, 0 skipped",
+      "detail": "12/12 checks pass over T1, T4, T8, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8468",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "21 pass, 0 fail, 0 skipped",
+      "detail": "21/21 checks pass over T0, T1, T7, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8471",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "18 pass, 0 fail, 0 skipped",
+      "detail": "18/18 checks pass over T0, T6"
     }
   ],
   "readouts": [
@@ -1852,19 +1889,19 @@
     {
       "subject": "8471/ADRFServiceEscrow",
       "fn": "bindingId",
-      "value": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      "value": "0x92f0ef9c1868ffc073614478d56e507eff20a6d17539cb31d15c42b0ca8ca732"
     },
     {
       "subject": "8454/AUFUnitRegistry",
       "fn": "unitCount",
-      "value": "0"
+      "value": "7"
     }
   ],
   "summary": {
-    "Pass": 204,
+    "Pass": 216,
     "Fail": 0,
     "Unknown": 2,
-    "NotTested": 10,
+    "NotTested": 0,
     "NotApplicable": 23
   },
   "perContract": {

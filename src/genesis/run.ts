@@ -47,7 +47,7 @@ export async function runGenesis(opts: GenesisRunOptions): Promise<{ evidence: G
   const evidencePath = resolve(opts.evidencePath ?? join(root, "deployments", `${name}.genesis.json`));
   const skillsDir = resolve(opts.skillsDir ?? join(root, "scenarios", "skills"));
   const fixturesDir = resolve(opts.fixturesDir ?? join(root, "scenarios", "fixtures"));
-  const until = opts.until ?? "T5";
+  const until = opts.until ?? "T9";
   if (!STEPS.includes(until)) throw new Error(`--until must be one of ${STEPS.join(", ")}`);
 
   const say = opts.quiet ? () => {} : (line: string) => log.step(line);

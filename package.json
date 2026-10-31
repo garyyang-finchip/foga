@@ -1,6 +1,6 @@
 {
   "name": "foga",
-  "version": "0.3.0-alpha.1",
+  "version": "0.4.0-alpha.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/garyyang-finchip/foga.git"
@@ -25,6 +25,9 @@
     "prover/package-lock.json",
     "prover/run.cjs",
     "prover/README.md",
+    "prover/build-predicate.mjs",
+    "zk/circuits",
+    "zk/build/verification_key.json",
     "build/profiles.json",
     "build/known-interface-ids.json",
     "vendor/LOCK.json",
@@ -41,11 +44,12 @@
     "world:local": "tsx src/cli.ts world deploy --world worlds/local.json --out deployments/local.json",
     "doctor:local": "tsx src/cli.ts doctor --world deployments/local.json --out deployments/local.doctor.json",
     "demo": "tsx src/cli.ts demo",
-    "demo:genesis": "tsx src/cli.ts demo --genesis T5",
-    "genesis:local": "tsx src/cli.ts genesis run --world deployments/local.json --until T5",
+    "demo:genesis": "tsx src/cli.ts demo --genesis T9",
+    "genesis:local": "tsx src/cli.ts genesis run --world deployments/local.json --until T9",
     "test": "node --test --import tsx test/*.test.ts",
     "test:contracts": "cd contracts && forge test -vv",
-    "zk:install": "npm --prefix prover ci"
+    "zk:install": "npm --prefix prover ci",
+    "zk:predicate": "node prover/build-predicate.mjs"
   },
   "dependencies": {
     "ethers": "6.17.0"

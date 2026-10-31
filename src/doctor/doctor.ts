@@ -3,6 +3,7 @@ import { relative } from "node:path";
 import { loadBundle } from "../bundle/load.js";
 import type { Bundle, BundleContract } from "../bundle/types.js";
 import { runtimeIdentity } from "../util/bytecode.js";
+import { loadGenesisEvidence, semanticVerdicts, type GenesisEvidenceFile } from "./semantic.js";
 import { readJson, repoRoot, writeJson } from "../util/fs.js";
 import { log } from "../util/log.js";
 import type { WorldFile } from "../world/types.js";
@@ -44,6 +45,10 @@ export interface DoctorOptions {
   exportProbePath?: string;
   /** Evaluate previously collected probe results instead of calling an RPC. */
   importResultsPath?: string;
+  /** A genesis evidence file (`foga genesis run --out`): layer 5 is evaluated from it. */
+  genesisPath?: string;
+  /** Print only the layer-5 table and the summary (a second pass after the genesis). */
+  quiet?: boolean;
 }
 
 const LAYERS: Record<string, string> = {
@@ -51,7 +56,7 @@ const LAYERS: Record<string, string> = {
   "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
   "3": "version match: runtime code (metadata stripped, library/immutable slots masked) equals the locked build",
   "4": "configuration and permissions: dependency addresses and authority slots match the world",
-  "5": "semantic validation: success, rejection, signature, proof and recovery cases (Phase 2)",
+  "5": "semantic validation: success, rejection, signature, proof and recovery cases, from the genesis evidence (foga genesis run; pass it with --genesis)",
 };
 
 function worst(a: Verdict, b: Verdict): Verdict {
@@ -80,7 +85,7 @@ export function loadWorldFile(path: string): WorldFile {
   return world;
 }
 
-export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, probe: ProbeResults, mode: "live" | "replay"): DoctorReport {
+export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, probe: ProbeResults, mode: "live" | "replay", genesis?: GenesisEvidenceFile): DoctorReport {
   const results: CheckResult[] = [];
   const readouts: DoctorReport["readouts"] = [];
   const perContract: DoctorReport["perContract"] = {};
@@ -277,8 +282,17 @@ export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, prob
   }
 
   const ercs = new Set(Object.keys(world.contracts).map((k) => k.split("/")[0]).filter((k) => /^\d+$/.test(k)));
-  for (const erc of [...ercs].sort()) {
-    results.push({ layer: 5, subject: `ERC-${erc}`, check: "semantic validation", verdict: "NotTested", detail: "genesis scenario and acceptance matrix run in Phase 2" });
+  if (Object.keys(world.contracts).some((k) => k.startsWith("identity8004") || k.startsWith("8004/"))) ercs.add("8004");
+  if (!genesis) {
+    for (const erc of [...ercs].sort()) {
+      results.push({ layer: 5, subject: `ERC-${erc}`, check: "semantic validation", verdict: "NotTested", detail: "no genesis evidence given (foga genesis run, then foga doctor --genesis <evidence.json>)" });
+    }
+  } else {
+    const sameWorld = genesis.worldId === world.worldId && genesis.chainId === world.chainId;
+    results.push({ layer: 5, subject: "genesis", check: "evidence", verdict: sameWorld ? "Pass" : "Fail", expected: `${world.worldId} (chain ${world.chainId})`, actual: `${genesis.worldId} (chain ${genesis.chainId}), until ${genesis.until}, ${genesis.summary.checks} checks, ${genesis.summary.failed} failed, ran ${genesis.ranAt}`, detail: sameWorld ? undefined : "the evidence was produced on another world; layer-5 verdicts below are not about this world" });
+    for (const v of semanticVerdicts(genesis, [...ercs].sort())) {
+      results.push({ layer: 5, subject: `ERC-${v.erc}`, check: "semantic validation", verdict: sameWorld ? v.verdict : "Unknown", expected: "every genesis check that exercises the standard passes", actual: `${v.passed} pass, ${v.failed} fail, ${v.skipped} skipped`, detail: v.detail });
+    }
   }
 
   const summary: Record<Verdict, number> = { Pass: 0, Fail: 0, Unknown: 0, NotTested: 0, NotApplicable: 0 };
@@ -323,8 +337,9 @@ export async function runDoctor(opts: DoctorOptions): Promise<{ report: DoctorRe
     probe = await executeProbeLive(plan, rpc);
     mode = "live";
   }
-  const report = evaluate(world, bundle, plan, probe, mode);
-  printReport(report);
+  const genesis = opts.genesisPath ? loadGenesisEvidence(opts.genesisPath) : undefined;
+  const report = evaluate(world, bundle, plan, probe, mode, genesis);
+  printReport(report, opts.quiet);
   let outPath: string | null = null;
   if (opts.outPath) {
     outPath = opts.outPath;
@@ -334,13 +349,15 @@ export async function runDoctor(opts: DoctorOptions): Promise<{ report: DoctorRe
   return { report, path: outPath };
 }
 
-function printReport(r: DoctorReport): void {
+function printReport(r: DoctorReport, quiet = false): void {
   const pad = (s: string, n: number) => (s.length >= n ? s + " " : s + " ".repeat(n - s.length));
   console.log(`\nfoga doctor — world ${r.world.worldId} (${r.world.network}, chain ${r.chain.chainId ?? "?"}, block ${r.chain.blockNumber ?? "?"}, ${r.source.mode} via ${r.source.rpc})`);
   console.log(`bundle ${r.bundleHash}${r.world.bundleHash && r.world.bundleHash !== r.bundleHash ? " (world built from " + r.world.bundleHash + ")" : ""}\n`);
-  console.log(pad("contract", 34) + pad("address", 44) + pad("L1 code", 10) + pad("L2 iface", 15) + pad("L3 version", 12) + "L4 wiring");
-  for (const [id, pc] of Object.entries(r.perContract)) {
-    console.log(pad(id, 34) + pad(pc.address, 44) + pad(pc.layer1, 10) + pad(pc.layer2, 15) + pad(pc.layer3, 12) + pc.layer4);
+  if (!quiet) {
+    console.log(pad("contract", 34) + pad("address", 44) + pad("L1 code", 10) + pad("L2 iface", 15) + pad("L3 version", 12) + "L4 wiring");
+    for (const [id, pc] of Object.entries(r.perContract)) {
+      console.log(pad(id, 34) + pad(pc.address, 44) + pad(pc.layer1, 10) + pad(pc.layer2, 15) + pad(pc.layer3, 12) + pc.layer4);
+    }
   }
   const fails = r.results.filter((x) => x.verdict === "Fail");
   if (fails.length) {
@@ -348,13 +365,18 @@ function printReport(r: DoctorReport): void {
     for (const f of fails) console.log(`  L${f.layer} ${f.subject} ${f.check}: expected ${f.expected ?? "-"}, actual ${f.actual ?? "-"}${f.detail ? " — " + f.detail : ""}`);
   }
   const unknowns = r.results.filter((x) => x.verdict === "Unknown");
-  if (unknowns.length) {
+  if (unknowns.length && !quiet) {
     console.log("\nunknown:");
     for (const u of unknowns) console.log(`  L${u.layer} ${u.subject} ${u.check}${u.detail ? " — " + u.detail : ""}`);
   }
-  if (r.readouts.length) {
+  if (r.readouts.length && !quiet) {
     console.log("\nreadouts:");
     for (const x of r.readouts) console.log(`  ${x.subject}.${x.fn} = ${x.value}`);
   }
-  console.log(`\nsummary: ${Object.entries(r.summary).map(([k, v]) => `${k} ${v}`).join(", ")}; layer 5 (semantic) is Not tested by the doctor yet: the genesis evidence (foga genesis run) covers T0-T5\n`);
+  const l5 = r.results.filter((x) => x.layer === 5 && x.subject.startsWith("ERC-"));
+  if (l5.some((x) => x.verdict !== "NotTested")) {
+    console.log("\nlayer 5 (semantic, from the genesis evidence):");
+    for (const x of l5) console.log(`  ${pad(x.subject, 10)} ${pad(x.verdict, 10)} ${x.detail ?? ""}`);
+  }
+  console.log(`\nsummary: ${Object.entries(r.summary).map(([k, v]) => `${k} ${v}`).join(", ")}${l5.every((x) => x.verdict === "NotTested") ? "; layer 5 (semantic) needs the genesis evidence: foga genesis run, then foga doctor --genesis <evidence.json>" : ""}\n`);
 }

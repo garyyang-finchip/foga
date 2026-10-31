@@ -17,11 +17,21 @@ FOGA is a reference autonomous agent built on ten Ethereum ERC drafts written by
 
 ERC-8004 (Trustless Agents) is a required dependency: ERC-8419, ERC-8434 and ERC-8447 bind to its Identity Registry.
 
-The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository is at **Phase 2a: cells and the genesis T0–T5**, on top of the Phase 1 world layer.
+The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository is at **Phase 2b: the whole genesis, T0–T9**, on top of the Phase 1 world layer.
 
-## Status: Phase 2a — cells, kernel, genesis T0–T5
+## Status: Phase 2b — the genesis T0–T9 on anvil
 
-New in 2a-2 (0.3.0-alpha.1):
+New in 2b (0.4.0-alpha.1):
+
+- **The predicate-pattern ZK path.** FOGA's own circuit `kya_predicate_count_v1` (8 record slots, source set of depth 16) proves "at least K task-completion records about me, signed by a source of the committed set, are Accepted inside a window" without revealing the records; `Groth16PredicateKYAVerifierAdapter` admits it as scheme `S_pred`. A proves its first completion at the end of T3; a false predicate (K = 2 with one completion) is refused by the adapter, a flipped result bit by the verifier, replays and stale epochs by the registry. The proving material is built locally by a deterministic development ceremony (`npm run zk:predicate`; CI rebuilds it on a cache miss and checks the committed verifier against it). docs/zk.md.
+- **T6 — dispute.** C buys a run of A's skill through the world's ERC-8471 service escrow, bound in T0 to FOGA-Service-v1; A publishes v2 and delivers it against terms committing v1; C files; the declared-version verifier answers the formal question, FOGA-Council the judged one through the bridge; the ruling is Final Sustained and the escrow enacts the refund once. A control call committed to v2 settles and is released.
+- **T7 — safety.** The guardian suspends A; a transaction sent around the kernel fails on chain at the account's gate; the allow-listed de-risk withdrawal passes; the operator's direct submission is accepted by the chain but not attributable to the cell; a fresh binding does not escape the intervener's standing stop; after `resume` A works again; a STALE anchor stops commitment-class calls until the next heartbeat.
+- **T8 — measurement.** E registers `foga.realized-net-cash-flow/1` and asserts observation receipts for cell A and for the swarm: settled inflows inside each boundary, gas as the cost, unobservable items as missing, never a value; a deterministic resolver recomputes them from the chain and fails a receipt that counts the swarm's tender for A or cites an unregistered method.
+- **T9 — succession.** A moves its ERC-8004 agent to A-prime through its account: A turns STALE, A-prime takes the binding over, A retires naming its successor, A-prime publishes a new record and document, the skill follows and its record is adopted again by recommitment; standing, swarm seat, unit and binding are not inherited.
+- **Doctor layer 5.** `foga doctor --genesis <evidence.json>` turns the genesis checks into per-standard verdicts; the demo runs it after the genesis.
+- 186 operations, 165 checks, all green on anvil in about 95 s (five Groth16 proofs); every step resumes after an injected crash, and a replayed run re-checks what still holds and records the rest as skipped.
+
+From 2a-2 (0.3.0-alpha.1):
 
 - **T4 — organization.** W tenders a judged task; B forms a swarm bound to it (coordinator and two workers under a composite eligibility: registered ERC-8004 agent, ACTIVE anchor, attested standing ≥ 2); A and C join through their accounts; the swarm account is bound; the swarm becomes an AUF unit containing the members' units at pinned versions. A stranger's join is refused; a revoked assertion suspends a member on challenge and a fresh one reinstates it.
 - **T5 — governance.** The swarm account submits the `finch-extract-verify` report (deterministic path over a pinned fixture); the FOGA-Council (three judges, two decide) accepts it through FOGA's instance of the upstream `ACDFTaskTenderAdapter`; the workers amend the charter through the `SwarmDecisionAdapter`; a second case ends without a decision and the tender's own `claimUnjudged` pays after the window; the swarm concludes ACHIEVED. Wrong-round ballots, non-judge ballots, premature or repeated execution are refused.
@@ -40,10 +50,10 @@ From Phase 1, unchanged in substance:
 - **Locked sources.** `vendor/LOCK.json` pins the ten reference implementations by commit. `foga vendor sync` materializes them; nothing is modified downstream.
 - **One artifact bundle.** `foga build` compiles all ten with their own compiler settings (five profiles on solc 0.8.24, three on 0.8.30, two solc-js repositories mirrored on 0.8.28) into `artifacts/bundle.json`: ABIs, creation and runtime bytecode, link and immutable references, compiler metadata, ERC-165 ids computed from the AST and cross-checked against the upstream vectors (all published ids match). `foga build --verify` rebuilds and proves the hash.
 - **One-command world.** `foga world deploy` deploys the whole stack in dependency order — 47 contracts including external libraries and the ERC-8471 module router — and registers the four ARD kinds. Local worlds use `contracts/src/Identity8004Stub.sol` as a clearly labeled stand-in for the ERC-8004 Identity Registry; public worlds attach the official registry.
-- **The doctor.** `foga doctor` reports five layers per contract — chain and code, interfaces, version match, configuration and permissions, semantic validation — with the verdicts Pass / Fail / Unknown / Not tested / Not applicable. Layers 1–4 run now; layer 5 arrives with the Phase 2 genesis scenario. A doctor run can be exported as a JSON-RPC probe plan and replayed from results collected elsewhere, so a report never depends on which machine can reach which RPC.
+- **The doctor.** `foga doctor` reports five layers per contract — chain and code, interfaces, version match, configuration and permissions, semantic validation — with the verdicts Pass / Fail / Unknown / Not tested / Not applicable. Layers 1–4 probe the chain; layer 5 reads the genesis evidence. A doctor run can be exported as a JSON-RPC probe plan and replayed from results collected elsewhere, so a report never depends on which machine can reach which RPC.
 - **Sepolia address book and report.** `worlds/sepolia.json` records every upstream reference deployment at its deployed revision, including the three seams the inventory found; `deployments/sepolia.doctor.example.json` is the doctor's read-only report against them (2026-10-30: 210 Pass, 6 known Fails from revision drift, see docs/version-lock.md).
 
-What is next: Phase 2b adds the predicate-style ZK-KYA path, T6–T9 (dispute, safety stop, measurement, succession) and doctor layer 5; Phase 2c runs the genesis on Sepolia; Phase 3 adds MCP, A2A and the CLI surface for cells. The design is in docs/design-memo.md.
+What is next: Phase 2c runs the genesis on Sepolia; Phase 3 adds MCP, A2A and the CLI surface for cells; Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
 
 ## Quick start
 
@@ -55,10 +65,11 @@ npm ci
 npm run vendor:sync          # fetch the ten repositories at the locked commits
 npm run bundle:verify        # rebuild artifacts/bundle.json and compare its hash
 npm run test:contracts       # Foundry tests for FogaCellAccount and the ERC-8004 stand-in
-npm run zk:install           # proving libraries for the ZK path (prover/, separate from the kernel's dependencies)
-npm run demo:genesis         # anvil + world deploy + doctor + genesis T0-T5, all local
+npm run zk:install           # proving libraries for the ZK paths (prover/, separate from the kernel's dependencies)
+npm run zk:predicate         # build FOGA's predicate circuit and its development proving key (10-60 min, once; optional)
+npm run demo:genesis         # anvil + world deploy + doctor + genesis T0-T9 + doctor layer 5, all local
 
-# 2. World and genesis only (Node >= 22 and Foundry's anvil, no Solidity build; the ZK path is left out without vendor/):
+# 2. World and genesis only (Node >= 22 and Foundry's anvil, no Solidity build; the ZK paths are left out without their material):
 npm ci && npm run demo:genesis
 
 # 3. Containers (Docker with Compose):
@@ -69,16 +80,17 @@ The genesis against a running node, step by step:
 
 ```bash
 npm run foga -- world deploy --world worlds/local.json --rpc http://127.0.0.1:8545 --out deployments/local.json
-npm run foga -- genesis run --world deployments/local.json --rpc http://127.0.0.1:8545 --until T5
+npm run foga -- genesis run --world deployments/local.json --rpc http://127.0.0.1:8545 --until T9
 npm run foga -- genesis status --world deployments/local.json         # the operation store
+npm run foga -- doctor --world deployments/local.json --genesis deployments/local.genesis.json   # layer 5 from the evidence
 ```
 
 Interrupt and resume (the same command again replays what was done and continues). `demo --keep` leaves its anvil running in the background and returns:
 
 ```bash
 npm run foga -- demo --keep --genesis T2                                                           # chain, world, doctor, T0-T2
-npm run foga -- genesis run --world deployments/local.json --until T5 --crash-after T3.A.submit   # exits 75 after the submit is broadcast
-npm run foga -- genesis run --world deployments/local.json --until T5                              # recovers the submit by hash, settles, carries on
+npm run foga -- genesis run --world deployments/local.json --until T9 --crash-after T3.A.submit   # exits 75 after the submit is broadcast
+npm run foga -- genesis run --world deployments/local.json --until T9                              # recovers the submit by hash, settles, carries on
 ```
 
 Against a running node:
@@ -111,18 +123,19 @@ Older Linux (Amazon Linux 2 and 2023, CentOS 7, Debian 11, …): the regular Fou
 ```
 artifacts/           bundle.json (+ .sha256): the compiled ten-ERC stack and FOGA's contracts, committed and CI-verified
 build/               build profiles per repository and the README-published interface ids
-contracts/           FOGA's own contracts: FogaCellAccount, Identity8004Stub (local stand-in), Foundry tests
+contracts/           FOGA's own contracts: FogaCellAccount, Identity8004Stub (local stand-in), zk/ (the predicate verifier and its KYA adapter), Foundry tests
 deployments/         world files, doctor reports, genesis evidence (local outputs are gitignored; examples are kept)
-prover/              the ZK proving sub-package: run.cjs bridge over the upstream prover, its own dependencies
+prover/              the ZK proving sub-package: run.cjs bridge (credential and predicate proofs), build-predicate.mjs (the development ceremony), its own dependencies
+zk/                  circuits/ (kya_predicate_count_v1.circom) and build/ (verification_key.json committed; the proving key is rebuilt locally)
 docker/, docker-compose.yml
-docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis
+docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk
 scenarios/skills/    the two ERC-8338 skill packages of the genesis: foga-probe, finch-extract-verify
-scenarios/fixtures/  the pinned document finch-extract-verify works on in T5
+scenarios/fixtures/  the pinned document finch-extract-verify works on in T5 and T7
 scripts/             install-solc.sh, install-foundry.sh, relay.mjs
 src/                 TypeScript: build/ (vendor + bundle), world/ (plan + deploy), doctor/ (probe + evaluate),
-                     core/ (foga-core: one module per ERC incl. acdf and swarm, canonicalization, DAG-CBOR packager),
-                     kernel/ (store, transaction manager, cell, kernel), genesis/ (roles, probe, extract, zk, scenario T0-T3, t4, t5, runner), cli.ts
-test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, swarm/ACDF vectors, extractor
+                     core/ (foga-core: one module per ERC incl. acdf, adrf and swarm, measure, canonicalization, DAG-CBOR packager),
+                     kernel/ (store, transaction manager, cell, kernel), genesis/ (roles, probe, extract, zk, scenario T0-T3, t3-zk, t4..t9, runner), cli.ts
+test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, swarm/ACDF vectors, extractor, measurement resolver, doctor layer 5
 vendor/              LOCK.json (sources are materialized here and gitignored)
 worlds/              world configs: local.json (deploy), sepolia.json (attach)
 ```
@@ -135,11 +148,11 @@ foga build [--verify] [--solc-dir <dir>] [--only <repo,repo>]
 foga bundle info
 foga world deploy --world <config> [--rpc <url>] [--out <file>] [--resume] [--gas-multiplier <x>] [--allow-chain-mismatch]
 foga world attach --world <config> [--out <file>]
-foga doctor --world <world|config> [--attach] [--rpc <url>] [--out <report>] [--export-probe <file>] [--import-results <file>]
+foga doctor --world <world|config> [--attach] [--rpc <url>] [--out <report>] [--export-probe <file>] [--import-results <file>] [--genesis <evidence>]
 foga probe relay-script
-foga genesis run --world <world> [--rpc <url>] [--until T0..T5] [--store <file>] [--out <evidence>] [--zk auto|require|skip] [--crash-after <key>] [--crash-before <key>]
+foga genesis run --world <world> [--rpc <url>] [--until T0..T9] [--store <file>] [--out <evidence>] [--zk auto|require|skip] [--crash-after <key>] [--crash-before <key>]
 foga genesis status --world <world> [--store <file>]
-foga demo [--port <n>] [--keep] [--genesis <T0..T5>]
+foga demo [--port <n>] [--keep] [--genesis <T0..T9>]
 ```
 
 During development the CLI runs from source with `npm run foga -- <args>`; `npm run build` compiles it to `dist/` for the `foga` binary.

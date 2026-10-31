@@ -204,6 +204,11 @@ export class KYA {
   async admissionDomain(): Promise<string> {
     return this.registry().admissionDomain();
   }
+
+  async getAssertion(assertionId: string): Promise<{ subjectKey: string; schemeId: string; issuer: string; level: number; claimDigest: string; issuedAt: number; expiresAt: number; anchor: string; status: number }> {
+    const a = await this.registry().getAssertion(assertionId);
+    return { subjectKey: a.subjectKey, schemeId: a.schemeId, issuer: a.issuer, level: Number(a.level), claimDigest: a.claimDigest, issuedAt: Number(a.issuedAt), expiresAt: Number(a.expiresAt), anchor: a.anchor, status: Number(a.status) };
+  }
 }
 
 /** The descriptor FOGA registers for its attested scheme: a plain ordered ladder of operational levels. */
@@ -246,5 +251,39 @@ export function fogaProvedSchemeDescriptor(): SchemeDescriptor {
     },
     evidenceKinds: ["zk:groth16:kya-public-v1"],
     issuerPolicy: { kind: "issuer-set" },
+  };
+}
+
+/**
+ * The descriptor for the predicate-pattern proved scheme (ERC-8419 section 5) admitted by FOGA's own adapter:
+ * the scheme is the rule "at least K task completions about the subject, signed by a source of the committed
+ * source set, are Accepted inside [t0, t1]"; the proof reveals the subject, the rule's parameters and the result
+ * bit. Level 1 = the rule holds for the disclosed parameters (committed in claimDigest); level 0 is declared and
+ * never issued (a false predicate is rejected, not recorded).
+ */
+export function fogaPredicateSchemeDescriptor(): SchemeDescriptor {
+  return {
+    type: "https://eips.ethereum.org/EIPS/eip-8419#kya-scheme-v1",
+    name: "FOGA accepted completions (proved, predicate pattern) v1",
+    description: "At least K task-completion records about the cell, signed by a source of the committed source set, carry status Accepted inside the window [t0, t1]; proved in zero knowledge over the records (kya-predicate-count-v1 layout). A fact about a range of records, not a judgment of trustworthiness.",
+    mode: "proved",
+    binding: "identity",
+    result: { kind: "ordered-level" },
+    dimensions: ["accepted-completions"],
+    levels: {
+      "0": { label: "not shown", meaning: "no proof recorded" },
+      "1": { label: "shown", meaning: "the rule holds for the parameters committed in claimDigest (challenge, t0, t1, K, source set root)" },
+    },
+    circuit: {
+      name: "kya_predicate_count_v1",
+      slots: 8,
+      sourceSetDepth: 16,
+      publicInputLayout: "abi.encode(bytes32 subjectKey, bytes32 nullifier, bytes32 challenge, uint64 t0, uint64 t1, uint16 k, bytes32 sourceSetRoot, uint64 epoch, uint8 result)",
+      record: "Poseidon(subjectKeyHi, subjectKeyLo, taskRef128, status, timestamp) signed EdDSA-Poseidon (Baby Jubjub) by the source",
+      nullifier: "Poseidon(secret, schemeIdHi, schemeIdLo, admissionDomainHi, admissionDomainLo, epoch, challengeHi, challengeLo)",
+      setup: "development ceremony with a public beacon (prover/build-predicate.mjs); not for production use",
+    },
+    evidenceKinds: ["zk:groth16:kya-predicate-count-v1"],
+    issuerPolicy: { kind: "source-set" },
   };
 }

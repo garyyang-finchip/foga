@@ -13,6 +13,7 @@ bytecode_hash = "none"
 cbor_metadata = true
 auto_detect_remappings = false
 remappings = []
+fs_permissions = [{ access = "read", path = "./test/fixtures" }]
 
 [fmt]
 line_length = 120

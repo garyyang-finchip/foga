@@ -6,10 +6,16 @@ import { abi } from "../core/canonical.js";
 import { repoRoot } from "../util/fs.js";
 
 /**
- * The credential-pattern ZK path of ERC-8419 (kya-public-v1), driven through prover/run.cjs: a bridge over the
- * upstream prover that keeps snarkjs and circomlibjs out of the kernel's own dependency tree. The roles stay
- * separate: the prover computes Poseidon(secret) and hands over the commitment; the attestor signs the
- * scheme-bound credential; the prover alone produces the proof for the admitting registry and the epoch.
+ * The two ZK paths of ERC-8419, driven through prover/run.cjs: a bridge that keeps snarkjs and circomlibjs out of
+ * the kernel's own dependency tree.
+ *
+ * Credential pattern (kya-public-v1, the upstream circuit): the prover computes Poseidon(secret) and hands over
+ * the commitment; the attestor signs the scheme-bound credential; the prover alone produces the proof for the
+ * admitting registry and the epoch.
+ *
+ * Predicate pattern (kya-predicate-count-v1, FOGA's circuit in zk/circuits): a source signs task-completion
+ * records about a subject; the prover shows that at least K of them are Accepted inside a window, without
+ * revealing them. The source set is a Poseidon Merkle tree of source keys, built like the issuer set.
  */
 export interface Claim {
   subjectKey: string;
@@ -32,10 +38,35 @@ export interface ProofBundle {
   publicSignals: string[];
 }
 
+/** One task-completion record as a source signs it: about `subjectKey`, identified by a 128-bit `taskRef`. */
+export interface CompletionRecord {
+  taskRef: string;
+  status: number;
+  timestamp: number;
+}
+
+export interface SignedRecord extends CompletionRecord {
+  sig: Signature;
+}
+
+export interface PredicateProof extends ProofBundle {
+  result: number;
+  count: number;
+  verified: boolean | null;
+}
+
 export const EPOCH_LENGTH = 2_592_000; // 30 days, as the upstream Sepolia adapter
 export const EPOCH_GRACE = 1;
+/** How long an assertion issued from a predicate proof stays valid: the rule was shown as of the proof's time. */
+export const PREDICATE_VALIDITY = 30 * 86400;
+/** The rule's window: completions inside the last 30 days before the proof. */
+export const PREDICATE_WINDOW = 30 * 86400;
 
 const BUILD = join("vendor", "kya-standard", "companions", "zk-kya-groth16", "build");
+export const PREDICATE_BUILD = join("zk", "build");
+export const PREDICATE_CIRCUIT = "kya_predicate_count_v1";
+/** Record slots per predicate proof (the committed circuit instance). */
+export const PREDICATE_SLOTS = 8;
 
 /** Where the proving material and the libraries stand on this machine. */
 export function zkAvailability(root = repoRoot()): { ok: boolean; missing: string[] } {
@@ -46,6 +77,27 @@ export function zkAvailability(root = repoRoot()): { ok: boolean; missing: strin
   if (!existsSync(join(root, "vendor", "kya-standard", "companions", "zk-kya-groth16", "prover.js"))) missing.push("vendor/kya-standard/companions/zk-kya-groth16/prover.js (run: foga vendor sync)");
   if (!existsSync(join(root, "prover", "node_modules", "snarkjs"))) missing.push("prover/node_modules/snarkjs (run: npm run zk:install)");
   return { ok: missing.length === 0, missing };
+}
+
+/** Whether the proving libraries (the prover sub-package) are installed; the source set root needs them. */
+export function proverLibsAvailable(root = repoRoot()): boolean {
+  return existsSync(join(root, "prover", "node_modules", "snarkjs")) && existsSync(join(root, "prover", "node_modules", "circomlibjs"));
+}
+
+/** Where the predicate circuit's proving material stands (built by prover/build-predicate.mjs; FOGA_ZK_PREDICATE_DIR overrides). */
+export function predicateAvailability(root = repoRoot()): { ok: boolean; missing: string[] } {
+  const missing: string[] = [];
+  const dir = process.env.FOGA_ZK_PREDICATE_DIR || join(root, PREDICATE_BUILD);
+  for (const f of [`${PREDICATE_CIRCUIT}_js/${PREDICATE_CIRCUIT}.wasm`, `${PREDICATE_CIRCUIT}_final.zkey`, "verification_key.json"]) {
+    if (!existsSync(join(dir, f))) missing.push(`${join(PREDICATE_BUILD, f)} (run: node prover/build-predicate.mjs)`);
+  }
+  if (!proverLibsAvailable(root)) missing.push("prover/node_modules (run: npm run zk:install)");
+  return { ok: missing.length === 0, missing };
+}
+
+/** A deterministic 32-byte EdDSA private key for a source of task-completion records, from an EOA key and a label. */
+export function sourceKeyFrom(privateKey: string, label: string): string {
+  return keccak256(abi.encode(["bytes32", "bytes32"], [keccak256(toUtf8Bytes(`foga.kya.source:${label}`)), privateKey]));
 }
 
 /** A deterministic 32-byte EdDSA private key for an attestor, derived from an EOA key and a label. */
@@ -67,7 +119,10 @@ async function run<T>(job: Record<string, unknown>, timeoutMs = 180_000): Promis
   const root = repoRoot();
   const script = join(root, "prover", "run.cjs");
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [script], { stdio: ["pipe", "pipe", "pipe"], env: { PATH: process.env.PATH ?? "", FOGA_ZK_PROVER: process.env.FOGA_ZK_PROVER ?? "" } });
+    const env: Record<string, string> = { PATH: process.env.PATH ?? "" };
+    if (process.env.FOGA_ZK_PROVER) env.FOGA_ZK_PROVER = process.env.FOGA_ZK_PROVER;
+    if (process.env.FOGA_ZK_PREDICATE_DIR) env.FOGA_ZK_PREDICATE_DIR = process.env.FOGA_ZK_PREDICATE_DIR;
+    const child = spawn(process.execPath, [script], { stdio: ["pipe", "pipe", "pipe"], env });
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     const timer = setTimeout(() => {
@@ -109,5 +164,30 @@ export const zk = {
   /** The prover builds the Groth16 proof for the registry's admission domain and the epoch; public material only. */
   prove(p: { issuerPubs: [string, string][]; attestorPub: [string, string]; claim: Claim; secret: string; sig: Signature; epoch: bigint; admissionDomain: string }): Promise<ProofBundle> {
     return run({ ...p, op: "prove", epoch: p.epoch.toString() });
+  },
+  /** The source set of the given source keys: the same Poseidon Merkle tree (depth 16) as the issuer set. */
+  sourceSet(sources: string[]): Promise<{ root: string; attestors: { pub: [string, string]; leaf: string }[] }> {
+    return run({ op: "root", attestors: sources });
+  },
+  /** A source signs one task-completion record about a subject. */
+  signRecord(source: string, subjectKey: string, record: CompletionRecord): Promise<{ sig: Signature; pub: [string, string]; message: string }> {
+    return run({ op: "record.sign", source, record: { ...record, subjectKey } });
+  },
+  /** The prover shows that at least k of the records are Accepted inside [t0, t1]; records and source stay private. */
+  provePredicate(p: {
+    sourcePubs: [string, string][];
+    sourcePub: [string, string];
+    subjectKey: string;
+    records: SignedRecord[];
+    challenge: string;
+    t0: number;
+    t1: number;
+    k: number;
+    schemeId: string;
+    epoch: bigint;
+    admissionDomain: string;
+    secret: string;
+  }): Promise<PredicateProof> {
+    return run({ ...p, op: "predicate.prove", epoch: p.epoch.toString() }, 600_000);
   },
 };

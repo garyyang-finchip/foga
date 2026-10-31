@@ -58,7 +58,7 @@ Every estimate gets a margin (see above). A call whose outcome depends on the ga
 
 ## Evidence
 
-`kernel.evidence(step, label, values)` records what a reviewer needs per step (addresses, ids, hashes, transaction hashes, run receipts). The genesis writes it, together with the checks, facts, operation summary and the journal of the run, to `deployments/<world>.genesis.json` (`foga.genesis-evidence/1`). `deployments/local.genesis.example.json` is a committed run.
+`kernel.evidence(step, label, values)` records what a reviewer needs per step (addresses, ids, hashes, transaction hashes, run receipts). The genesis writes it, together with the checks, facts, operation summary and the journal of the run, to `deployments/<world>.genesis.json` (`foga.genesis-evidence/1`). `deployments/local.genesis.example.json` is a committed run. The doctor consumes that file for its fifth layer (docs/doctor.md).
 
 ## Keys
 
@@ -70,7 +70,7 @@ Before a cell executes a skill it holds, the kernel rebuilds the package from th
 
 ## The prover
 
-The credential-pattern ZK path of ERC-8419 runs through `prover/run.cjs`: a stdin/stdout bridge over the upstream prover (`vendor/kya-standard/companions/zk-kya-groth16/prover.js`, with the circuit's wasm and proving key next to it). `prover/` is a sub-package with its own dependencies (snarkjs, circomlibjs; `npm run zk:install`), so the kernel's own dependency tree stays at ethers. The bridge keeps the roles apart: `commit` (the prover's Poseidon commitment to its secret), `attest` (the attestor signs the credential over the commitment, never seeing the secret), `root` (the issuer set from attestor keys) and `prove` (the prover's secret plus public material only). FOGA's attestor key and the cells' prover secrets are derived from the signers' keys, so a run is reproducible and nothing extra is stored; a resumed run reuses the recorded proof.
+Both ZK paths of ERC-8419 run through `prover/run.cjs`: a stdin/stdout bridge over the upstream prover (`vendor/kya-standard/companions/zk-kya-groth16/prover.js`, with the credential circuit's wasm and proving key next to it) and over FOGA's own predicate circuit (`zk/build`, docs/zk.md). `prover/` is a sub-package with its own dependencies (snarkjs, circomlibjs; `npm run zk:install`), so the kernel's own dependency tree stays at ethers. The bridge keeps the roles apart: `commit` (the prover's Poseidon commitment to its secret), `attest` (the attestor signs the credential over the commitment, never seeing the secret), `root` (an issuer or source set from keys), `prove` (the credential proof: the prover's secret plus public material only), `record.sign` (a source signs one task-completion record) and `predicate.prove` (the predicate proof: the records with their signatures, the prover's secret, public material). FOGA's attestor and source keys and the cells' prover secrets are derived from the signers' keys, so a run is reproducible and nothing extra is stored; a resumed run reuses the recorded proofs.
 
 ## `node:sqlite`
 

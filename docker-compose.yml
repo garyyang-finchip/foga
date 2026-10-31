@@ -1,4 +1,4 @@
-# One-command local world: anvil + world deploy + doctor + genesis T0-T3.
+# One-command local world: anvil + world deploy + doctor + genesis T0-T9 (the ZK paths are left out: the image carries no proving material).
 #   docker compose up --build
 # The address book, the doctor report and the genesis evidence land in ./deployments
 # (local.json, local.doctor.json, local.genesis.json; the operation store local.genesis.sqlite).
@@ -46,4 +46,4 @@ services:
     volumes:
       - ./deployments:/opt/foga/deployments
     # anvil starts fresh with every `compose up`, so the operation store of the previous run is removed first
-    command: ["sh", "-c", "rm -f deployments/local.genesis.sqlite deployments/local.genesis.sqlite-* && foga genesis run --world deployments/local.json --rpc http://anvil:8545 --until T3 --store deployments/local.genesis.sqlite --out deployments/local.genesis.json"]
+    command: ["sh", "-c", "rm -f deployments/local.genesis.sqlite deployments/local.genesis.sqlite-* && foga genesis run --world deployments/local.json --rpc http://anvil:8545 --until T9 --store deployments/local.genesis.sqlite --out deployments/local.genesis.json && foga doctor --world deployments/local.json --rpc http://anvil:8545 --genesis deployments/local.genesis.json --out deployments/local.doctor.json"]

@@ -87,6 +87,7 @@ export async function t5(g: Genesis): Promise<void> {
   const alreadySettled = k.store.get("T5.execute")?.status === "confirmed" && paid === 0n;
   g.check("T5", "fulfilment.accepted", accepted.status === 1 && enacted.statusName === "Enacted", `submission ${submissionId} status ${accepted.status} (1 = Accepted); enactment ${enacted.statusName} by ${enacted.reporter}`);
   if (!alreadySettled) g.check("T5", "swarmAccount.paid", paid === parseEther("0.002"), `the swarm account received ${paid} wei (reward 0.002 ETH); members received nothing directly`);
+  else g.skipped("T5", "swarmAccount.paid", "replayed run: the payout was already made");
   const twice = await g.wouldRevertCall(k.address(W), adapter.address, adapter.encodeExecute(issueId));
   g.check("T5", "execute.twice.refused", twice !== null, `adapter.execute again reverts: ${twice}`);
 
@@ -146,6 +147,7 @@ export async function t5(g: Genesis): Promise<void> {
   const ndAlready = k.store.get("T5.nd.claimUnjudged")?.status === "confirmed" && ndPaid === 0n;
   g.check("T5", "nd.claimUnjudged", ndAfter.status === 1, `claimUnjudged after the judgment window: submission status ${ndAfter.status} (1 = Accepted) - silence pays the fulfiller`);
   if (!ndAlready) g.check("T5", "nd.paid", ndPaid === ndReward, `the swarm account received ${ndPaid} wei from the second tender`);
+  else g.skipped("T5", "nd.paid", "replayed run: the payout was already made");
 
   // --- (5) the objective: the swarm tender adapter concludes ACHIEVED from the tender's own record
   await k.call("T5.swarmTender.settle", W, swarmTender.address, swarmTender.contract().interface, "settle", [swarmId, submissionId]);

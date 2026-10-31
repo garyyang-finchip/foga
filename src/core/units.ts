@@ -121,4 +121,63 @@ export class Units {
     const v = await this.registry().versionOf(unitId, version);
     return { boundaryHash: v.boundaryHash ?? v[0], descriptorURI: v.descriptorURI ?? v[1] };
   }
+
+  // ---- the assertion registry (observations, valuations, descriptors) ----
+
+  assertions(runner?: ContractRunner): Contract {
+    return this.world.contract("8454/AUFAssertionRegistry", runner);
+  }
+
+  get assertionRegistryAddress(): string {
+    return this.world.address("8454/AUFAssertionRegistry");
+  }
+
+  encodeRegisterDescriptor(descriptorHash: string, kind: string, uri: string): string {
+    return this.assertions().interface.encodeFunctionData("registerDescriptor", [descriptorHash, kind, uri]);
+  }
+
+  encodeAssertStatement(input: AssertionInput): string {
+    return this.assertions().interface.encodeFunctionData("assertStatement", [input]);
+  }
+
+  assertionIdFromReceipt(receipt: any): string {
+    return eventArgs(this.assertions().interface, receipt, "Asserted", this.assertionRegistryAddress).assertionId;
+  }
+
+  async descriptorOf(hash: string): Promise<{ publisher: string; kind: string; registeredAt: number; uri: string } | null> {
+    try {
+      const d = await this.assertions().descriptorOf(hash);
+      return { publisher: d.publisher ?? d[0], kind: d.descriptorKind ?? d[1], registeredAt: Number(d.registeredAt ?? d[2]), uri: d.uri ?? d[3] };
+    } catch {
+      return null;
+    }
+  }
+
+  async assertionOf(assertionId: string): Promise<{ kind: number; status: number; byController: boolean; version: number; asserter: string; unitId: bigint; profileId: string; contentHash: string; contentURI: string; validFrom: number; validUntil: number }> {
+    const a = await this.assertions().assertionOf(assertionId);
+    return { kind: Number(a.kind), status: Number(a.status), byController: Boolean(a.byController), version: Number(a.version), asserter: a.asserter, unitId: BigInt(a.unitId), profileId: a.profileId, contentHash: a.contentHash, contentURI: a.contentURI, validFrom: Number(a.validFrom), validUntil: Number(a.validUntil) };
+  }
+
+  async observationOf(assertionId: string): Promise<{ snapshotHash: string; windowStart: number; windowEnd: number }> {
+    const o = await this.assertions().observationCoreOf(assertionId);
+    return { snapshotHash: o.snapshotHash ?? o[0], windowStart: Number(o.windowStart ?? o[1]), windowEnd: Number(o.windowEnd ?? o[2]) };
+  }
+
+  async assertionCount(unitId: bigint, version: number): Promise<number> {
+    return Number(await this.assertions().assertionCount(unitId, version));
+  }
+}
+
+/** Input of `assertStatement` (ERC-8454 Section 11). */
+export interface AssertionInput {
+  kind: number;
+  unitId: bigint;
+  version: number;
+  profileId: string;
+  contentHash: string;
+  contentURI: string;
+  validFrom: number;
+  validUntil: number;
+  supersedes: string;
+  payload: string;
 }

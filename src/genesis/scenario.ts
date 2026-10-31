@@ -1,26 +1,27 @@
 import { join } from "node:path";
-import { getAddress, parseEther, type Interface } from "ethers";
+import { ZeroHash, getAddress, parseEther, type Interface } from "ethers";
 import { AID, type AIDDocument } from "../core/aid.js";
 import { agentDescriptor, kindId, skillDescriptor, taskDescriptor } from "../core/ard.js";
 import { Enforcement, Rights, accountSubjectKey, fogaCellSpecification, oneClause, requirementIdOf, scopeKeyOf } from "../core/asf.js";
 import { accountRef, dataUri, dataUriJcs, keccakJcs, sha256Hex } from "../core/canonical.js";
-import { accountSubject, fogaAttestedSchemeDescriptor, fogaProvedSchemeDescriptor } from "../core/kya.js";
+import { accountSubject, fogaAttestedSchemeDescriptor, fogaPredicateSchemeDescriptor, fogaProvedSchemeDescriptor } from "../core/kya.js";
 import { buildSkillPackage, readSkillDir, type SkillPackage } from "../core/pack/skillpack.js";
 import { hashlock, nativeTerms } from "../core/tenders.js";
 import { cellUnitDefinition, skillUnitDefinition } from "../core/units.js";
 import { councilDescriptor, councilPolicySpec } from "../core/acdf.js";
+import { escrowBindingInput, serviceDescriptor, servicePolicySpec, type ServiceTiming } from "../core/adrf.js";
 import { Cell } from "../kernel/cell.js";
 import { Kernel } from "../kernel/kernel.js";
-import { EPOCH_GRACE, EPOCH_LENGTH, attestorKeyFrom, zk, zkAvailability } from "./zk.js";
+import { EPOCH_GRACE, EPOCH_LENGTH, PREDICATE_VALIDITY, attestorKeyFrom, predicateAvailability, proverLibsAvailable, sourceKeyFrom, zk, zkAvailability } from "./zk.js";
 import { CELLS, operatorRole, ownerRole, roleKeys, type CellName } from "./roles.js";
 import { runProbe, type ProbeInput } from "./probe.js";
 import { runProbeIsolated, verifiedPackage } from "./skill-runner.js";
 
-export const STEPS = ["T0", "T1", "T2", "T3", "T4", "T5"] as const;
+export const STEPS = ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"] as const;
 export type StepName = (typeof STEPS)[number];
 
 /** Bumped whenever the operation keys or their inputs change; a store written by another version is refused. */
-export const SCENARIO_VERSION = "2";
+export const SCENARIO_VERSION = "3";
 
 export type ZkMode = "auto" | "require" | "skip";
 
@@ -49,10 +50,28 @@ export interface Timing {
   margin: number;
   judgmentWindow: number;
   noDecisionJudgmentWindow: number;
+  /** The service-call dispute policy (T6): its decision window must hold the council's whole procedure. */
+  service: ServiceTiming;
 }
 
-export const LOCAL_TIMING: Timing = { councilWindow: 86_400, appealWindow: 3_600, governanceWindow: 86_400, margin: 3_600, judgmentWindow: 7 * 86_400, noDecisionJudgmentWindow: 3 * 86_400 };
-export const PUBLIC_TIMING: Timing = { councilWindow: 180, appealWindow: 60, governanceWindow: 180, margin: 60, judgmentWindow: 900, noDecisionJudgmentWindow: 900 };
+export const LOCAL_TIMING: Timing = {
+  councilWindow: 86_400,
+  appealWindow: 3_600,
+  governanceWindow: 86_400,
+  margin: 3_600,
+  judgmentWindow: 7 * 86_400,
+  noDecisionJudgmentWindow: 3 * 86_400,
+  service: { filingWindow: 7 * 86_400, evidenceWindow: 86_400, decisionWindow: 3 * 86_400, reviewWindow: 86_400, enactmentMargin: 86_400, disputePeriod: 10 * 86_400 },
+};
+export const PUBLIC_TIMING: Timing = {
+  councilWindow: 180,
+  appealWindow: 60,
+  governanceWindow: 180,
+  margin: 60,
+  judgmentWindow: 900,
+  noDecisionJudgmentWindow: 900,
+  service: { filingWindow: 3_600, evidenceWindow: 300, decisionWindow: 900, reviewWindow: 300, enactmentMargin: 300, disputePeriod: 3_600 },
+};
 
 export interface CheckResult {
   step: StepName;
@@ -122,7 +141,15 @@ export class Genesis {
     this.cfg.log(line);
   }
 
-  check(step: StepName, name: string, pass: boolean, detail: string): void {
+  /**
+   * Record a check. `until` names operations of later steps that change the state the check is about; when one of
+   * them is already confirmed in the store (a replayed or resumed run), the check cannot be remade and is recorded
+   * as skipped with the reason, never as passed or failed.
+   */
+  check(step: StepName, name: string, pass: boolean, detail: string, until?: string | string[]): void {
+    const keys = typeof until === "string" ? [until] : (until ?? []);
+    const superseded = keys.find((k) => this.kernel.store.get(k)?.status === "confirmed");
+    if (superseded) return this.skipped(step, name, `replayed run: the state was changed later by ${superseded}`);
     this.checks.push({ step, name, pass, detail });
     this.log(`  ${pass ? "ok  " : "FAIL"} ${step} ${name}: ${detail}`);
   }
@@ -151,6 +178,10 @@ export class Genesis {
       if (step === "T3") await this.t3();
       if (step === "T4") await (await import("./t4.js")).t4(this);
       if (step === "T5") await (await import("./t5.js")).t5(this);
+      if (step === "T6") await (await import("./t6.js")).t6(this);
+      if (step === "T7") await (await import("./t7.js")).t7(this);
+      if (step === "T8") await (await import("./t8.js")).t8(this);
+      if (step === "T9") await (await import("./t9.js")).t9(this);
       this.kernel.setFact(`step.${step}.done`, true);
       this.log(`${step}: done`);
     }
@@ -200,6 +231,35 @@ export class Genesis {
     const sCred = k.kya.schemeIdFromReceipt(cred.receipt);
     k.setFact("T0.kya.S_cred", { schemeId: sCred, schemeHash: credInput.schemeHash, verifier: credInput.verifier });
 
+    // The predicate-pattern ZK path: FOGA's own circuit (kya-predicate-count-v1), its generated Groth16 verifier
+    // and its adapter, pinned to a source set holding one source key (held by W: the node that indexes task
+    // completions and signs records of them). The scheme is registered on every machine; the proof (T3) needs the
+    // proving material built by prover/build-predicate.mjs. Decided once per store.
+    const predMode = await k.memo<"on" | "off">("T0.zk.predicate", async () => {
+      if (this.cfg.zk === "skip") return "off";
+      const a = predicateAvailability();
+      if (a.ok) return "on";
+      if (this.cfg.zk === "require") throw new Error(`the predicate ZK path was required but is not available:\n  ${a.missing.join("\n  ")}`);
+      this.log(`  zk: predicate proving material not available, the predicate proof is left out of this store (${a.missing.join("; ")})`);
+      return "off";
+    });
+    const sourceSet = await k.memo<{ root: string; sources: { pub: [string, string]; leaf: string }[]; pinned: boolean }>("T0.kya.sourceSet", async () => {
+      if (!proverLibsAvailable()) {
+        this.log("  zk: the proving libraries are not installed, so no source set root can be computed; the predicate adapter is deployed unpinned");
+        return { root: ZeroHash, sources: [], pinned: false };
+      }
+      const r = await zk.sourceSet([sourceKeyFrom(k.signer(W).privateKey, "completions")]);
+      return { root: r.root, sources: r.attestors, pinned: true };
+    });
+    const groth16Pred = await k.deploy("T0.kya.predicate.verifier.deploy", W, "foga:Groth16PredicateVerifier", []);
+    this.world.attach("foga/Groth16PredicateVerifier", groth16Pred.address, "foga:Groth16PredicateVerifier");
+    const predAdapter = await k.deploy("T0.kya.predicate.adapter.deploy", W, "foga:Groth16PredicateKYAVerifierAdapter", [groth16Pred.address, sourceSet.root, EPOCH_LENGTH, EPOCH_GRACE, PREDICATE_VALIDITY]);
+    this.world.attach("foga/Groth16PredicateKYAVerifierAdapter", predAdapter.address, "foga:Groth16PredicateKYAVerifierAdapter");
+    const predInput = k.kya.provedSchemeInput(fogaPredicateSchemeDescriptor(), predAdapter.address);
+    const pred = await k.call("T0.kya.S_pred.register", W, k.kya.schemeRegistryAddress, k.kya.schemes().interface, "registerScheme", [predInput]);
+    const sPred = k.kya.schemeIdFromReceipt(pred.receipt);
+    k.setFact("T0.kya.S_pred", { schemeId: sPred, schemeHash: predInput.schemeHash, verifier: predAdapter.address, groth16: groth16Pred.address, sourceSetRoot: sourceSet.root, pinned: sourceSet.pinned, zk: predMode });
+
     // ASF specification FOGA-Cell-v1.
     const spec = fogaCellSpecification();
     const salt = keccakJcs({ spec: "FOGA-Cell-v1" });
@@ -223,13 +283,27 @@ export class Genesis {
     k.setFact("T0.acdf.tenderAdapter", tenderAdapter.address);
     this.world.attach("foga/ACDFTaskTenderAdapter", tenderAdapter.address, "acd-framework:ACDFTaskTenderAdapter");
 
+    // The ADRF policy FOGA-Service-v1 (judgment tier = FOGA-Council through the bridge) and the world's service
+    // escrow bound to it by its admin, W: the dispute path of T6 exists before any call is opened.
+    const escrowAdmin: string = await k.adrf.escrow().admin();
+    if (getAddress(escrowAdmin) !== getAddress(k.address(W))) throw new Error(`the world's ADRFServiceEscrow is administered by ${escrowAdmin}, not by W ${k.address(W)}: the world must be deployed by W for the genesis to bind it`);
+    const serviceParams = { escrow: k.adrf.escrowAddress, versionVerifier: k.adrf.versionVerifierAddress, bridge: k.adrf.bridgeAddress, councilPolicyId: policyId, timing: this.timing.service };
+    const servicePolicy = servicePolicySpec({ ...serviceParams, updateAuthority: k.address(W), descriptor: serviceDescriptor(serviceParams) });
+    const spol = await k.call("T0.adrf.policy.register", W, k.adrf.policyRegistryAddress, k.adrf.policies().interface, "registerPolicy", [servicePolicy]);
+    const servicePolicyId = k.adrf.policyIdFromReceipt(spol.receipt);
+    const bindingTerms = { kind: "binding-terms", escrow: k.adrf.escrowAddress.toLowerCase(), policy: "FOGA-Service-v1", funds: "the escrow enacts a refund only out of the settlement it holds for the disputed call", thirdParties: "none" };
+    const bindInput = escrowBindingInput(servicePolicyId, keccakJcs(bindingTerms));
+    const bound = await k.call("T0.adrf.escrow.bind", W, k.adrf.escrowAddress, k.adrf.escrow().interface, "bindTo", [bindInput]);
+    const bindingId = k.adrf.bindingIdFromReceipt(bound.receipt);
+    k.setFact("T0.adrf", { policyId: servicePolicyId, bindingId, escrow: k.adrf.escrowAddress, maxTotalDuration: servicePolicy.track.maxTotalDuration, timing: this.timing.service, descriptorHash: servicePolicy.descriptorHash, bindingTermsHash: bindInput.termsHash });
+
     k.evidence("T0", "registrations", {
       W: k.address(W),
-      schemes: { S_att: sAtt, S_cred: sCred, S_credVerifier: credVerifier, zk: zkMode },
+      schemes: { S_att: sAtt, S_cred: sCred, S_credVerifier: credVerifier, zk: zkMode, S_pred: sPred, S_predVerifier: predAdapter.address, S_predGroth16: groth16Pred.address, sourceSetRoot: sourceSet.root, zkPredicate: predMode },
       specification: { specId, version: 1, contentHash: commitment.contentHash, locatorBytes: commitment.locator.length },
       council: { policyId, judges, k: 2, window: this.timing.councilWindow, appealWindow: this.timing.appealWindow, tenderAdapter: tenderAdapter.address, margin: this.timing.margin },
-      deferred: ["ADRF policy and FOGA ADRFServiceEscrow (T6, phase 2b)", "S_pred predicate scheme (phase 2b)"],
-      txs: { S_att: att.txHash, S_cred: cred.txHash, spec: reg.txHash, policy: pol.txHash },
+      service: { policyId: servicePolicyId, bindingId, escrow: k.adrf.escrowAddress, versionVerifier: k.adrf.versionVerifierAddress, bridge: k.adrf.bridgeAddress, timing: this.timing.service, maxTotalDuration: servicePolicy.track.maxTotalDuration },
+      txs: { S_att: att.txHash, S_cred: cred.txHash, S_pred: pred.txHash, spec: reg.txHash, policy: pol.txHash, servicePolicy: spol.txHash, escrowBind: bound.txHash },
     });
 
     // checks
@@ -239,11 +313,18 @@ export class Genesis {
     this.check("T0", "scheme.S_att", Boolean(schemeOk), `S_att ${sAtt.slice(0, 10)}… exists`);
     const credOk = await k.kya.schemes().schemeExists(sCred);
     this.check("T0", "scheme.S_cred", Boolean(credOk), `S_cred ${sCred.slice(0, 10)}… exists (verifier ${credVerifier})`);
+    const predOk = await k.kya.schemes().schemeExists(sPred);
+    const pinnedRoot: string = await this.world.contract("foga/Groth16PredicateKYAVerifierAdapter").requiredSourceSetRoot();
+    this.check("T0", "scheme.S_pred", Boolean(predOk) && pinnedRoot === sourceSet.root, `S_pred ${sPred.slice(0, 10)}… exists; FOGA's predicate adapter ${predAdapter.address} over verifier ${groth16Pred.address} pins source set root ${sourceSet.root.slice(0, 10)}…${sourceSet.pinned ? "" : " (unpinned: no proving libraries)"}`);
     const policyOk = await k.acdf.policies().policyExists(policyId);
     this.check("T0", "council.policy", Boolean(policyOk), `FOGA-Council ${policyId.slice(0, 10)}… registered: ${judges.length} judges, k = 2, window ${this.timing.councilWindow} s`);
     const adapterPolicy: string = await this.world.contract("foga/ACDFTaskTenderAdapter").policyId();
     const judged = !(await this.world.contract("foga/ACDFTaskTenderAdapter").supportsInterface("0x9977db15"));
     this.check("T0", "council.tenderAdapter", adapterPolicy === policyId && judged, `ACDFTaskTenderAdapter ${tenderAdapter.address} bound to the policy; does not declare ITaskVerifier (judged authority)`);
+    const servicePolicyOk = await k.adrf.policies().policyExists(servicePolicyId);
+    const binding = await k.adrf.registry().getBinding(bindingId);
+    const escrowBindingId: string = await k.adrf.escrow().bindingId();
+    this.check("T0", "service.policy", Boolean(servicePolicyOk) && getAddress(binding.source) === getAddress(k.adrf.escrowAddress) && binding.policyId === servicePolicyId && escrowBindingId === bindingId, `FOGA-Service-v1 ${servicePolicyId.slice(0, 10)}… registered (decision window ${this.timing.service.decisionWindow} s holds the council's ${policy.maxTotalDuration} s); the escrow ${k.adrf.escrowAddress} is bound to it (binding ${bindingId.slice(0, 10)}…, refund authorized)`);
   }
 
   // ------------------------------------------------------------------------------------------------ T1 birth
@@ -312,6 +393,7 @@ export class Genesis {
       ["8414.withdrawCredit", k.tenders.address, this.selector(tasks, "withdrawCredit")],
       ["8414.reclaimEscrow", k.tenders.address, this.selector(tasks, "reclaimEscrow")],
       ["8447.leave", this.world.address("8447/SwarmRegistry"), this.selector(swarms, "leave")],
+      ["8471.withdrawBalance", k.adrf.escrowAddress, this.selector(k.adrf.escrow().interface, "withdrawBalance")],
     ];
     for (const [name, target, sel] of derisk) await cell.admin(`T1.${X}.derisk.${name}`, "setDeriskAllowed", [target, sel, true]);
 
@@ -401,17 +483,17 @@ export class Genesis {
 
     // checks (memo T1 "expected")
     const state = await k.aid.stateName(cell.address);
-    this.check("T1", `${X}.aid.active`, state === "ACTIVE", `state(${cell.address}) = ${state}`);
+    this.check("T1", `${X}.aid.active`, state === "ACTIVE", `state(${cell.address}) = ${state}`, X === "A" ? "T9.A.aid.retire" : []);
     const passes = await k.kya.check(subject, sAtt, 2, [k.address("W")]);
     this.check("T1", `${X}.kya.level2`, passes === true, `check({account, cell}, S_att, 2, [W]) = ${passes}`);
     const status = await cell.status();
-    this.check("T1", `${X}.asf.satisfied`, status.verdict === 1, `status() = ${status.verdictName} [${status.reasonNames.join(",")}]`);
+    this.check("T1", `${X}.asf.satisfied`, status.verdict === 1, `status() = ${status.verdictName} [${status.reasonNames.join(",")}]`, X === "A" ? "T7.G.suspend" : []);
     const backed = await k.ard.backed(recordId);
-    this.check("T1", `${X}.ard.backed`, backed === true, `backed(${recordId.slice(0, 10)}…) = ${backed}`);
+    this.check("T1", `${X}.ard.backed`, backed === true, `backed(${recordId.slice(0, 10)}…) = ${backed}`, X === "A" ? "T9.A.aid.retire" : []);
     const controller = await k.units.controllerOf(unitId);
     this.check("T1", `${X}.auf.unit`, getAddress(controller) === getAddress(cell.address), `controllerOf(unit ${unitId}) = ${controller}`);
     const owner8004 = await k.identity.ownerOf(agentId);
-    this.check("T1", `${X}.8004.owner`, getAddress(owner8004) === getAddress(cell.address), `ownerOf(agent ${agentId}) = ${owner8004}`);
+    this.check("T1", `${X}.8004.owner`, getAddress(owner8004) === getAddress(cell.address), `ownerOf(agent ${agentId}) = ${owner8004}`, X === "A" ? "T9.A.8004.transfer" : []);
     if (X === "A") await (await import("./t1-zk.js")).credentialProof(this, cell);
 
     const reqOnchain: string = await cell.contract().requirementId();
@@ -470,9 +552,9 @@ export class Genesis {
       k.setFact(`T2.skill.${name}`, { tokenId: tokenId.toString(), mdHash: pkg.mdHash, packageHash: pkg.packageHash, recordId, unitId: unitId.toString() });
 
       const onchain = await k.skills.skillOf(tokenId);
-      this.check("T2", `${name}.commitment`, onchain.packageHash === pkg.packageHash && onchain.mdHash === pkg.mdHash && onchain.version === 1n, `skillOf(${tokenId}) = {mdHash ${pkg.mdHash.slice(0, 10)}…, packageHash ${pkg.packageHash.slice(0, 10)}…, v1}`);
+      this.check("T2", `${name}.commitment`, onchain.packageHash === pkg.packageHash && onchain.mdHash === pkg.mdHash && onchain.version === 1n, `skillOf(${tokenId}) = {mdHash ${pkg.mdHash.slice(0, 10)}…, packageHash ${pkg.packageHash.slice(0, 10)}…, v1}`, name === "finch-extract-verify" ? "T6.A.skill.v2.update" : []);
       const owner = await k.skills.ownerOf(tokenId);
-      this.check("T2", `${name}.owner`, getAddress(owner) === getAddress(A.address), `ownerOf(${tokenId}) = ${owner}`);
+      this.check("T2", `${name}.owner`, getAddress(owner) === getAddress(A.address), `ownerOf(${tokenId}) = ${owner}`, name === "finch-extract-verify" ? "T9.A.skill.transfer" : []);
       const backed = await k.ard.backed(recordId);
       this.check("T2", `${name}.ard.backed`, backed, `backed(skill record) = ${backed}`);
     }
@@ -586,6 +668,9 @@ export class Genesis {
       this.check("T3", "B.escrow", escrow === reward, `escrowBalanceOf(${tokenId}) = ${escrow} wei`);
       const taskBacked = await k.ard.backed(taskRecordId);
       this.check("T3", "B.ard.backed", taskBacked, `task record backed (funded, not cancelled, before settleBy) = ${taskBacked}`);
+    } else {
+      this.skipped("T3", "B.escrow", "replayed run: the tender was already settled");
+      this.skipped("T3", "B.ard.backed", "replayed run: the tender was already settled");
     }
 
     // --- A, as fulfiller: discover through ARD, pre-check, verify the package, run in isolation, submit, settle
@@ -600,7 +685,7 @@ export class Genesis {
       const pre = await this.precheck(A, tokenId);
       this.check("T3", "A.precheck", pre.ok, pre.detail);
       if (!pre.ok) throw new Error(`A refuses the task: ${pre.detail}`);
-    }
+    } else this.skipped("T3", "A.precheck", "replayed run: the submission was already made");
 
     const pkg = await verifiedPackage(k, join(this.cfg.skillsDir, "foga-probe"), BigInt(probeSkill.tokenId));
     this.check("T3", "A.skill.verified", pkg.packageHash === spec.packageHash, `local package ${pkg.packageHash.slice(0, 10)}… matches token ${probeSkill.tokenId} and the task's packageHash`);
@@ -620,7 +705,7 @@ export class Genesis {
     if (!settled) {
       const wrong = await this.wouldRevert(A, k.tenders.address, k.tenders.encodeSettle(tokenId, submissionId, Buffer.from(run.answer + " ", "utf8")));
       this.check("T3", "wrong.answer.refused", wrong !== null && /verification failed/.test(wrong), `settling with a wrong proof reverts: ${wrong}`);
-    }
+    } else this.skipped("T3", "wrong.answer.refused", "replayed run: the tender was already settled");
     const verifier = k.tenders.hashlockVerifier();
     const asA = await verifier.verifyFulfillment(k.tenders.address, tokenId, submissionId, A.address, resultHash, Buffer.from(run.answer, "utf8"));
     const asB = await verifier.verifyFulfillment(k.tenders.address, tokenId, submissionId, B.address, resultHash, Buffer.from(run.answer, "utf8"));
@@ -657,6 +742,7 @@ export class Genesis {
     const sub = await k.tenders.submissionOf(tokenId, submissionId);
     this.check("T3", "submission.accepted", sub.status === 1 && sub.machineSettled === true && getAddress(sub.fulfiller) === getAddress(A.address), `submissionOf(${tokenId}, ${submissionId}) = status ${sub.status} (1 = Accepted), machineSettled ${sub.machineSettled}, fulfiller ${sub.fulfiller}`);
     if (!settled) this.check("T3", "A.paid", paid === reward && balanceAfter >= balanceBefore, `A's account balance rose by ${paid} wei (reward ${reward})`);
+    else this.skipped("T3", "A.paid", "replayed run: the tender was already settled");
     const count = await k.tenders.submissionCount(tokenId);
     this.check("T3", "submissions.one", count === 1n, `submissionCountOf(${tokenId}) = ${count}`);
     const escrowAfter = await k.tenders.escrowBalanceOf(tokenId);
@@ -667,6 +753,10 @@ export class Genesis {
     // negative: a second completion beyond maxCompletions is refused at submission
     const second = await this.wouldRevert(B, k.tenders.address, k.tenders.encodeSubmit(tokenId, hashlock.resultHash(run.answer, B.address), "second"));
     this.check("T3", "second.completion.refused", second !== null, `a further submission after the single completion reverts: ${second}`);
+
+    // the predicate-pattern proof over this completion (S_pred), see t3-zk.ts
+    const settledAt = await k.memo("T3.A.settledAt", async () => (await this.world.provider.getBlock(settle.receipt.blockNumber))!.timestamp);
+    await (await import("./t3-zk.js")).predicateProof(this, A, { tokenId, submissionId, settledAt });
   }
 
   /** The kernel's pre-commitment check: liveness, safety verdict, budget, deadline. */
@@ -690,8 +780,8 @@ export class Genesis {
   }
 
   /** eth_estimateGas as the cell's operator: the decoded revert reason, or null when the call would succeed. */
-  async wouldRevert(cell: Cell, target: string, data: string): Promise<string | null> {
-    return this.wouldRevertCall(cell.operatorAddress, cell.address, cell.iface.encodeFunctionData("execute", [target, 0n, data]));
+  async wouldRevert(cell: Cell, target: string, data: string, by: "operator" | "owner" = "operator"): Promise<string | null> {
+    return this.wouldRevertCall(by === "owner" ? cell.ownerAddress : cell.operatorAddress, cell.address, cell.iface.encodeFunctionData("execute", [target, 0n, data]));
   }
 
   /** eth_estimateGas of an arbitrary call: the decoded revert reason, or null when it would succeed. */

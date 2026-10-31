@@ -85,7 +85,7 @@ export async function t4(g: Genesis): Promise<void> {
   }
   const compositeContract = g.world.at("swarm-ai-framework:CompositeEligibility", composite.address);
   const eligible = await Promise.all(CELLS.map((X) => compositeContract.isEligible("0x" + "00".repeat(32), ROLE_WORKER, g.cell(X).address)));
-  g.check("T4", "eligibility.members", eligible.every(Boolean), `CompositeEligibility(requireAll: 8004 agent, AID ACTIVE, S_att >= 2 from W) = ${eligible.join(",")} for A, B, C`);
+  g.check("T4", "eligibility.members", eligible.every(Boolean), `CompositeEligibility(requireAll: 8004 agent, AID ACTIVE, S_att >= 2 from W) = ${eligible.join(",")} for A, B, C`, "T9.A.aid.retire");
   const strangerEligible = await compositeContract.isEligible("0x" + "00".repeat(32), ROLE_WORKER, k.address("E"));
   g.check("T4", "eligibility.stranger", strangerEligible === false, `a plain account without identity or standing is not eligible (${strangerEligible})`);
 
@@ -238,6 +238,9 @@ export async function t4(g: Genesis): Promise<void> {
     g.check("T4", "challenge.suspends", suspendedStatus.statusName === "SUSPENDED" && suspended.suspensionName === "INELIGIBLE", `after W revokes C's S_att assertion, challenge(swarm, C) -> ${suspendedStatus.statusName} (${suspended.suspensionName})`);
     const stillRoster = await k.swarms.rosterMet(swarmId);
     g.check("T4", "roster.under.suspension", stillRoster === false, `rosterMet with one worker suspended = ${stillRoster} (the roster is lost, the swarm is not: enforceRoster is anyone's call, not taken here)`);
+  } else {
+    g.skipped("T4", "challenge.suspends", "replayed run: C was already reinstated");
+    g.skipped("T4", "roster.under.suspension", "replayed run: C was already reinstated");
   }
 
   const claim = { scheme: "S_att", level: 2, subject: accountRef(chainId, C.address), basis: "re-attested after review; operates under FOGA-Cell-v1" };

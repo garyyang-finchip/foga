@@ -133,6 +133,11 @@ export class ARD {
     return this.contract().interface.encodeFunctionData("register", [kind, target, id, p.descriptorHash, p.descriptorURI, p.urn]);
   }
 
+  /** Recommit a record's current descriptor unchanged: the adoption of a record by its new controller. */
+  encodeRecommit(recordId: string, rec: { descriptorHash: string; descriptorURI: string; urn: string }): string {
+    return this.contract().interface.encodeFunctionData("updateDescriptor", [recordId, rec.descriptorHash, rec.descriptorURI, rec.urn]);
+  }
+
   encodeUpdateDescriptor(recordId: string, descriptor: Record<string, unknown>): string {
     const p = this.publication(descriptor);
     return this.contract().interface.encodeFunctionData("updateDescriptor", [recordId, p.descriptorHash, p.descriptorURI, p.urn]);

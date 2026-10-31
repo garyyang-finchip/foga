@@ -11,7 +11,7 @@ import { fail, log } from "./util/log.js";
 import { attachWorld, deployWorld, loadWorldConfig } from "./world/deploy.js";
 import { loadBundle } from "./bundle/load.js";
 
-const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2a cells and genesis)
+const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2 cells and the genesis T0-T9)
 
 usage:
   foga vendor sync [--only <repo,repo>]          fetch the locked upstream sources into vendor/
@@ -19,16 +19,16 @@ usage:
   foga build [--verify] [--solc-dir <dir>]       compile the ten reference implementations into artifacts/bundle.json
   foga world deploy --world <config.json> [--rpc <url>] [--out <file>] [--resume] [--gas-multiplier <x>] [--allow-chain-mismatch]
   foga world attach --world <config.json> [--out <file>]
-  foga doctor --world <world.json> [--rpc <url>] [--out <report.json>]
+  foga doctor --world <world.json> [--rpc <url>] [--out <report.json>] [--genesis <evidence.json>]
   foga doctor --world <config.json> --attach [--rpc <url>] [--out <report.json>]
   foga doctor --world <...> --export-probe <probe.json>      write the JSON-RPC probe plan instead of calling an RPC
   foga doctor --world <...> --import-results <results.json>  evaluate results collected by a relay (offline replay)
   foga probe relay-script                        print a dependency-free node script that runs a probe plan
-  foga genesis run --world <world.json> [--rpc <url>] [--until T0..T5] [--store <file.sqlite>] [--out <evidence.json>]
+  foga genesis run --world <world.json> [--rpc <url>] [--until T0..T9] [--store <file.sqlite>] [--out <evidence.json>]
                    [--zk auto|require|skip] [--crash-after <opKey>] [--crash-before <opKey>]
                                                  run the genesis scenario (idempotent; re-run to resume)
   foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
-  foga demo [--port <n>] [--keep] [--genesis <T0..T5>]   start anvil, deploy the local world, run the doctor (and the genesis)
+  foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga bundle info                               summarize the committed bundle
 
 environment:
@@ -152,6 +152,7 @@ async function main(): Promise<void> {
       outPath: str(flags, "out") ? resolve(str(flags, "out")!) : undefined,
       exportProbePath: str(flags, "export-probe") ? resolve(str(flags, "export-probe")!) : undefined,
       importResultsPath: str(flags, "import-results") ? resolve(str(flags, "import-results")!) : undefined,
+      genesisPath: str(flags, "genesis") ? resolve(str(flags, "genesis")!) : undefined,
     });
     if (report && report.summary.Fail > 0) process.exitCode = 3;
     return;
@@ -280,8 +281,12 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
     const { rmSync } = await import("node:fs");
     const storePath = join(root, "deployments", "local.genesis.sqlite");
     for (const suffix of ["", "-wal", "-shm"]) rmSync(storePath + suffix, { force: true }); // a fresh chain means a fresh store
-    const { failed } = await runGenesis({ worldPath: out, rpc, storePath, until: opts.genesis as any });
+    const evidencePath = join(root, "deployments", "local.genesis.json");
+    const { failed } = await runGenesis({ worldPath: out, rpc, storePath, evidencePath, until: opts.genesis as any });
     if (failed > 0) process.exitCode = 4;
+    // the doctor's fifth layer: what the genesis established, per standard
+    const second = await runDoctor({ worldPath: out, rpc, outPath: join(root, "deployments", "local.doctor.json"), genesisPath: evidencePath, quiet: true });
+    if (second.report && second.report.summary.Fail > 0) process.exitCode = 3;
   }
   if (opts.keep) {
     // Let this process return while anvil, started detached, keeps serving.

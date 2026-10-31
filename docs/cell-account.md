@@ -21,7 +21,7 @@ The account carries the execution-gate semantics of the ERC-8468 reference's `AS
 2. `safety.check(requirement, presentedBindings)` must return `Satisfied`. `NotSatisfied` passes only when every failing clause is a suspension (own, inherited, or a standing stop by a named intervener) whose response set keeps de-risking open and is not a full stop, **and** the selector is on the owner's de-risk allow-list for that target. `Unknown` (the specification registry unreachable) never passes.
 3. A selector the owner marked as commitment-class (`setCommitmentClass`) additionally requires `aid.state(address(this)) == ACTIVE` in the configured ERC-8434 registry — "no delivery while not ACTIVE" is enforced, not promised. De-risk calls skip this clause by construction.
 
-The genesis marks `TaskToken.submitFulfillment`, `SwarmRegistry.join`, `SwarmRegistry.applyToJoin` and `AUFAssertionRegistry.assertStatement` as commitment-class, and `TaskToken.withdrawCredit`, `TaskToken.reclaimEscrow` and `SwarmRegistry.leave` as de-risk actions.
+The genesis marks `TaskToken.submitFulfillment`, `SwarmRegistry.join`, `SwarmRegistry.applyToJoin`, `AUFAssertionRegistry.assertStatement` and `ACDFRegistry.castBallot` as commitment-class, and `TaskToken.withdrawCredit`, `TaskToken.reclaimEscrow`, `SwarmRegistry.leave` and `ADRFServiceEscrow.withdrawBalance` as de-risk actions. T7 of the genesis exercises the gate on chain: a transaction sent around the kernel fails with `BindingNotSatisfied` under a suspension, the allow-listed withdrawal passes, a fresh binding does not escape the intervener's standing stop, and a STALE anchor stops commitment-class calls until the next heartbeat (docs/genesis.md).
 
 ## Adopting the binding
 
