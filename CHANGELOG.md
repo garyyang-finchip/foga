@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0-alpha.2 — 2026-10-31
+
+- Kernel: a receipt that does not arrive within the timeout is reported in the kernel's own words (the row stays `sent`, the next run recovers it from the chain; check whether another process is saturating the machine) and journaled as `receipt-timeout`, instead of surfacing ethers' TIMEOUT stack trace. Seen on a small EC2 instance where `npm run zk:predicate` ran at the same time as the genesis and starved anvil.
+- `foga demo` warns at start when the machine is already busy (load above 80 % of the cores): a proving-key build running alongside slows anvil down until the genesis times out.
+- docs/zk.md: run the predicate build alone (all cores, close to 1 GB of memory; about an hour on 2 cores, 35 minutes on GitHub's runners); the committed verifier was reproduced byte for byte by CI on a cache miss.
+
 ## 0.4.0-alpha.1 — 2026-10-31 (Phase 2b)
 
 - The predicate-pattern ZK path of ERC-8419: `zk/circuits/kya_predicate_count_v1.circom` (8 record slots, source set of depth 16, EdDSA-Poseidon records, nullifier scoped to scheme, admission domain, epoch and challenge); `contracts/src/zk/Groth16PredicateKYAVerifierAdapter.sol` (IKYAVerifier for the `kya-predicate-count-v1` layout: result 1 → level 1, a false predicate refused, claim digest over the rule, source-set root as anchor, epoch window; 9 Foundry tests) and the generated `Groth16PredicateVerifier.sol`; `prover/build-predicate.mjs`, a deterministic development ceremony with a public beacon (`npm run zk:predicate`); `prover/run.cjs` gains `record.sign` and `predicate.prove`; T0 registers `S_pred` with FOGA's adapter pinned to a source set held by W; T3 ends with A's proof over its first accepted completion and six negatives (replay, subject, scheme, K above the count, flipped result bit, stale epoch). `--zk auto|require|skip` now covers both paths (`T0.zk.predicate`). docs/zk.md.

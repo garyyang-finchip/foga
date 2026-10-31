@@ -132,9 +132,29 @@ export class TxManager {
     this.log(`${req.key}: sent ${txHash} (nonce ${nonce}, ${req.signer})`);
     if (this.options.crashAfterBroadcast === req.key) this.crash(req.key, "after-broadcast");
 
-    const receipt = await this.provider.waitForTransaction(txHash, 1, this.options.receiptTimeoutMs ?? 120_000);
-    if (!receipt) throw new Error(`operation ${req.key}: no receipt for ${txHash} within the timeout; it stays 'sent' and will be recovered on the next run`);
+    const receipt = await this.awaitReceipt(req.key, txHash);
     return this.finish(req.key, receipt, false);
+  }
+
+  /**
+   * Wait for a receipt within the timeout. ethers rejects with a TIMEOUT error rather than returning null when the
+   * time is up; either way the row stays `sent` and the next run resolves it from the chain (docs/kernel.md), so the
+   * message says that instead of showing a stack trace. A timeout on a local chain usually means the node is starved
+   * (another heavy process on the machine) rather than a lost transaction.
+   */
+  private async awaitReceipt(key: string, txHash: string): Promise<TransactionReceipt> {
+    const timeoutMs = this.options.receiptTimeoutMs ?? 120_000;
+    let receipt: TransactionReceipt | null = null;
+    try {
+      receipt = await this.provider.waitForTransaction(txHash, 1, timeoutMs);
+    } catch (e: any) {
+      if (e?.code !== "TIMEOUT") throw e;
+    }
+    if (!receipt) {
+      this.store.journal("receipt-timeout", { txHash, timeoutMs }, key);
+      throw new Error(`operation ${key}: no receipt for ${txHash} within ${timeoutMs / 1000} s. The row stays 'sent' and is recovered on the next run (the receipt is read if the transaction was mined, otherwise it is re-sent). If the node is local, check that nothing else is saturating the machine (a proving-key build, for instance) and run again.`);
+    }
+    return receipt;
   }
 
   /** Decide what a `sent` row means by asking the chain. Returns null when the transaction must be re-sent. */
@@ -149,8 +169,7 @@ export class TxManager {
     if (pending) {
       this.store.journal("recovered-pending", { txHash: rec.txHash }, rec.key);
       this.log(`${rec.key}: ${rec.txHash} is still pending; waiting`);
-      const r = await this.provider.waitForTransaction(rec.txHash!, 1, this.options.receiptTimeoutMs ?? 120_000);
-      if (!r) throw new Error(`operation ${rec.key}: ${rec.txHash} stayed pending beyond the timeout`);
+      const r = await this.awaitReceipt(rec.key, rec.txHash!);
       return this.finish(rec.key, r, true);
     }
     const consumed = await this.provider.getTransactionCount(from, "latest");

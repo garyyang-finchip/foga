@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import { closeSync, openSync, readFileSync } from "node:fs";
 import { createConnection } from "node:net";
+import { cpus, loadavg } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { buildBundle } from "./build/bundle.js";
 import { syncVendor, verifyVendor } from "./build/vendor.js";
@@ -222,6 +223,14 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
         ? `${rpc} already answers JSON-RPC (another anvil or node is running). Stop it, or pass --port <n> to use another port.`
         : `port ${opts.port} is in use by something that does not speak JSON-RPC. Free it, or pass --port <n>.`,
     );
+  }
+
+  // A machine that is already saturated (a proving-key build, for instance) starves anvil: blocks come late and the
+  // kernel gives up on a receipt after its timeout. Say so before starting rather than after a failure.
+  const cores = cpus().length || 1;
+  const load = loadavg()[0];
+  if (load > cores * 0.8) {
+    log.warn(`this machine is busy (load ${load.toFixed(1)} on ${cores} core${cores === 1 ? "" : "s"}): another heavy process slows anvil down and can make the genesis time out waiting for receipts. If a proving-key build (npm run zk:predicate) is running, let it finish or stop it first.`);
   }
 
   // FOGA_FOUNDRY_DIR points at a Foundry install of its own (scripts/install-foundry.sh puts the static build there).

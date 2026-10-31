@@ -35,7 +35,9 @@ npm run zk:predicate    # compile the circuit and run the development ceremony: 
 
 That determinism is also why this is a **development ceremony**: its randomness is public, so the proving key could in principle be used to forge proofs. It is fit for the genesis and for tests; before any use where a forged proof would matter, the circuit needs a real multi-party ceremony and the adapter a new verifier. The committed files make this explicit in their headers.
 
-Outputs live in `zk/build/` (gitignored except `verification_key.json`): the r1cs, the witness generator (`kya_predicate_count_v1_js/`), the proving key (`kya_predicate_count_v1_final.zkey`, about 65 MB) and the powers of tau. `FOGA_ZK_PREDICATE_DIR` points the prover at another directory.
+Outputs live in `zk/build/` (gitignored except `verification_key.json`): the r1cs, the witness generator (`kya_predicate_count_v1_js/`), the proving key (`kya_predicate_count_v1_final.zkey`, about 45 MB) and the powers of tau (about 250 MB in all). `FOGA_ZK_PREDICATE_DIR` points the prover at another directory.
+
+Run the build alone. It saturates every core for its whole duration and uses close to 1 GB of memory; a genesis running on the same machine at the same time finds anvil starved and gives up waiting for receipts (the kernel's 120-second receipt timeout). `foga demo` warns when it starts on a busy machine. On a 2-core machine the build takes about an hour; GitHub's runners did it in 35 minutes.
 
 ## Running without it
 
