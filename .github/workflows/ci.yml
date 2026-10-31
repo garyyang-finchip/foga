@@ -10,7 +10,7 @@ jobs:
   world:
     name: bundle, world, doctor, genesis
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5
 
@@ -29,6 +29,23 @@ jobs:
 
       - name: Install the proving libraries (prover/)
         run: npm run zk:install
+
+      - name: Restore the predicate circuit's proving material (development ceremony output)
+        id: zk-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            zk/build/kya_predicate_count_v1_js
+            zk/build/kya_predicate_count_v1_final.zkey
+            zk/build/kya_predicate_count_v1.r1cs
+          key: zk-predicate-${{ hashFiles('zk/circuits/kya_predicate_count_v1.circom', 'prover/build-predicate.mjs', 'prover/package-lock.json') }}
+
+      - name: Rebuild the predicate circuit and its development ceremony (cache miss only; deterministic)
+        if: steps.zk-cache.outputs.cache-hit != 'true'
+        run: |
+          npm run zk:predicate
+          # the ceremony is deterministic: the regenerated verification key and verifier must equal the committed ones
+          git diff --exit-code -- zk/build/verification_key.json contracts/src/zk/Groth16PredicateVerifier.sol
 
       - name: Type-check and unit tests
         run: |
@@ -60,31 +77,36 @@ jobs:
       - name: Doctor (layers 1-4; exit 3 on any Fail)
         run: npm run foga -- doctor --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --out deployments/ci-local.doctor.json
 
-      - name: Genesis T0-T5 with the ZK path required, crashed after the submit of T3 (exit 75 expected)
+      - name: Genesis T0-T9 with both ZK paths required, crashed after the submit of T3 (exit 75 expected)
         run: |
           set +e
-          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T5 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json --crash-after T3.A.submit
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T9 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json --crash-after T3.A.submit
           code=$?
           set -e
           test "$code" -eq 75 || { echo "expected the injected crash (75), got $code"; exit 1; }
 
-      - name: Genesis resumed (recovers the submit by hash, settles, carries on to T5; exit 0)
+      - name: Genesis resumed (recovers the submit by hash, settles, carries on to T9; exit 0)
         run: |
-          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T5 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T9 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.json
           node -e '
             const e = require("./deployments/ci-local.genesis.json");
             if (e.summary.failed !== 0) throw new Error("checks failed: " + JSON.stringify(e.checks.filter(c => !c.pass)));
             if (e.summary.recovered !== 1) throw new Error("expected exactly one recovered operation, got " + e.summary.recovered);
-            for (const name of ["submissions.one", "A.kya.S_cred.level4", "swarm.active", "council.final.yes", "nd.claimUnjudged", "swarm.achieved"]) {
+            for (const name of ["submissions.one", "A.kya.S_cred.level4", "A.kya.S_pred.shown", "A.kya.S_pred.below.refused", "swarm.active", "council.final.yes", "nd.claimUnjudged", "swarm.achieved", "ruling.sustained", "refund.enacted", "bypass.reverted", "derisk.allowed", "escape.sibling.refused", "anchor.stale.gate", "resolver.A", "resolver.doubleCount", "A.retired", "skill.adopted", "inherit.kya.none"]) {
               const c = e.checks.find(c => c.name === name);
               if (!c || !c.pass) throw new Error("check missing or failed: " + name);
+              if (/^skipped:/.test(c.detail)) throw new Error("check was skipped: " + name + " (" + c.detail + ")");
             }
-            if (e.facts["T0.zk"] !== "on") throw new Error("the ZK path did not run");
+            if (e.facts["T0.zk"] !== "on") throw new Error("the credential ZK path did not run");
+            if (e.facts["T0.zk.predicate"] !== "on") throw new Error("the predicate ZK path did not run");
           '
+
+      - name: Doctor with the genesis evidence (layer 5 per standard; exit 3 on any Fail)
+        run: npm run foga -- doctor --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --genesis deployments/ci-local.genesis.json --out deployments/ci-local.doctor.json
 
       - name: Genesis replayed (nothing sent, end state re-checked)
         run: |
-          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T5 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.replay.json
+          npm run foga -- genesis run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --until T9 --zk require --store deployments/ci-local.genesis.sqlite --out deployments/ci-local.genesis.replay.json
           node -e '
             const e = require("./deployments/ci-local.genesis.replay.json");
             if (e.summary.failed !== 0) throw new Error("checks failed on replay");
