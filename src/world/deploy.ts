@@ -1,4 +1,4 @@
-import { Contract, ContractFactory, NonceManager, Wallet, getAddress, isAddress } from "ethers";
+import { Contract, ContractFactory, NonceManager, Wallet, formatEther, getAddress, isAddress } from "ethers";
 import { PinnedProvider } from "../kernel/provider.js";
 import { join, relative } from "node:path";
 import { loadBundle, getContract } from "../bundle/load.js";
@@ -9,6 +9,16 @@ import { log } from "../util/log.js";
 import { DEPLOY_PLAN, WIRE_PLAN, type PlanContext } from "./plan.js";
 import type { WorldConfig, WorldContract, WorldFile } from "./types.js";
 import { envMnemonic, mnemonicKeys } from "../genesis/roles.js";
+import { feeFloor, quotePriceOf } from "../genesis/funding.js";
+
+/**
+ * Gas the deployer is asked to hold per contract it still has to deploy, as a budget priced at the chain's quote
+ * (at least the fee floor, FOGA_FEE_FLOOR_GWEI): the 15 reference contracts `foga world deploy` added on Sepolia on
+ * 2026-11-01 took 111 M gas in all, 1.6 M to 14.6 M each (code deposit costs about 1,500 gas per byte there), so a
+ * contract is budgeted at the average with a margin of one half. Checked before anything is sent, so an unfunded
+ * deployer is told what it needs instead of failing on the first transaction.
+ */
+export const DEPLOY_GAS_PER_STEP = 11_000_000n;
 
 export interface DeployOptions {
   worldConfigPath: string;
@@ -137,6 +147,16 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   world.deployer = deployer;
   world.bundleHash = bundle.hash;
   if (cfg.mode === "attach") log.info(`attach-mode world: ${Object.keys(cfg.contracts ?? {}).length} contracts attached; deploying ${toDeploy.length} from the bundle (${toDeploy.join(", ")})`);
+
+  // What the deployer must hold for the contracts not yet in the world file, before the first one is sent.
+  const remaining = DEPLOY_PLAN.filter((s) => !world.contracts[s.id] && !(s.id === "identity8004" && cfg.identity8004.mode === "address")).length;
+  if (remaining > 0) {
+    const price = await quotePriceOf(provider);
+    const need = BigInt(remaining) * DEPLOY_GAS_PER_STEP * price;
+    const priced = `${remaining} contracts x ${Number(DEPLOY_GAS_PER_STEP) / 1e6} M gas at ${Number(price) / 1e9} gwei (${price === feeFloor() ? "the fee floor FOGA_FEE_FLOOR_GWEI; the chain quotes less" : "the chain's quote"}) = ${formatEther(need)} ETH`;
+    if (balance < need) throw new Error(`deployer ${deployer} holds ${formatEther(balance)} ETH, the deployment is budgeted at ${priced}. Fund it and run again${world.steps.some((s) => s.status === "deployed") ? " with --resume" : ""}.`);
+    log.info(`deployment budget: ${priced}; the deployer holds ${formatEther(balance)} ETH`);
+  }
 
   const stepById = new Map(DEPLOY_PLAN.map((s) => [s.id, s]));
   const ctx: PlanContext = {

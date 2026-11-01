@@ -1,4 +1,4 @@
-import { formatEther, parseEther, parseUnits } from "ethers";
+import { formatEther, parseEther, parseUnits, type Provider } from "ethers";
 import type { Kernel } from "../kernel/kernel.js";
 import { CELLS, ROLE_ORDER, type Role } from "./roles.js";
 import type { StepName } from "./scenario.js";
@@ -9,28 +9,36 @@ import type { StepName } from "./scenario.js";
  * before every step and gives each cell its capital at birth.
  *
  * On anvil the first ten accounts are pre-funded, so only the judges beyond them (J1-J3) and the cells need
- * anything. On a public chain the floors come from the gas each role spent in a full local run (docs/genesis.md,
- * "Running on a public chain"), with a margin, at the fee the chain quotes when the step starts: a floor is a
- * budget in gas, priced when it is checked, so a rising base fee raises the top-up rather than starving a role. A
- * role is refilled to its floor once it has fallen below half of it. The quote is never taken below a floor of its
- * own (FOGA_FEE_FLOOR_GWEI, default 0.1 gwei): a testnet quotes fractions of a wei when it is quiet, and a role
- * funded at that price would be stranded by the first busy block.
+ * anything. On a public chain the floors come from the gas each role spent in the Sepolia run of 2026-11-01
+ * (docs/genesis.md, "Running on a public chain"), with a margin, at the fee the chain quotes when the step starts:
+ * a floor is a budget in gas, priced when it is checked, so a rising base fee raises the top-up rather than
+ * starving a role. A role is refilled to its floor once it has fallen below half of it. The quote is never taken
+ * below a floor of its own (FOGA_FEE_FLOOR_GWEI, default 0.1 gwei): a testnet quotes fractions of a wei when it is
+ * quiet, and a role funded at that price would be stranded by the first busy block.
  */
 
-/** Gas a role spends over T0-T9 in a local run, rounded up with a margin of about one half. */
+/**
+ * Gas a role spends over T0-T9 on a public chain, rounded up with a margin of about one half. Measured on Sepolia
+ * (deployments/sepolia.genesis.example.json, 203 operations, 475 M gas in all): W 131 M, G 0.8 M, owner.A 44.7 M,
+ * owner.B and owner.C 21.9 M each, operator.A 85.7 M, operator.B 103.5 M, operator.C 32.2 M, E 31.8 M, J1 0.8 M,
+ * J2 0.4 M, J3 nothing (the council decides with two of three). Sepolia's gas schedule prices the same operations
+ * 4.4 times higher than anvil's (a plain transfer 204,600 gas, code deposit about 1,500 gas per byte: deployments
+ * cost 6.5-7 times, calls 2-5 times), which is what a public chain costs from now on. The judges share one budget
+ * so that whichever two of them decide are funded.
+ */
 export const ROLE_GAS_BUDGET: Record<Role, bigint> = {
-  W: 42_000_000n, // 26.7 M in the genesis plus up to 16 M for the reference contracts `foga world deploy` adds on a public chain
-  G: 500_000n,
-  "owner.A": 12_500_000n,
-  "owner.B": 6_000_000n,
-  "owner.C": 6_000_000n,
-  "operator.A": 36_000_000n,
-  "operator.B": 36_000_000n,
-  "operator.C": 13_000_000n,
-  E: 10_000_000n,
-  J1: 500_000n,
-  J2: 500_000n,
-  J3: 300_000n,
+  W: 200_000_000n, // the genesis only; what `foga world deploy` spends before it is budgeted in src/world/deploy.ts (DEPLOY_GAS_PER_STEP)
+  G: 1_250_000n,
+  "owner.A": 67_000_000n,
+  "owner.B": 33_000_000n,
+  "owner.C": 33_000_000n,
+  "operator.A": 130_000_000n,
+  "operator.B": 156_000_000n,
+  "operator.C": 49_000_000n,
+  E: 48_000_000n,
+  J1: 1_250_000n,
+  J2: 1_250_000n,
+  J3: 1_250_000n,
 };
 
 /** Working capital of the cells: what they fund, deposit and keep (B funds 0.003 ETH of rewards over T3 and T7, C deposits 0.002). */
@@ -65,11 +73,15 @@ export interface FundingPlan {
 }
 
 /** The fee per gas used to price a budget: the chain's current maxFeePerGas quote, at least the fee floor. */
-export async function quotePrice(k: Kernel): Promise<bigint> {
-  const fee = await k.world.provider.getFeeData();
+export async function quotePriceOf(provider: Provider): Promise<bigint> {
+  const fee = await provider.getFeeData();
   const quoted = fee.maxFeePerGas ?? fee.gasPrice ?? 0n;
   const floor = feeFloor();
   return quoted > floor ? quoted : floor;
+}
+
+export function quotePrice(k: Kernel): Promise<bigint> {
+  return quotePriceOf(k.world.provider);
 }
 
 export function floorOf(role: Role, local: boolean, price: bigint): bigint {

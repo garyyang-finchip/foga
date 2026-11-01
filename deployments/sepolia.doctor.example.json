@@ -1,30 +1,30 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-10-30T01:34:34.821Z",
+  "at": "2026-11-01T10:01:09.428Z",
   "world": {
-    "worldId": "sepolia-11155111-20261030T013433Z",
+    "worldId": "sepolia-11155111-20261101T043153Z",
     "name": "sepolia",
     "network": "sepolia",
     "chainId": 11155111,
     "mode": "attached",
-    "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109"
+    "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275"
   },
   "source": {
     "rpc": "https://ethereum-sepolia-rpc.publicnode.com",
-    "collectedAt": "2026-10-30T01:34:34.706Z",
+    "collectedAt": "2026-11-01T10:01:09.302Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 11155111,
-    "blockNumber": 12023430
+    "blockNumber": 12040269
   },
-  "bundleHash": "0x9f01de54b32dc85ccc3e2d8df97ae6b9cbef2677fcdc6f87f2fa0eba948f9109",
+  "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275",
   "layers": {
     "1": "chain and code: the address holds code on the expected chain",
     "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
     "3": "version match: runtime code (metadata stripped, library/immutable slots masked) equals the locked build",
     "4": "configuration and permissions: dependency addresses and authority slots match the world",
-    "5": "semantic validation: success, rejection, signature, proof and recovery cases (Phase 2)"
+    "5": "semantic validation: success, rejection, signature, proof and recovery cases, from the genesis evidence (foga genesis run; pass it with --genesis)"
   },
   "results": [
     {
@@ -1148,6 +1148,79 @@
     },
     {
       "layer": 1,
+      "subject": "identity8004",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "130 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "identity8004",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "identity8004",
+      "check": "supportsInterface(ERC-721 0x80ac58cd)",
+      "verdict": "Pass",
+      "detail": "the ERC-8004 Identity Registry is an ERC-721 registry; FOGA does not build it, so this is the only interface check available"
+    },
+    {
+      "layer": 3,
+      "subject": "identity8004",
+      "check": "runtimeIdentity",
+      "verdict": "NotApplicable",
+      "detail": "official ERC-8004 registry, not built by FOGA; no locked build to compare against"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/ERC8004Eligibility",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "985 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/ERC8004Eligibility",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/ERC8004Eligibility",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xf5375e011856aee7ff0f1506a44e7d8979d3c33177b44de0b45a3c375af81dbe",
+      "actual": "0xf5375e011856aee7ff0f1506a44e7d8979d3c33177b44de0b45a3c375af81dbe",
+      "detail": "985 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
+      "subject": "8447/IdentityStateEligibility",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "457 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8447/IdentityStateEligibility",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8447/IdentityStateEligibility",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xf64d6894c553cc0299781c52eca809bbf8d9c57bfd2d3b6f2e699e8a7887c541",
+      "actual": "0xf64d6894c553cc0299781c52eca809bbf8d9c57bfd2d3b6f2e699e8a7887c541",
+      "detail": "457 bytes, 0.8.24+commit.e11b9ed9"
+    },
+    {
+      "layer": 1,
       "subject": "8471/ADRFPolicyRegistry",
       "check": "code",
       "verdict": "Pass",
@@ -1185,36 +1258,6 @@
     },
     {
       "layer": 1,
-      "subject": "8471/ADRFDisputeRegistry",
-      "check": "code",
-      "verdict": "Pass",
-      "actual": "2043 bytes"
-    },
-    {
-      "layer": 2,
-      "subject": "8471/ADRFDisputeRegistry",
-      "check": "supportsInterface(0x01ffc9a7)",
-      "verdict": "Pass"
-    },
-    {
-      "layer": 2,
-      "subject": "8471/ADRFDisputeRegistry",
-      "check": "declared",
-      "verdict": "Pass",
-      "actual": "IADRFDisputeRegistry=0xedc59c17",
-      "detail": "interfaces of the same repository the contract reports as supported"
-    },
-    {
-      "layer": 3,
-      "subject": "8471/ADRFDisputeRegistry",
-      "check": "runtimeIdentity",
-      "verdict": "Pass",
-      "expected": "0x3388c11716822257523b9870d641464069be28d60e867f0d27624480a50f15a6",
-      "actual": "0x3388c11716822257523b9870d641464069be28d60e867f0d27624480a50f15a6",
-      "detail": "2043 bytes, 0.8.30+commit.73712a01"
-    },
-    {
-      "layer": 1,
       "subject": "8471/ADRFBindingModule",
       "check": "code",
       "verdict": "Pass",
@@ -1231,17 +1274,17 @@
       "layer": 3,
       "subject": "8471/ADRFBindingModule",
       "check": "runtimeIdentity",
-      "verdict": "Fail",
+      "verdict": "Pass",
       "expected": "0x23ab54cf9032057dbce4f27223c11552f8d1a59b0a9e08139641f148711b27c1",
-      "actual": "0xae043cf0a179bded25746c3633f865a763f0f9749cd5b3a76927566f29f5dd6e",
-      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
+      "actual": "0x23ab54cf9032057dbce4f27223c11552f8d1a59b0a9e08139641f148711b27c1",
+      "detail": "5801 bytes, 0.8.30+commit.73712a01"
     },
     {
       "layer": 1,
       "subject": "8471/ADRFFilingModule",
       "check": "code",
       "verdict": "Pass",
-      "actual": "8483 bytes"
+      "actual": "8784 bytes"
     },
     {
       "layer": 2,
@@ -1254,10 +1297,10 @@
       "layer": 3,
       "subject": "8471/ADRFFilingModule",
       "check": "runtimeIdentity",
-      "verdict": "Fail",
+      "verdict": "Pass",
       "expected": "0x248a0be50ac46db2db7cafe95a42c836bd8c70e4225d4b0bb833e4d4fe16ef9b",
-      "actual": "0x67120d0c20f77f7c97e7c1b653219ff1ead544c29aa611d7e1643aa4fe79a71b",
-      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
+      "actual": "0x248a0be50ac46db2db7cafe95a42c836bd8c70e4225d4b0bb833e4d4fe16ef9b",
+      "detail": "8784 bytes, 0.8.30+commit.73712a01"
     },
     {
       "layer": 1,
@@ -1353,47 +1396,40 @@
     },
     {
       "layer": 1,
-      "subject": "8471/ADRFACDFBridge",
+      "subject": "8471/ADRFDisputeRegistry",
       "check": "code",
       "verdict": "Pass",
-      "actual": "4782 bytes"
+      "actual": "2043 bytes"
     },
     {
       "layer": 2,
-      "subject": "8471/ADRFACDFBridge",
+      "subject": "8471/ADRFDisputeRegistry",
       "check": "supportsInterface(0x01ffc9a7)",
       "verdict": "Pass"
     },
     {
       "layer": 2,
-      "subject": "8471/ADRFACDFBridge",
-      "check": "supportsInterface(IADRFJudgmentMethod)",
-      "verdict": "Pass",
-      "expected": "0xc29a559d"
-    },
-    {
-      "layer": 2,
-      "subject": "8471/ADRFACDFBridge",
+      "subject": "8471/ADRFDisputeRegistry",
       "check": "declared",
       "verdict": "Pass",
-      "actual": "IADRFJudgmentMethod=0xc29a559d",
+      "actual": "IADRFDisputeRegistry=0xedc59c17",
       "detail": "interfaces of the same repository the contract reports as supported"
     },
     {
       "layer": 3,
-      "subject": "8471/ADRFACDFBridge",
+      "subject": "8471/ADRFDisputeRegistry",
       "check": "runtimeIdentity",
       "verdict": "Pass",
-      "expected": "0x128023a79d659b5363f907e3af4fba457cd4ff1a4bc2ee2edbe9bbb09a1ec568",
-      "actual": "0x128023a79d659b5363f907e3af4fba457cd4ff1a4bc2ee2edbe9bbb09a1ec568",
-      "detail": "4782 bytes, 0.8.30+commit.73712a01"
+      "expected": "0x3388c11716822257523b9870d641464069be28d60e867f0d27624480a50f15a6",
+      "actual": "0x3388c11716822257523b9870d641464069be28d60e867f0d27624480a50f15a6",
+      "detail": "2043 bytes, 0.8.30+commit.73712a01"
     },
     {
       "layer": 1,
       "subject": "8471/DuplicateSettlementVerifier",
       "check": "code",
       "verdict": "Pass",
-      "actual": "806 bytes"
+      "actual": "903 bytes"
     },
     {
       "layer": 2,
@@ -1420,10 +1456,10 @@
       "layer": 3,
       "subject": "8471/DuplicateSettlementVerifier",
       "check": "runtimeIdentity",
-      "verdict": "Fail",
+      "verdict": "Pass",
       "expected": "0xc04fb8f86bdafb0ea37643ee58c628f7e9c4d31c0fc3329dfaff0f22feec1bf5",
-      "actual": "0xa28e8091ccbab5c1a96d39f63b75701832c5a4b3b1dfd341083c66f9dde8aced",
-      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
+      "actual": "0xc04fb8f86bdafb0ea37643ee58c628f7e9c4d31c0fc3329dfaff0f22feec1bf5",
+      "detail": "903 bytes, 0.8.30+commit.73712a01"
     },
     {
       "layer": 1,
@@ -1501,10 +1537,47 @@
     },
     {
       "layer": 1,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4782 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "supportsInterface(IADRFJudgmentMethod)",
+      "verdict": "Pass",
+      "expected": "0xc29a559d"
+    },
+    {
+      "layer": 2,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFJudgmentMethod=0xc29a559d",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8471/ADRFACDFBridge",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x128023a79d659b5363f907e3af4fba457cd4ff1a4bc2ee2edbe9bbb09a1ec568",
+      "actual": "0x128023a79d659b5363f907e3af4fba457cd4ff1a4bc2ee2edbe9bbb09a1ec568",
+      "detail": "4782 bytes, 0.8.30+commit.73712a01"
+    },
+    {
+      "layer": 1,
       "subject": "8471/ADRFServiceEscrow",
       "check": "code",
       "verdict": "Pass",
-      "actual": "7175 bytes"
+      "actual": "9209 bytes"
     },
     {
       "layer": 2,
@@ -1524,9 +1597,8 @@
       "layer": 2,
       "subject": "8471/ADRFServiceEscrow",
       "check": "supportsInterface(IADRFObligationSource)",
-      "verdict": "Fail",
-      "expected": "0xa52f2870",
-      "detail": "known: deployed from revision 3 (2026-10-29); the interface id in the locked source may differ from the one that revision declares"
+      "verdict": "Pass",
+      "expected": "0xa52f2870"
     },
     {
       "layer": 2,
@@ -1537,40 +1609,21 @@
       "detail": "built from this interface but does not declare it; upstream publishes no id for it, so this is a design choice rather than a defect"
     },
     {
+      "layer": 2,
+      "subject": "8471/ADRFServiceEscrow",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IADRFObligationSource=0xa52f2870",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
       "layer": 3,
       "subject": "8471/ADRFServiceEscrow",
       "check": "runtimeIdentity",
-      "verdict": "Fail",
+      "verdict": "Pass",
       "expected": "0x85876e20753ad93ea5877e3066b6c5d703cb23f0af66f59bfbf134242543827a",
-      "actual": "0x4e2fd18fcc674da554b7f6642e16195a6f2aff8ab6a1f704c37ba3ba9bcfbd96",
-      "detail": "known: deployed from revision 3 (2026-10-29); bundle is built from the locked commit"
-    },
-    {
-      "layer": 1,
-      "subject": "identity8004",
-      "check": "code",
-      "verdict": "Pass",
-      "actual": "130 bytes"
-    },
-    {
-      "layer": 2,
-      "subject": "identity8004",
-      "check": "supportsInterface(0x01ffc9a7)",
-      "verdict": "Pass"
-    },
-    {
-      "layer": 2,
-      "subject": "identity8004",
-      "check": "supportsInterface(ERC-721 0x80ac58cd)",
-      "verdict": "Pass",
-      "detail": "the ERC-8004 Identity Registry is an ERC-721 registry; FOGA does not build it, so this is the only interface check available"
-    },
-    {
-      "layer": 3,
-      "subject": "identity8004",
-      "check": "runtimeIdentity",
-      "verdict": "NotApplicable",
-      "detail": "official ERC-8004 registry, not built by FOGA; no locked build to compare against"
+      "actual": "0x85876e20753ad93ea5877e3066b6c5d703cb23f0af66f59bfbf134242543827a",
+      "detail": "9209 bytes, 0.8.30+commit.73712a01"
     },
     {
       "layer": 4,
@@ -1726,6 +1779,22 @@
     },
     {
       "layer": 4,
+      "subject": "8447/ERC8004Eligibility",
+      "check": "identity",
+      "verdict": "Pass",
+      "expected": "0x8004A818BFB912233c491871b3d84c89A494BD9e (identity8004)",
+      "actual": "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+    },
+    {
+      "layer": 4,
+      "subject": "8447/IdentityStateEligibility",
+      "check": "identities",
+      "verdict": "Pass",
+      "expected": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F (8434/AIDRegistry)",
+      "actual": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F"
+    },
+    {
+      "layer": 4,
       "subject": "8447/SwarmDecisionAdapter",
       "check": "swarms",
       "verdict": "Pass",
@@ -1769,64 +1838,64 @@
       "subject": "8471/ADRFDisputeRegistry",
       "check": "policies",
       "verdict": "Pass",
-      "expected": "0x071093a38289b5f9578D0162727b05A52E07eed5 (8471/ADRFPolicyRegistry)",
-      "actual": "0x071093a38289b5f9578D0162727b05A52E07eed5"
+      "expected": "0x6AD1fEceA0746478d0e57F5C548290E1469e7092 (8471/ADRFPolicyRegistry)",
+      "actual": "0x6AD1fEceA0746478d0e57F5C548290E1469e7092"
     },
     {
       "layer": 4,
       "subject": "8471/ADRFDisputeRegistry",
       "check": "bindingModule",
       "verdict": "Pass",
-      "expected": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2 (8471/ADRFBindingModule)",
-      "actual": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2"
+      "expected": "0xcEc8039881AC0a02AA209FB55fd8f232f17e98bD (8471/ADRFBindingModule)",
+      "actual": "0xcEc8039881AC0a02AA209FB55fd8f232f17e98bD"
     },
     {
       "layer": 4,
       "subject": "8471/ADRFDisputeRegistry",
       "check": "filingModule",
       "verdict": "Pass",
-      "expected": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209 (8471/ADRFFilingModule)",
-      "actual": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209"
+      "expected": "0xA7053d7bCCcaBAaC7915a05843844C9a1885CAC6 (8471/ADRFFilingModule)",
+      "actual": "0xA7053d7bCCcaBAaC7915a05843844C9a1885CAC6"
     },
     {
       "layer": 4,
       "subject": "8471/ADRFDisputeRegistry",
       "check": "resolutionModule",
       "verdict": "Pass",
-      "expected": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4 (8471/ADRFResolutionModule)",
-      "actual": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4"
+      "expected": "0x615993D15fa72831C349501768b86FbAe101943e (8471/ADRFResolutionModule)",
+      "actual": "0x615993D15fa72831C349501768b86FbAe101943e"
     },
     {
       "layer": 4,
       "subject": "8471/ADRFDisputeRegistry",
       "check": "decisionModule",
       "verdict": "Pass",
-      "expected": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52 (8471/ADRFDecisionModule)",
-      "actual": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52"
+      "expected": "0x512dB866Bd24c3B46beEcD0D6fe725Fb52bD5599 (8471/ADRFDecisionModule)",
+      "actual": "0x512dB866Bd24c3B46beEcD0D6fe725Fb52bD5599"
     },
     {
       "layer": 4,
       "subject": "8471/ADRFDisputeRegistry",
       "check": "recordModule",
       "verdict": "Pass",
-      "expected": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69 (8471/ADRFRecordModule)",
-      "actual": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69"
+      "expected": "0xbe5B4eAaA8F57e987a14635eC84ae152e88BFa65 (8471/ADRFRecordModule)",
+      "actual": "0xbe5B4eAaA8F57e987a14635eC84ae152e88BFa65"
     },
     {
       "layer": 4,
       "subject": "8471/ADRFDisputeRegistry",
       "check": "outcomeModule",
       "verdict": "Pass",
-      "expected": "0x999BEf843E8ADba949e688C321D7b5bF37efea55 (8471/ADRFOutcomeModule)",
-      "actual": "0x999BEf843E8ADba949e688C321D7b5bF37efea55"
+      "expected": "0xf2334C4a90893e830d835c63f1Ed688426bB29D3 (8471/ADRFOutcomeModule)",
+      "actual": "0xf2334C4a90893e830d835c63f1Ed688426bB29D3"
     },
     {
       "layer": 4,
       "subject": "8471/ADRFACDFBridge",
       "check": "adrf",
       "verdict": "Pass",
-      "expected": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9 (8471/ADRFDisputeRegistry)",
-      "actual": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9"
+      "expected": "0x42CA4F437bcd25a1eBc43e228DbA50a5B01C7d1F (8471/ADRFDisputeRegistry)",
+      "actual": "0x42CA4F437bcd25a1eBc43e228DbA50a5B01C7d1F"
     },
     {
       "layer": 4,
@@ -1841,78 +1910,115 @@
       "subject": "8471/ADRFServiceEscrow",
       "check": "adrf",
       "verdict": "Pass",
-      "expected": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9 (8471/ADRFDisputeRegistry)",
-      "actual": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9"
+      "expected": "0x42CA4F437bcd25a1eBc43e228DbA50a5B01C7d1F (8471/ADRFDisputeRegistry)",
+      "actual": "0x42CA4F437bcd25a1eBc43e228DbA50a5B01C7d1F"
+    },
+    {
+      "layer": 5,
+      "subject": "genesis",
+      "check": "evidence",
+      "verdict": "Pass",
+      "expected": "sepolia-11155111-20261101T043153Z (chain 11155111)",
+      "actual": "sepolia-11155111-20261101T043153Z (chain 11155111), until T9, 161 checks, 0 failed, ran 2026-11-01T10:01:07.025Z"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8004",
+      "check": "semantic validation",
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "6 pass, 0 fail, 3 skipped",
+      "detail": "6/6 checks pass over T1, T9; 3 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8338",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "9 pass, 0 fail, 4 skipped",
+      "detail": "9/9 checks pass over T2, T3, T6, T9; 4 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8414",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "10 pass, 0 fail, 10 skipped",
+      "detail": "10/10 checks pass over T3, T4, T5, T7; 10 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8419",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "13 pass, 0 fail, 2 skipped",
+      "detail": "13/13 checks pass over T0, T1, T3, T9; 2 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8434",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "12 pass, 0 fail, 10 skipped",
+      "detail": "12/12 checks pass over T1, T2, T7, T9; 10 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8436",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "17 pass, 0 fail, 3 skipped",
+      "detail": "17/17 checks pass over T0, T5, T6; 3 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8444",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "7 pass, 0 fail, 4 skipped",
+      "detail": "7/7 checks pass over T1, T2, T3, T9; 4 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8447",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "12 pass, 0 fail, 4 skipped",
+      "detail": "12/12 checks pass over T4, T5, T8, T9; 4 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8454",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "12 pass, 0 fail, 0 skipped",
+      "detail": "12/12 checks pass over T1, T4, T8, T9"
     },
     {
       "layer": 5,
       "subject": "ERC-8468",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "12 pass, 0 fail, 9 skipped",
+      "detail": "12/12 checks pass over T0, T1, T7, T9; 9 skipped"
     },
     {
       "layer": 5,
       "subject": "ERC-8471",
       "check": "semantic validation",
-      "verdict": "NotTested",
-      "detail": "genesis scenario and acceptance matrix run in Phase 2"
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "11 pass, 0 fail, 7 skipped",
+      "detail": "11/11 checks pass over T0, T6; 7 skipped"
     }
   ],
   "readouts": [
@@ -1934,25 +2040,25 @@
     {
       "subject": "8471/ADRFServiceEscrow",
       "fn": "admin",
-      "value": "0x2cF07458835437ce44C06f92BbfD30CCd3794dCF"
+      "value": "0x3D177ecaa56402335fC7C6449d35bC1Fa68Bc1b8"
     },
     {
       "subject": "8471/ADRFServiceEscrow",
       "fn": "bindingId",
-      "value": "0x4fe9f35788f6f53142542c2fd83c32ab447961985228a97f3ce60522d3f593f2"
+      "value": "0x0eab5b7a3a86c560595600b8aae98b2191eea6c1278981559944a6b00b951b86"
     },
     {
       "subject": "8454/AUFUnitRegistry",
       "fn": "unitCount",
-      "value": "7"
+      "value": "14"
     }
   ],
   "summary": {
-    "Pass": 210,
-    "Fail": 6,
+    "Pass": 234,
+    "Fail": 1,
     "Unknown": 2,
-    "NotTested": 10,
-    "NotApplicable": 23
+    "NotTested": 0,
+    "NotApplicable": 25
   },
   "perContract": {
     "8338/SkillToken": {
@@ -2200,103 +2306,117 @@
       "layer3": "Pass",
       "layer4": "Pass"
     },
-    "8471/ADRFPolicyRegistry": {
-      "address": "0x071093a38289b5f9578D0162727b05A52E07eed5",
-      "layer1": "Pass",
-      "layer2": "Pass",
-      "layer3": "Pass",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFDisputeRegistry": {
-      "address": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
-      "layer1": "Pass",
-      "layer2": "Pass",
-      "layer3": "Pass",
-      "layer4": "Pass"
-    },
-    "8471/ADRFBindingModule": {
-      "address": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2",
-      "layer1": "Pass",
-      "layer2": "NotApplicable",
-      "layer3": "Fail",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFFilingModule": {
-      "address": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209",
-      "layer1": "Pass",
-      "layer2": "NotApplicable",
-      "layer3": "Fail",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFResolutionModule": {
-      "address": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4",
-      "layer1": "Pass",
-      "layer2": "NotApplicable",
-      "layer3": "Pass",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFDecisionModule": {
-      "address": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52",
-      "layer1": "Pass",
-      "layer2": "NotApplicable",
-      "layer3": "Pass",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFRecordModule": {
-      "address": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69",
-      "layer1": "Pass",
-      "layer2": "NotApplicable",
-      "layer3": "Pass",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFOutcomeModule": {
-      "address": "0x999BEf843E8ADba949e688C321D7b5bF37efea55",
-      "layer1": "Pass",
-      "layer2": "NotApplicable",
-      "layer3": "Pass",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFACDFBridge": {
-      "address": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
-      "layer1": "Pass",
-      "layer2": "Pass",
-      "layer3": "Pass",
-      "layer4": "Pass"
-    },
-    "8471/DuplicateSettlementVerifier": {
-      "address": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
-      "layer1": "Pass",
-      "layer2": "Pass",
-      "layer3": "Fail",
-      "layer4": "NotApplicable"
-    },
-    "8471/DeclaredVersionVerifier": {
-      "address": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
-      "layer1": "Pass",
-      "layer2": "Pass",
-      "layer3": "Pass",
-      "layer4": "NotApplicable"
-    },
-    "8471/AttestorQuorumRule": {
-      "address": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
-      "layer1": "Pass",
-      "layer2": "Pass",
-      "layer3": "Pass",
-      "layer4": "NotApplicable"
-    },
-    "8471/ADRFServiceEscrow": {
-      "address": "0xD85e5E73D385e6575342bd86263F34b17b287128",
-      "layer1": "Pass",
-      "layer2": "Fail",
-      "layer3": "Fail",
-      "layer4": "Pass"
-    },
     "identity8004": {
       "address": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
       "layer1": "Pass",
       "layer2": "Pass",
       "layer3": "NotApplicable",
       "layer4": "NotApplicable"
+    },
+    "8447/ERC8004Eligibility": {
+      "address": "0xA5a65b55CC5bEe0523ab88093Af63500E0309ca0",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8447/IdentityStateEligibility": {
+      "address": "0x09811eB1EBd1cb792Dedc46d6b69126439aE7316",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8471/ADRFPolicyRegistry": {
+      "address": "0x6AD1fEceA0746478d0e57F5C548290E1469e7092",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFBindingModule": {
+      "address": "0xcEc8039881AC0a02AA209FB55fd8f232f17e98bD",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFFilingModule": {
+      "address": "0xA7053d7bCCcaBAaC7915a05843844C9a1885CAC6",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFResolutionModule": {
+      "address": "0x615993D15fa72831C349501768b86FbAe101943e",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFDecisionModule": {
+      "address": "0x512dB866Bd24c3B46beEcD0D6fe725Fb52bD5599",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFRecordModule": {
+      "address": "0xbe5B4eAaA8F57e987a14635eC84ae152e88BFa65",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFOutcomeModule": {
+      "address": "0xf2334C4a90893e830d835c63f1Ed688426bB29D3",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFDisputeRegistry": {
+      "address": "0x42CA4F437bcd25a1eBc43e228DbA50a5B01C7d1F",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8471/DuplicateSettlementVerifier": {
+      "address": "0xA3523fC817E27D14DD8b9240B1686722eEC66D6E",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/DeclaredVersionVerifier": {
+      "address": "0xf83cd7568485E18f09EfA051bF76B5F926C6Fcea",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/AttestorQuorumRule": {
+      "address": "0xbaeA782d4A0b53E16cbbE50e25d6dce8c8720ce0",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8471/ADRFACDFBridge": {
+      "address": "0xd5dc2BE8C663F577deDb018063c821d6E3849769",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8471/ADRFServiceEscrow": {
+      "address": "0xCDc9Eb5Cb1D6b195Dbf29353f368C52e7ba76cf0",
+      "layer1": "Pass",
+      "layer2": "Unknown",
+      "layer3": "Pass",
+      "layer4": "Pass"
     }
   }
 }
