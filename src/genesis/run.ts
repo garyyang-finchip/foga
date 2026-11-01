@@ -28,7 +28,7 @@ export interface GenesisEvidence {
   ranAt: string;
   until: StepName;
   checks: CheckResult[];
-  summary: { checks: number; passed: number; failed: number; operations: Record<string, number>; sent: number; replayed: number; recovered: number; resent: number };
+  summary: { checks: number; passed: number; failed: number; operations: Record<string, number>; sent: number; replayed: number; recovered: number; resent: number; replaced: number };
   facts: Record<string, unknown>;
   evidence: { step: string; label: string; values: Record<string, unknown>; at: string }[];
   journal: { seq: number; at: string; opKey: string | null; event: string; detail: Record<string, unknown> | null }[];
@@ -86,6 +86,7 @@ export async function runGenesis(opts: GenesisRunOptions): Promise<{ evidence: G
       replayed: thisRun.filter((j) => j.event === "replayed").length,
       recovered: thisRun.filter((j) => j.event === "recovered-receipt" || j.event === "recovered-pending").length,
       resent: thisRun.filter((j) => j.event === "resend").length,
+      replaced: thisRun.filter((j) => j.event === "replaced").length,
     },
     facts: g.kernel.store.facts(),
     evidence: g.kernel.evidenceRecords(),
@@ -94,6 +95,6 @@ export async function runGenesis(opts: GenesisRunOptions): Promise<{ evidence: G
   writeJson(evidencePath, evidence);
   g.close();
   if (runError) throw runError;
-  log.info(`genesis ${until}: ${evidence.summary.passed}/${evidence.summary.checks} checks passed; ${ops.confirmed} operations confirmed in the store; this run: ${evidence.summary.sent} sent, ${evidence.summary.replayed} replayed, ${evidence.summary.recovered} recovered, ${evidence.summary.resent} re-sent -> ${evidencePath}`);
+  log.info(`genesis ${until}: ${evidence.summary.passed}/${evidence.summary.checks} checks passed; ${ops.confirmed} operations confirmed in the store; this run: ${evidence.summary.sent} sent, ${evidence.summary.replayed} replayed, ${evidence.summary.recovered} recovered, ${evidence.summary.resent} re-sent, ${evidence.summary.replaced} fee-replaced -> ${evidencePath}`);
   return { evidence, failed };
 }

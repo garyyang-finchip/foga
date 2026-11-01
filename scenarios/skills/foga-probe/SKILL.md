@@ -17,6 +17,7 @@ again and settles by revealing the same bytes.
 |-----------|----------------------|---------------------------------------------------------------------|
 | subject   | address              | the account to probe                                                |
 | block     | integer              | the block at which every read is made                               |
+| lookback  | integer (optional)   | how many blocks before `block` the log-based sections scan (from `block - lookback`, at least 0); absent, from the chain's first block. Public endpoints cap the range of a log query, so a task on such a chain names one |
 | kya       | object               | `{ "schemeId": bytes32, "issuers": [address] }` — the standing scheme and the issuers the report trusts |
 | world     | string               | the world id (address book) the probe reads                         |
 
@@ -28,7 +29,7 @@ is lower-case, the block hash is included so a report is bound to one chain hist
 
 ## Rules
 
-1. Read at `block`; never at `latest`.
+1. Read at `block`; never at `latest`. Logs are read from `block - lookback` to `block`.
 2. Never write. The skill has no transaction.
 3. No clocks, no randomness, no environment-dependent values in the report.
 4. A registry that reverts or is absent for the subject yields `null` for that section, never an omission.

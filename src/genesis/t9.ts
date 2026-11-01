@@ -6,6 +6,7 @@ import { accountRef, dataUri, keccakJcs } from "../core/canonical.js";
 import { accountSubject } from "../core/kya.js";
 import { cellUnitDefinition } from "../core/units.js";
 import { Cell } from "../kernel/cell.js";
+import { SUCCESSOR_CAPITAL } from "./funding.js";
 import type { Genesis } from "./scenario.js";
 
 /**
@@ -56,7 +57,7 @@ export async function t9(g: Genesis): Promise<void> {
   });
   k.setFact("T9.Aprime.address", prime.address);
   g.log(`  A-prime: account ${prime.address} (same owner and operator keys as A)`);
-  if (g.world.file.network === "anvil") await k.transfer("T9.Aprime.fund", "W", prime.address, 10n ** 16n);
+  await k.transfer("T9.Aprime.fund", "W", prime.address, k.isLocalChain ? SUCCESSOR_CAPITAL.local : SUCCESSOR_CAPITAL.public);
   await prime.admin("T9.Aprime.setOperator", "setOperator", [prime.operatorAddress, 0, 10n ** 16n]);
   await prime.admin("T9.Aprime.setAIDRegistry", "setAIDRegistry", [k.aid.address]);
   const tasks = k.tenders.contract().interface;
@@ -98,17 +99,24 @@ export async function t9(g: Genesis): Promise<void> {
     g.check("T9", "A.stale", getAddress(ownerNow) === getAddress(prime.address) && stale === "STALE", `ownerOf(${agentId}) = A-prime; state(A) = ${stale}: the binding predicate no longer holds`);
   } else g.skipped("T9", "A.stale", "replayed run: A-prime already took the binding over");
 
-  // takeover: the stale binding does not hold the agent hostage
+  // takeover: the stale binding does not hold the agent hostage (in the backing registry too, where there is one)
   const bind = await prime.execute("T9.Aprime.aid.bind", k.aid.address, bindCall);
+  if (k.aid.backing) await prime.execute("T9.Aprime.aid.backing.bind", k.aid.backing.address, bindCall);
   const anchorNow: string = await k.aid.contract().anchorOf(k.identity.address, agentId);
   const primeState = await k.aid.stateName(prime.address);
   const aBinding = await k.aid.bindingOf(A.address);
   g.check("T9", "Aprime.active", getAddress(anchorNow) === getAddress(prime.address) && primeState === "ACTIVE" && aBinding.registry === "0x0000000000000000000000000000000000000000", `anchorOf(agent ${agentId}) = A-prime, state(A-prime) = ${primeState}; A's binding record is cleared by the takeover`);
+  if (k.aid.backing) {
+    const primeBacking = await k.aid.stateName(prime.address, k.aid.backing.address);
+    const aBacking = await k.aid.stateName(A.address, k.aid.backing.address);
+    g.check("T9", "Aprime.backing.active", primeBacking === "ACTIVE" && aBacking !== "ACTIVE", `in the backing registry ${k.aid.backing.address}: state(A-prime) = ${primeBacking}, state(A) = ${aBacking}`, "T9.A.aid.backing.retire");
+  }
 
   // retirement: only the anchor itself, naming its successor
   const retireFn = k.aid.contract().interface.getFunction("retire");
   g.check("T9", "retire.noDelegate", retireFn !== null && retireFn.inputs.length === 1 && retireFn.inputs[0].name === "successor", `retire(successor) acts on msg.sender only: there is no form by which a third party retires A`);
   await A.execute("T9.A.aid.retire", k.aid.address, k.aid.encodeRetire(prime.address));
+  if (k.aid.backing) await A.execute("T9.A.aid.backing.retire", k.aid.backing.address, k.aid.encodeRetire(prime.address));
   const aState = await k.aid.stateName(A.address);
   const successor: string = await k.aid.contract().successorOf(A.address);
   g.check("T9", "A.retired", aState === "RETIRED" && getAddress(successor) === getAddress(prime.address), `state(A) = ${aState}, successorOf(A) = ${successor}`);
@@ -171,7 +179,7 @@ export async function t9(g: Genesis): Promise<void> {
   g.check("T9", "histories.separate", getAddress(successor) === getAddress(prime.address) && !primeBindings.includes(aBindings[0]) && primeRecord !== oldRecord, `successorOf(A) points at A-prime; A-prime's bindings, record and unit are its own: two histories, one pointer`);
 
   k.evidence("T9", "succession", {
-    A: { account: A.address, state: aState, successor, record: oldRecord, bindings: aBindings },
+    A: { account: A.address, state: aState, successor, record: oldRecord, bindings: aBindings, backingState: k.aid.backing ? await k.aid.stateName(A.address, k.aid.backing.address) : null },
     Aprime: { account: prime.address, owner: prime.ownerAddress, operator: prime.operatorAddress, state: primeState, binding: primeBinding, record: primeRecord, unitId: primeUnit.toString(), documentDigest: commitment.digest },
     agentId: agentId.toString(),
     skill: { tokenId: skill.tokenId, recordId: skill.recordId, owner: skillOwner, adopted: adoptedAfter },

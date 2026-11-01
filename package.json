@@ -1,6 +1,6 @@
 {
   "name": "foga",
-  "version": "0.4.0-alpha.2",
+  "version": "0.5.0-alpha.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/garyyang-finchip/foga.git"
@@ -46,6 +46,7 @@
     "demo": "tsx src/cli.ts demo",
     "demo:genesis": "tsx src/cli.ts demo --genesis T9",
     "genesis:local": "tsx src/cli.ts genesis run --world deployments/local.json --until T9",
+    "rehearse:attach": "bash scripts/rehearse-attach.sh",
     "test": "node --test --import tsx test/*.test.ts",
     "test:contracts": "cd contracts && forge test -vv",
     "zk:install": "npm --prefix prover ci",

@@ -5,89 +5,310 @@
   "chainId": 11155111,
   "rpc": "${SEPOLIA_RPC_URL}",
   "mode": "attach",
+  "deployer": {
+    "privateKeyEnv": "FOGA_DEPLOYER_PK",
+    "note": "unset: W, account 0 of FOGA_MNEMONIC / FOGA_MNEMONIC_FILE. The deployer administers the ADRFServiceEscrow it deploys, and the genesis binds that escrow as W, so the deployer is W"
+  },
   "identity8004": {
     "mode": "address",
     "address": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
     "note": "Official ERC-8004 Identity Registry on Sepolia (Reputation Registry 0x8004B663056A597Dffe9eCcC1965A193B7388713). The official Validation Registry on Sepolia is to be re-checked; the upstream repositories bound kya-standard's spec-conforming companion instead."
   },
   "params": {
-    "skillToken": { "name": "upstream", "symbol": "upstream" },
-    "taskToken": { "name": "upstream", "symbol": "upstream" },
-    "aid": { "defaultLivenessWindow": 7776000, "maxLivenessWindow": 31536000 },
+    "skillToken": {
+      "name": "upstream",
+      "symbol": "upstream"
+    },
+    "taskToken": {
+      "name": "upstream",
+      "symbol": "upstream"
+    },
+    "aid": {
+      "defaultLivenessWindow": 7776000,
+      "maxLivenessWindow": 31536000
+    },
     "kya": {
       "issuerSetRoot": "0x1de029c3b70d5efa4af25f0d1ffb02831eb7c0d9f5a02f3c781d216e2c54b5e8",
       "epochLength": 2592000,
       "epochGrace": 1
     },
-    "ard": { "kindURIs": { "skill": "kind:skill", "task": "kind:task", "agent": "kind:agent", "registry": "kind:registry" } }
+    "ard": {
+      "kindURIs": {
+        "skill": "kind:skill",
+        "task": "kind:task",
+        "agent": "kind:agent",
+        "registry": "kind:registry"
+      }
+    }
   },
   "contracts": {
-    "8338/SkillToken": { "address": "0x12cc1a5319c6F08bFB50982e3814A376A59fE550", "bundleKey": "skill-token-standard:SkillToken", "note": "KERNEL v4.3 (frozen); recorded in the upstream README, no deployments file" },
-
-    "8414/TaskToken": { "address": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7", "bundleKey": "task-token-standard:TaskToken", "deployedRevision": "TASK-KERNEL v3.2.1 (2026-09-05)", "note": "live kernel consumed by the 8436/8444/8447/8468 upstream runs; tokens #8-#21 were minted by those runs" },
-    "8414/HashlockVerifier": { "address": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec", "bundleKey": "task-token-standard:HashlockVerifier", "deployedRevision": "TASK-KERNEL v3.2.1 (2026-09-05)" },
-    "8414/JuryPanel": { "address": "0x7249E48c7E2131ADA0fcc25b1eaE4f4258545511", "bundleKey": "task-token-standard:JuryPanel", "deployedRevision": "TASK-KERNEL v3.2.1 (2026-09-05)", "note": "2-of-2, 60 s vote window" },
-
-    "8419/KYASchemeRegistry": { "address": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0", "bundleKey": "kya-standard:KYASchemeRegistry", "deployedRevision": "rev 5 (2026-10-16)", "note": "the rev 1-5 deployer key is lost upstream; existing scheme controllers are unrecoverable, FOGA registers its own schemes" },
-    "8419/KYARegistry": { "address": "0xE06FBA26561E7A385B32514f6657De68723d5cF1", "bundleKey": "kya-standard:KYARegistry", "deployedRevision": "rev 5 (2026-10-16)" },
-    "8419/KYAPolicyRegistry": { "address": "0x7767966702bf12C31CDD600807B77443998f0F21", "bundleKey": "kya-standard:KYAPolicyRegistry", "deployedRevision": "rev 5 (2026-10-16)" },
-    "8419/ValidationRegistry8004": { "address": "0x91103a508b0525B0b16146Ad5C0a7c719148b14c", "bundleKey": "kya-standard:ValidationRegistry8004", "deployedRevision": "rev 5 (2026-10-16)" },
-    "8419/KYABridge8004": { "address": "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec", "bundleKey": "kya-standard:KYABridge8004", "deployedRevision": "rev 6 (2026-10-22)", "note": "owner is a session-held upstream key; transfer to a maintainer address pending upstream" },
-    "8419/Groth16Verifier": { "address": "0x64c18C506e8a202d98822F97911dF774e9b85f85", "bundleKey": "kya-standard:Groth16Verifier", "deployedRevision": "rev 4 (2026-09-20)" },
-    "8419/Groth16KYAVerifierAdapter": { "address": "0x7C424db1f07d5BCA5b58Dc4b573f31c32a70bCE7", "bundleKey": "kya-standard:Groth16KYAVerifierAdapter", "deployedRevision": "rev 4 (2026-09-20)" },
-
-    "8434/AIDRegistry": { "address": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F", "bundleKey": "aid-standard:AIDRegistry", "deployedRevision": "2026-10-15 (solc-js 0.8.28)", "note": "aid-standard reference instance (90 d / 365 d), bound to the official ERC-8004 registry" },
-    "8434/AIDRegistry(ard-fixture)": { "address": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E", "bundleKey": "aid-standard:AIDRegistry", "deployedRevision": "ard-onchain-framework fixture (aid-standard commit 32ce5f7b), 30 d / 365 d", "note": "the instance the Sepolia ARD AgentAdapter is bound to; FOGA cells must bind here as well for their ARD agent records to resolve as backed" },
-
-    "8436/ACDFPolicyRegistry": { "address": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0", "bundleKey": "acd-framework:ACDFPolicyRegistry", "deployedRevision": "revision 3 (2026-10-15)" },
-    "8436/ACDFRegistry": { "address": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01", "bundleKey": "acd-framework:ACDFRegistry", "deployedRevision": "revision 3 (2026-10-15)" },
-
-    "8444/ARDOnchainRegistry": { "address": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78", "bundleKey": "ard-onchain-framework:ARDOnchainRegistry", "deployedRevision": "v1.1 adoption (2026-10-16)", "note": "owner is the session-held upstream deployer 0xCcFDEE360c9CDc79005e4ddA9845f3A24EE37A25; registerKind can no longer be called, the four kinds are registered" },
-    "8444/SkillAdapter": { "address": "0x08Be92a9446592fAeaaB976556e09e028662F12F", "bundleKey": "ard-onchain-framework:SkillAdapter", "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)" },
-    "8444/TaskAdapter": { "address": "0x0BAB1fEE185A4803a1aC65F6dA59941eeCaE71dB", "bundleKey": "ard-onchain-framework:TaskAdapter", "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)" },
-    "8444/AgentAdapter": { "address": "0x38898d038F4a8fCE3e13447bE7Eb1ECd128cE25C", "bundleKey": "ard-onchain-framework:AgentAdapter", "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)", "note": "constructed with the ARD fixture AIDRegistry 0x36E4..., not with aid-standard's 0x01C0..." },
-    "8444/RegistryAdapter": { "address": "0x32C85829da0be0Fd66ac45eF54d4c393Fcd7149E", "bundleKey": "ard-onchain-framework:RegistryAdapter", "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)" },
-
-    "8447/SpecValidator": { "address": "0xE27c429eb67C829312CAAd6Ac8F5359114BbCa00", "bundleKey": "swarm-ai-framework:SpecValidator", "deployedRevision": "revision 2.1 (2026-10-19)" },
-    "8447/LifecycleLib": { "address": "0xf0CA34139e77EE6Adae171930d330C77a75f09cd", "bundleKey": "swarm-ai-framework:LifecycleLib", "deployedRevision": "revision 2.1 (2026-10-19)" },
-    "8447/MembershipLib": { "address": "0x8582a086749A32F7BFce5BB8D9835026eF85d121", "bundleKey": "swarm-ai-framework:MembershipLib", "deployedRevision": "revision 2.1 (2026-10-19)" },
-    "8447/ResourceLib": { "address": "0x77b7d8aaFe0Daa42b6E197392B29307A51c448a5", "bundleKey": "swarm-ai-framework:ResourceLib", "deployedRevision": "revision 2.1 (2026-10-19)" },
-    "8447/SwarmRegistry": { "address": "0x2C1065a0a892619c1c4288abaf319326C303a1bc", "bundleKey": "swarm-ai-framework:SwarmRegistry", "deployedRevision": "revision 2.1 (2026-10-19)", "note": "constructed with no resource kinds" },
-    "8447/AllowlistEligibility": { "address": "0x9Bd40264D0062Fb1E5550A63446b64DE4A123C20", "bundleKey": "swarm-ai-framework:AllowlistEligibility", "deployedRevision": "revision 2.1 (2026-10-19)", "note": "the only eligibility module deployed upstream; ERC8004 / IdentityState / AssertionLevel / Composite modules are deployed by FOGA" },
-    "8447/SwarmDecisionAdapter": { "address": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D", "bundleKey": "swarm-ai-framework:SwarmDecisionAdapter", "deployedRevision": "revision 2.2 adapter (2026-10-20, Case R)", "note": "council 2-of-3 instance 0xcaB2c509f79ADEd438b119A453f0560C33E7B21A and chamber 2-of-2 instance 0x073169857FEFb9120799b1299003074A361f777b are the revision 2.1 adapters" },
-    "8447/SwarmTenderAdapter": { "address": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6", "bundleKey": "swarm-ai-framework:SwarmTenderAdapter", "deployedRevision": "revision 2.1 (2026-10-19)" },
-
-    "8454/AUFUnitRegistry": { "address": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8", "bundleKey": "aifi-unit-framework:AUFUnitRegistry", "deployedRevision": "2026-10-21 (solc 0.8.30)" },
-    "8454/AUFAssertionRegistry": { "address": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00", "bundleKey": "aifi-unit-framework:AUFAssertionRegistry", "deployedRevision": "2026-10-21 (solc 0.8.30)" },
-
-    "8468/ASFEvaluation": { "address": "0x9b12f62D69EAfc9a240b9AB889cC1647Bf9C56db", "bundleKey": "agent-safety-framework:ASFEvaluation", "deployedRevision": "revision 7 (2026-10-27)" },
-    "8468/ASFLifecycle": { "address": "0x6a6F645eC9F161735Cc22D441aFD1f513f3b143b", "bundleKey": "agent-safety-framework:ASFLifecycle", "deployedRevision": "revision 7 (2026-10-27)" },
-    "8468/ASFSpecificationRegistry": { "address": "0x9110b622a17F83065f1e9773D961EB10672932e5", "bundleKey": "agent-safety-framework:ASFSpecificationRegistry", "deployedRevision": "revision 7 (2026-10-27)" },
-    "8468/ASFBindingRegistry": { "address": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919", "bundleKey": "agent-safety-framework:ASFBindingRegistry", "deployedRevision": "revision 7 (2026-10-27)" },
-    "8468/ASFTaskTenderAdapter": { "address": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed", "bundleKey": "agent-safety-framework:ASFTaskTenderAdapter", "deployedRevision": "revision 7 (2026-10-27)" },
-
-    "8471/ADRFPolicyRegistry": { "address": "0x071093a38289b5f9578D0162727b05A52E07eed5", "bundleKey": "ai-dispute-resolution:ADRFPolicyRegistry", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFDisputeRegistry": { "address": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9", "bundleKey": "ai-dispute-resolution:ADRFDisputeRegistry", "deployedRevision": "revision 3 (2026-10-29)", "note": "upstream source is revision 4; Binding and Filing modules, DuplicateSettlementVerifier and ADRFServiceEscrow differ. The doctor is expected to report a known version mismatch until the upstream rev-4 run lands" },
-    "8471/ADRFBindingModule": { "address": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2", "bundleKey": "ai-dispute-resolution:ADRFBindingModule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFFilingModule": { "address": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209", "bundleKey": "ai-dispute-resolution:ADRFFilingModule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFResolutionModule": { "address": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4", "bundleKey": "ai-dispute-resolution:ADRFResolutionModule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFDecisionModule": { "address": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52", "bundleKey": "ai-dispute-resolution:ADRFDecisionModule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFRecordModule": { "address": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69", "bundleKey": "ai-dispute-resolution:ADRFRecordModule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFOutcomeModule": { "address": "0x999BEf843E8ADba949e688C321D7b5bF37efea55", "bundleKey": "ai-dispute-resolution:ADRFOutcomeModule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFACDFBridge": { "address": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB", "bundleKey": "ai-dispute-resolution:ADRFACDFBridge", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/DuplicateSettlementVerifier": { "address": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae", "bundleKey": "ai-dispute-resolution:DuplicateSettlementVerifier", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/DeclaredVersionVerifier": { "address": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC", "bundleKey": "ai-dispute-resolution:DeclaredVersionVerifier", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/AttestorQuorumRule": { "address": "0xDe666e792730efE4E633D8E185a10Df4291dE597", "bundleKey": "ai-dispute-resolution:AttestorQuorumRule", "deployedRevision": "revision 3 (2026-10-29)" },
-    "8471/ADRFServiceEscrow": { "address": "0xD85e5E73D385e6575342bd86263F34b17b287128", "bundleKey": "ai-dispute-resolution:ADRFServiceEscrow", "deployedRevision": "revision 3 (2026-10-29)", "note": "FOGA deploys its own revision-4 escrow in Phase 2c rather than reusing this one; this instance declares revision 3's IADRFObligationSource id (revision 4 added recognizesBreach), so its layer-2 check is a known mismatch" }
+    "8338/SkillToken": {
+      "address": "0x12cc1a5319c6F08bFB50982e3814A376A59fE550",
+      "bundleKey": "skill-token-standard:SkillToken",
+      "note": "KERNEL v4.3 (frozen); recorded in the upstream README, no deployments file"
+    },
+    "8414/TaskToken": {
+      "address": "0xA62059A498E40C4Ae4aF926E2B00C1Ff122bDdb7",
+      "bundleKey": "task-token-standard:TaskToken",
+      "deployedRevision": "TASK-KERNEL v3.2.1 (2026-09-05)",
+      "note": "live kernel consumed by the 8436/8444/8447/8468 upstream runs; tokens #8-#21 were minted by those runs"
+    },
+    "8414/HashlockVerifier": {
+      "address": "0x495270468A4608e4c84968b1037ef7eceBF5d3ec",
+      "bundleKey": "task-token-standard:HashlockVerifier",
+      "deployedRevision": "TASK-KERNEL v3.2.1 (2026-09-05)"
+    },
+    "8414/JuryPanel": {
+      "address": "0x7249E48c7E2131ADA0fcc25b1eaE4f4258545511",
+      "bundleKey": "task-token-standard:JuryPanel",
+      "deployedRevision": "TASK-KERNEL v3.2.1 (2026-09-05)",
+      "note": "2-of-2, 60 s vote window"
+    },
+    "8419/KYASchemeRegistry": {
+      "address": "0x8Dd5ec713E21a726FB864f6541F9AAA59aEC0cc0",
+      "bundleKey": "kya-standard:KYASchemeRegistry",
+      "deployedRevision": "rev 5 (2026-10-16)",
+      "note": "the rev 1-5 deployer key is lost upstream; existing scheme controllers are unrecoverable, FOGA registers its own schemes"
+    },
+    "8419/KYARegistry": {
+      "address": "0xE06FBA26561E7A385B32514f6657De68723d5cF1",
+      "bundleKey": "kya-standard:KYARegistry",
+      "deployedRevision": "rev 5 (2026-10-16)"
+    },
+    "8419/KYAPolicyRegistry": {
+      "address": "0x7767966702bf12C31CDD600807B77443998f0F21",
+      "bundleKey": "kya-standard:KYAPolicyRegistry",
+      "deployedRevision": "rev 5 (2026-10-16)"
+    },
+    "8419/ValidationRegistry8004": {
+      "address": "0x91103a508b0525B0b16146Ad5C0a7c719148b14c",
+      "bundleKey": "kya-standard:ValidationRegistry8004",
+      "deployedRevision": "rev 5 (2026-10-16)"
+    },
+    "8419/KYABridge8004": {
+      "address": "0x2E70783ec4A0aB5b0A109908151403Ce03FC11Ec",
+      "bundleKey": "kya-standard:KYABridge8004",
+      "deployedRevision": "rev 6 (2026-10-22)",
+      "note": "owner is a session-held upstream key; transfer to a maintainer address pending upstream"
+    },
+    "8419/Groth16Verifier": {
+      "address": "0x64c18C506e8a202d98822F97911dF774e9b85f85",
+      "bundleKey": "kya-standard:Groth16Verifier",
+      "deployedRevision": "rev 4 (2026-09-20)"
+    },
+    "8419/Groth16KYAVerifierAdapter": {
+      "address": "0x7C424db1f07d5BCA5b58Dc4b573f31c32a70bCE7",
+      "bundleKey": "kya-standard:Groth16KYAVerifierAdapter",
+      "deployedRevision": "rev 4 (2026-09-20)"
+    },
+    "8434/AIDRegistry": {
+      "address": "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F",
+      "bundleKey": "aid-standard:AIDRegistry",
+      "deployedRevision": "2026-10-15 (solc-js 0.8.28)",
+      "note": "aid-standard reference instance (90 d / 365 d), bound to the official ERC-8004 registry"
+    },
+    "8434/AIDRegistry(ard-fixture)": {
+      "address": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E",
+      "bundleKey": "aid-standard:AIDRegistry",
+      "deployedRevision": "ard-onchain-framework fixture (aid-standard commit 32ce5f7b), 30 d / 365 d",
+      "note": "the instance the Sepolia ARD AgentAdapter is bound to. FOGA's cells bind, heartbeat and retire here as well as in the reference instance (the backing registry of docs/genesis.md), so their ARD agent records resolve as backed"
+    },
+    "8436/ACDFPolicyRegistry": {
+      "address": "0x7eAfCC452EC0A60a358a26B6e73f28413C4abeF0",
+      "bundleKey": "acd-framework:ACDFPolicyRegistry",
+      "deployedRevision": "revision 3 (2026-10-15)"
+    },
+    "8436/ACDFRegistry": {
+      "address": "0x3bE57E74f2E7c280073b6B16A1Db3F562758dB01",
+      "bundleKey": "acd-framework:ACDFRegistry",
+      "deployedRevision": "revision 3 (2026-10-15)"
+    },
+    "8444/ARDOnchainRegistry": {
+      "address": "0x126795eCa2A10ea5B2d065a8049e01B6fcDAaa78",
+      "bundleKey": "ard-onchain-framework:ARDOnchainRegistry",
+      "deployedRevision": "v1.1 adoption (2026-10-16)",
+      "note": "owner is the session-held upstream deployer 0xCcFDEE360c9CDc79005e4ddA9845f3A24EE37A25; registerKind can no longer be called, the four kinds are registered"
+    },
+    "8444/SkillAdapter": {
+      "address": "0x08Be92a9446592fAeaaB976556e09e028662F12F",
+      "bundleKey": "ard-onchain-framework:SkillAdapter",
+      "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)"
+    },
+    "8444/TaskAdapter": {
+      "address": "0x0BAB1fEE185A4803a1aC65F6dA59941eeCaE71dB",
+      "bundleKey": "ard-onchain-framework:TaskAdapter",
+      "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)"
+    },
+    "8444/AgentAdapter": {
+      "address": "0x38898d038F4a8fCE3e13447bE7Eb1ECd128cE25C",
+      "bundleKey": "ard-onchain-framework:AgentAdapter",
+      "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)",
+      "note": "constructed with the ARD fixture AIDRegistry 0x36E4..., not with aid-standard's 0x01C0..."
+    },
+    "8444/RegistryAdapter": {
+      "address": "0x32C85829da0be0Fd66ac45eF54d4c393Fcd7149E",
+      "bundleKey": "ard-onchain-framework:RegistryAdapter",
+      "deployedRevision": "v1.0 (2026-10-15, reused by v1.1)"
+    },
+    "8447/SpecValidator": {
+      "address": "0xE27c429eb67C829312CAAd6Ac8F5359114BbCa00",
+      "bundleKey": "swarm-ai-framework:SpecValidator",
+      "deployedRevision": "revision 2.1 (2026-10-19)"
+    },
+    "8447/LifecycleLib": {
+      "address": "0xf0CA34139e77EE6Adae171930d330C77a75f09cd",
+      "bundleKey": "swarm-ai-framework:LifecycleLib",
+      "deployedRevision": "revision 2.1 (2026-10-19)"
+    },
+    "8447/MembershipLib": {
+      "address": "0x8582a086749A32F7BFce5BB8D9835026eF85d121",
+      "bundleKey": "swarm-ai-framework:MembershipLib",
+      "deployedRevision": "revision 2.1 (2026-10-19)"
+    },
+    "8447/ResourceLib": {
+      "address": "0x77b7d8aaFe0Daa42b6E197392B29307A51c448a5",
+      "bundleKey": "swarm-ai-framework:ResourceLib",
+      "deployedRevision": "revision 2.1 (2026-10-19)"
+    },
+    "8447/SwarmRegistry": {
+      "address": "0x2C1065a0a892619c1c4288abaf319326C303a1bc",
+      "bundleKey": "swarm-ai-framework:SwarmRegistry",
+      "deployedRevision": "revision 2.1 (2026-10-19)",
+      "note": "constructed with no resource kinds"
+    },
+    "8447/AllowlistEligibility": {
+      "address": "0x9Bd40264D0062Fb1E5550A63446b64DE4A123C20",
+      "bundleKey": "swarm-ai-framework:AllowlistEligibility",
+      "deployedRevision": "revision 2.1 (2026-10-19)",
+      "note": "the only eligibility module deployed upstream; ERC8004Eligibility and IdentityStateEligibility are plan steps this config does not list, so foga world deploy adds them from the bundle (bound to the official identity registry and to the reference AIDRegistry); AssertionLevel and Composite are deployed by the genesis (T4)"
+    },
+    "8447/SwarmDecisionAdapter": {
+      "address": "0x82E2048b603FF5D7b9f586b1f6588a026a90974D",
+      "bundleKey": "swarm-ai-framework:SwarmDecisionAdapter",
+      "deployedRevision": "revision 2.2 adapter (2026-10-20, Case R)",
+      "note": "council 2-of-3 instance 0xcaB2c509f79ADEd438b119A453f0560C33E7B21A and chamber 2-of-2 instance 0x073169857FEFb9120799b1299003074A361f777b are the revision 2.1 adapters"
+    },
+    "8447/SwarmTenderAdapter": {
+      "address": "0x821574AFB51BFBb0615811E354aa3b02dA09ABC6",
+      "bundleKey": "swarm-ai-framework:SwarmTenderAdapter",
+      "deployedRevision": "revision 2.1 (2026-10-19)"
+    },
+    "8454/AUFUnitRegistry": {
+      "address": "0xE4EcAf6f87A700962f33AAa1A8f4B8e02FA180f8",
+      "bundleKey": "aifi-unit-framework:AUFUnitRegistry",
+      "deployedRevision": "2026-10-21 (solc 0.8.30)"
+    },
+    "8454/AUFAssertionRegistry": {
+      "address": "0xC4f30AfAFFC9E5a7bDEd58c411B87ABe3FBbEd00",
+      "bundleKey": "aifi-unit-framework:AUFAssertionRegistry",
+      "deployedRevision": "2026-10-21 (solc 0.8.30)"
+    },
+    "8468/ASFEvaluation": {
+      "address": "0x9b12f62D69EAfc9a240b9AB889cC1647Bf9C56db",
+      "bundleKey": "agent-safety-framework:ASFEvaluation",
+      "deployedRevision": "revision 7 (2026-10-27)"
+    },
+    "8468/ASFLifecycle": {
+      "address": "0x6a6F645eC9F161735Cc22D441aFD1f513f3b143b",
+      "bundleKey": "agent-safety-framework:ASFLifecycle",
+      "deployedRevision": "revision 7 (2026-10-27)"
+    },
+    "8468/ASFSpecificationRegistry": {
+      "address": "0x9110b622a17F83065f1e9773D961EB10672932e5",
+      "bundleKey": "agent-safety-framework:ASFSpecificationRegistry",
+      "deployedRevision": "revision 7 (2026-10-27)"
+    },
+    "8468/ASFBindingRegistry": {
+      "address": "0x136E2a88e1B518342CD997423BDa69Dd2c68e919",
+      "bundleKey": "agent-safety-framework:ASFBindingRegistry",
+      "deployedRevision": "revision 7 (2026-10-27)"
+    },
+    "8468/ASFTaskTenderAdapter": {
+      "address": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
+      "bundleKey": "agent-safety-framework:ASFTaskTenderAdapter",
+      "deployedRevision": "revision 7 (2026-10-27)"
+    }
   },
   "notes": [
-    "Attach-mode world: every address comes from the upstream repositories' deployment records at the locked commits; FOGA deploys nothing here in Phase 1.",
-    "Seam 1: the ARD AgentAdapter is bound to ARD's fixture AIDRegistry (0x36E4...), not to aid-standard's reference instance (0x01C0...). The registry owner key is session-held upstream, so the binding cannot be changed; cells bind in both registries.",
-    "Seam 2: only AllowlistEligibility is deployed for ERC-8447; the ERC-8004, identity-state, assertion-level and composite modules are deployed by FOGA (no owner restriction).",
-    "Seam 3: ERC-8471 is deployed at revision 3 while the locked source is revision 4; layer-3 verdicts for ADRFBindingModule, ADRFFilingModule, DuplicateSettlementVerifier and ADRFServiceEscrow are Fail (known) until the upstream rev-4 run, confirmed 2026-10-30.",
+    "Attach-mode world: every address in contracts comes from the upstream repositories' deployment records at the locked commits. Plan steps this config does not list (the ERC-8471 stack, ERC8004Eligibility, IdentityStateEligibility) are deployed from the bundle by foga world deploy, with W as deployer; nothing else is deployed here.",
+    "Seam 1: the ARD AgentAdapter is bound to ARD's fixture AIDRegistry (0x36E4...), not to aid-standard's reference instance (0x01C0...). The registry owner key is session-held upstream, so the binding cannot be changed; cells keep their liveness in both registries (8434/AIDRegistry(ard-fixture) is the backing registry).",
+    "Seam 2: only AllowlistEligibility is deployed for ERC-8447; the ERC-8004 and identity-state modules are deployed by foga world deploy, the assertion-level and composite modules by the genesis (no owner restriction).",
+    "Seam 3: ERC-8471 is deployed upstream at revision 3 while the locked source is revision 4; the two revisions cannot be bound to each other, so FOGA runs its own revision-4 instance here (see upstreamNotAttached) until the upstream revision-4 run lands.",
     "Layer-4 expectations below record the upstream wiring as it is, so a Pass means 'matches the recorded upstream state', not 'matches what FOGA would deploy'."
   ],
   "expectations": {
     "8444/AgentAdapter.identityRegistry": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E"
+  },
+  "upstreamNotAttached": {
+    "note": "ERC-8471 as deployed upstream on Sepolia (revision 3 of 2026-10-29). The locked source is revision 4, whose binding module admits only sources declaring the revision-4 IADRFObligationSource id, so the revision-3 registry and a revision-4 escrow cannot be bound to each other. The whole ERC-8471 stack is therefore left out of the address book and foga world deploy adds it from the bundle (revision 4, deployed by W). These addresses are recorded so the swap is traceable; when the upstream revision-4 run lands they move back into contracts.",
+    "contracts": {
+      "8471/ADRFPolicyRegistry": {
+        "address": "0x071093a38289b5f9578D0162727b05A52E07eed5",
+        "bundleKey": "ai-dispute-resolution:ADRFPolicyRegistry",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFDisputeRegistry": {
+        "address": "0x4e27C4728B22c3306f2378b8B421774dc35fE0a9",
+        "bundleKey": "ai-dispute-resolution:ADRFDisputeRegistry",
+        "deployedRevision": "revision 3 (2026-10-29)",
+        "note": "upstream source is revision 4; Binding and Filing modules, DuplicateSettlementVerifier and ADRFServiceEscrow differ. The doctor is expected to report a known version mismatch until the upstream rev-4 run lands"
+      },
+      "8471/ADRFBindingModule": {
+        "address": "0x1D2CCC2eE1f8203d5f66aAA0f3a9b889253f32c2",
+        "bundleKey": "ai-dispute-resolution:ADRFBindingModule",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFFilingModule": {
+        "address": "0x64C86Cd5992DF93818479f4EEaA601FFf7C5f209",
+        "bundleKey": "ai-dispute-resolution:ADRFFilingModule",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFResolutionModule": {
+        "address": "0x75a104902744A5793306A25ea2bbDc85a0E77ce4",
+        "bundleKey": "ai-dispute-resolution:ADRFResolutionModule",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFDecisionModule": {
+        "address": "0x87EDf76351Cbfc210Ae78a1487Ed4b0BB80c5d52",
+        "bundleKey": "ai-dispute-resolution:ADRFDecisionModule",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFRecordModule": {
+        "address": "0x7F620C43eB7Bf43c19b20eAa49aBB37f93f1Be69",
+        "bundleKey": "ai-dispute-resolution:ADRFRecordModule",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFOutcomeModule": {
+        "address": "0x999BEf843E8ADba949e688C321D7b5bF37efea55",
+        "bundleKey": "ai-dispute-resolution:ADRFOutcomeModule",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFACDFBridge": {
+        "address": "0xeC31cb06CEFCd871Bc36cD5267bC3fe9A21c60EB",
+        "bundleKey": "ai-dispute-resolution:ADRFACDFBridge",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/DuplicateSettlementVerifier": {
+        "address": "0x2c5a24596E08379fF9CF9DfF3AaaD4861ba5c4Ae",
+        "bundleKey": "ai-dispute-resolution:DuplicateSettlementVerifier",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/DeclaredVersionVerifier": {
+        "address": "0x612fe0B072492FbaF9754032f2Ceb3bce2aBB6DC",
+        "bundleKey": "ai-dispute-resolution:DeclaredVersionVerifier",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/AttestorQuorumRule": {
+        "address": "0xDe666e792730efE4E633D8E185a10Df4291dE597",
+        "bundleKey": "ai-dispute-resolution:AttestorQuorumRule",
+        "deployedRevision": "revision 3 (2026-10-29)"
+      },
+      "8471/ADRFServiceEscrow": {
+        "address": "0xD85e5E73D385e6575342bd86263F34b17b287128",
+        "bundleKey": "ai-dispute-resolution:ADRFServiceEscrow",
+        "deployedRevision": "revision 3 (2026-10-29)",
+        "note": "FOGA deploys its own revision-4 escrow in Phase 2c rather than reusing this one; this instance declares revision 3's IADRFObligationSource id (revision 4 added recognizesBreach), so its layer-2 check is a known mismatch"
+      }
+    }
   }
 }

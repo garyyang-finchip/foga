@@ -1,4 +1,4 @@
-import { keccak256, type Provider, type TransactionReceipt, type TransactionRequest, type Wallet } from "ethers";
+import { keccak256, type Provider, type TransactionReceipt, type TransactionRequest, type TransactionResponse, type Wallet } from "ethers";
 import { RevertDecoder } from "./errors.js";
 import type { OperationStore, OpRecord } from "./store.js";
 
@@ -43,8 +43,10 @@ export class OperationReverted extends Error {
 }
 
 export interface TxManagerOptions {
-  /** Milliseconds to wait for a broadcast transaction's receipt before giving up (the op stays `sent`). */
+  /** Milliseconds to wait for a broadcast transaction's receipt before replacing it or giving up (the op stays `sent`). */
   receiptTimeoutMs?: number;
+  /** How many times a transaction still pending after the timeout is re-sent with higher fees (same nonce) before the run stops. */
+  maxReplacements?: number;
   /** Fault injection: exit the process right after this op's hash is recorded, before the broadcast. */
   crashBeforeBroadcast?: string;
   /** Fault injection: exit the process right after this op is broadcast, before its receipt is read. */
@@ -61,6 +63,11 @@ export const CRASH_EXIT_CODE = 75;
  * before deciding: a receipt means done; a pending transaction is waited for; an unknown hash with the nonce
  * still unconsumed is re-sent with that same nonce; an unknown hash with the nonce consumed is ambiguous and is
  * never retried automatically.
+ *
+ * A transaction that is still pending when the receipt timeout passes (a public chain whose base fee rose after
+ * the quote) is replaced: the same payload and nonce, signed again with fees raised by a third, up to
+ * `maxReplacements` times. Every hash the operation ever had is in the journal, and inclusion of any of them
+ * completes the operation — the nonce makes them mutually exclusive.
  */
 export class TxManager {
   readonly decoder = new RevertDecoder();
@@ -95,32 +102,21 @@ export class TxManager {
     }
 
     let nonce: number;
+    let pendingBefore: TransactionResponse | null = null;
     if (rec.status === "sent" && rec.txHash && rec.nonce !== null) {
       const recovered = await this.recover(rec, wallet.address);
-      if (recovered) return recovered;
-      nonce = rec.nonce; // unknown to the node and the nonce is still free: send again with the same nonce
+      if (recovered.confirmed) return recovered.confirmed;
+      nonce = rec.nonce; // the nonce is still the operation's: either free (re-send) or held by its pending transaction (replace)
+      pendingBefore = recovered.pending;
     } else {
       nonce = await this.provider.getTransactionCount(wallet.address, "pending");
     }
 
-    const base = await req.build({ nonce, from: wallet.address });
-    let populated: TransactionRequest;
-    try {
-      // The estimate is taken on the pending state; the inclusion state differs by at least the block timestamp
-      // (a heartbeat-style SSTORE that was a no-op during the estimate costs 2900 more when the second ticks),
-      // so a margin is added to every estimate rather than trusting it to the unit.
-      let gasLimit = base.gasLimit;
-      if (gasLimit === undefined || gasLimit === null) {
-        const estimate = await this.provider.estimateGas({ ...base, from: wallet.address, nonce });
-        gasLimit = estimate + estimate / 4n + 20_000n;
-      }
-      populated = await wallet.populateTransaction({ ...base, from: wallet.address, nonce, gasLimit });
-    } catch (e: any) {
-      const data = RevertDecoder.revertData(e);
-      const explained = this.decoder.explain(e);
-      this.store.markFailed(req.key, explained);
-      this.store.journal("estimate-failed", { error: explained }, req.key);
-      throw new OperationReverted(req.key, `operation ${req.key} would revert: ${explained}`, data);
+    const populated = await this.populate(req, wallet, nonce);
+    if (pendingBefore) {
+      // the recorded transaction is still in the pool: raise its fees and take its place rather than wait again
+      const replaced = await this.replace(req, wallet, populated, pendingBefore, 0);
+      return this.finish(req.key, replaced, true);
     }
     const signed = await wallet.signTransaction(populated);
     const txHash = keccak256(signed);
@@ -132,45 +128,154 @@ export class TxManager {
     this.log(`${req.key}: sent ${txHash} (nonce ${nonce}, ${req.signer})`);
     if (this.options.crashAfterBroadcast === req.key) this.crash(req.key, "after-broadcast");
 
-    const receipt = await this.awaitReceipt(req.key, txHash);
+    const receipt = await this.awaitInclusion(req, wallet, populated, txHash);
     return this.finish(req.key, receipt, false);
   }
 
-  /**
-   * Wait for a receipt within the timeout. ethers rejects with a TIMEOUT error rather than returning null when the
-   * time is up; either way the row stays `sent` and the next run resolves it from the chain (docs/kernel.md), so the
-   * message says that instead of showing a stack trace. A timeout on a local chain usually means the node is starved
-   * (another heavy process on the machine) rather than a lost transaction.
-   */
-  private async awaitReceipt(key: string, txHash: string): Promise<TransactionReceipt> {
-    const timeoutMs = this.options.receiptTimeoutMs ?? 120_000;
-    let receipt: TransactionReceipt | null = null;
+  /** Build, estimate and populate the request for a nonce; a failing estimate marks the operation failed. */
+  private async populate(req: SendRequest, wallet: Wallet, nonce: number): Promise<TransactionRequest> {
+    const base = await req.build({ nonce, from: wallet.address });
     try {
-      receipt = await this.provider.waitForTransaction(txHash, 1, timeoutMs);
+      // The estimate is taken on the pending state; the inclusion state differs by at least the block timestamp
+      // (a heartbeat-style SSTORE that was a no-op during the estimate costs 2900 more when the second ticks),
+      // so a margin is added to every estimate rather than trusting it to the unit.
+      let gasLimit = base.gasLimit;
+      if (gasLimit === undefined || gasLimit === null) {
+        const estimate = await this.provider.estimateGas({ ...base, from: wallet.address, nonce });
+        gasLimit = estimate + estimate / 4n + 20_000n;
+      }
+      return await wallet.populateTransaction({ ...base, from: wallet.address, nonce, gasLimit });
     } catch (e: any) {
-      if (e?.code !== "TIMEOUT") throw e;
+      const data = RevertDecoder.revertData(e);
+      const explained = this.decoder.explain(e);
+      this.store.markFailed(req.key, explained);
+      this.store.journal("estimate-failed", { error: explained }, req.key);
+      throw new OperationReverted(req.key, `operation ${req.key} would revert: ${explained}`, data);
     }
-    if (!receipt) {
-      this.store.journal("receipt-timeout", { txHash, timeoutMs }, key);
-      throw new Error(`operation ${key}: no receipt for ${txHash} within ${timeoutMs / 1000} s. The row stays 'sent' and is recovered on the next run (the receipt is read if the transaction was mined, otherwise it is re-sent). If the node is local, check that nothing else is saturating the machine (a proving-key build, for instance) and run again.`);
-    }
-    return receipt;
   }
 
-  /** Decide what a `sent` row means by asking the chain. Returns null when the transaction must be re-sent. */
-  private async recover(rec: OpRecord, from: string): Promise<Confirmed | null> {
-    const receipt = await this.provider.getTransactionReceipt(rec.txHash!);
-    if (receipt) {
-      this.store.journal("recovered-receipt", { txHash: rec.txHash, block: receipt.blockNumber }, rec.key);
-      this.log(`${rec.key}: recovered receipt for ${rec.txHash} from block ${receipt.blockNumber}; not re-sent`);
-      return this.finish(rec.key, receipt, true);
+  /** Every hash this operation was ever broadcast under, oldest first (the store row holds only the latest). */
+  private hashesOf(key: string, latest: string): string[] {
+    const out: string[] = [];
+    for (const j of this.store.journalEntries()) {
+      if (j.opKey !== key || !j.detail) continue;
+      const h = j.event === "sent" || j.event === "replaced" ? (j.detail.txHash as string | undefined) : undefined;
+      if (h && !out.includes(h)) out.push(h);
+    }
+    if (!out.includes(latest)) out.push(latest);
+    return out;
+  }
+
+  /**
+   * Wait for the broadcast transaction's receipt. When the timeout passes and the transaction is still pending, it is
+   * replaced with higher fees (same nonce), up to `maxReplacements` times; when it has vanished from the pool and the
+   * nonce is free, it is broadcast again as it was; when any earlier hash of the operation was mined instead, that
+   * receipt completes it. After the last attempt the row stays `sent` and the next run resolves it from the chain
+   * (docs/kernel.md). A timeout on a local chain usually means the node is starved (another heavy process on the
+   * machine) rather than a lost transaction.
+   */
+  private async awaitInclusion(req: SendRequest, wallet: Wallet, populated: TransactionRequest, txHash: string): Promise<TransactionReceipt> {
+    const timeoutMs = this.options.receiptTimeoutMs ?? 120_000;
+    const max = this.options.maxReplacements ?? 3;
+    let current = populated;
+    let hash = txHash;
+    for (let attempt = 0; ; attempt++) {
+      const receipt = await this.waitAny(req.key, hash, timeoutMs);
+      if (receipt) return receipt;
+      this.store.journal("receipt-timeout", { txHash: hash, timeoutMs, attempt }, req.key);
+      const pending = await this.provider.getTransaction(hash);
+      if (attempt >= max) {
+        throw new Error(`operation ${req.key}: no receipt for ${hash} within ${timeoutMs / 1000} s${attempt ? ` after ${attempt} fee replacement${attempt === 1 ? "" : "s"}` : ""}${pending ? " (still pending)" : " (not in the pool)"}. The row stays 'sent' and is recovered on the next run (the receipt is read if a transaction of this operation was mined, otherwise it is sent again). If the node is local, check that nothing else is saturating the machine (a proving-key build, for instance) and run again.`);
+      }
+      if (pending) {
+        const r = await this.replace(req, wallet, current, pending, attempt + 1);
+        return r;
+      }
+      // not pending, not mined: either the nonce moved on (ambiguous) or the pool dropped it (send again as it was)
+      const consumed = await this.provider.getTransactionCount(wallet.address, "latest");
+      if (consumed > Number(current.nonce)) {
+        const rec = this.store.get(req.key)!;
+        this.store.journal("ambiguous", { txHash: hash, nonce: current.nonce, accountNonce: consumed }, req.key);
+        throw new OperationAmbiguous(rec, `operation ${req.key}: tx ${hash} is unknown to the node but nonce ${current.nonce} of ${wallet.address} has been consumed by another transaction. The outcome cannot be decided automatically; inspect the chain and mark the operation by hand.`);
+      }
+      const signed = await wallet.signTransaction(current);
+      this.store.journal("resend", { txHash: hash, nonce: current.nonce }, req.key);
+      this.log(`${req.key}: ${hash} left the pool unmined and nonce ${current.nonce} is free; sending again`);
+      await this.provider.broadcastTransaction(signed);
+      hash = keccak256(signed);
+    }
+  }
+
+  /**
+   * Replace a pending transaction of the operation: the same payload and nonce with fees a third above the pending
+   * ones (and above the current quote), recorded as the operation's new hash. Waits for it like a first send.
+   */
+  private async replace(req: SendRequest, wallet: Wallet, populated: TransactionRequest, pending: TransactionResponse, attempt: number): Promise<TransactionReceipt> {
+    const bump = (v: bigint | null | undefined, floor: bigint | null | undefined) => {
+      const a = BigInt(v ?? 0n);
+      const b = BigInt(floor ?? 0n);
+      const base = a > b ? a : b;
+      return base + base / 3n + 1n;
+    };
+    const next: TransactionRequest = { ...populated };
+    if (pending.maxFeePerGas !== null && pending.maxFeePerGas !== undefined) {
+      next.maxFeePerGas = bump(pending.maxFeePerGas, populated.maxFeePerGas as bigint | undefined);
+      next.maxPriorityFeePerGas = bump(pending.maxPriorityFeePerGas, populated.maxPriorityFeePerGas as bigint | undefined);
+      if ((next.maxPriorityFeePerGas as bigint) > (next.maxFeePerGas as bigint)) next.maxFeePerGas = next.maxPriorityFeePerGas;
+    } else {
+      next.gasPrice = bump(pending.gasPrice, populated.gasPrice as bigint | undefined);
+      delete next.maxFeePerGas;
+      delete next.maxPriorityFeePerGas;
+    }
+    const signed = await wallet.signTransaction(next);
+    const hash = keccak256(signed);
+    this.store.markSent(req.key, hash, Number(next.nonce));
+    this.store.journal("replaced", { txHash: hash, replaces: pending.hash, nonce: next.nonce, attempt, maxFeePerGas: next.maxFeePerGas?.toString() ?? null, maxPriorityFeePerGas: next.maxPriorityFeePerGas?.toString() ?? null, gasPrice: next.gasPrice?.toString() ?? null }, req.key);
+    this.log(`${req.key}: ${pending.hash} still pending after the timeout; replaced by ${hash} with fees raised by a third (attempt ${attempt})`);
+    try {
+      await this.provider.broadcastTransaction(signed);
+    } catch (e: any) {
+      // the original was mined between the check and the broadcast, or the pool refuses the replacement: the wait decides
+      this.store.journal("replace-rejected", { txHash: hash, error: String(e?.shortMessage ?? e?.message ?? e) }, req.key);
+      this.log(`${req.key}: the node refused the replacement (${e?.shortMessage ?? e?.message}); waiting for whichever transaction is included`);
+    }
+    return this.awaitInclusion(req, wallet, next, hash);
+  }
+
+  /** The receipt of any hash the operation ever had, or null when none is mined within the timeout. */
+  private async waitAny(key: string, latest: string, timeoutMs: number): Promise<TransactionReceipt | null> {
+    const hashes = this.hashesOf(key, latest);
+    const deadline = Date.now() + timeoutMs;
+    const poll = (this.provider as { pollingInterval?: number }).pollingInterval ?? 4_000;
+    for (;;) {
+      for (const h of hashes) {
+        const r = await this.provider.getTransactionReceipt(h);
+        if (r) return r;
+      }
+      if (Date.now() >= deadline) return null;
+      await new Promise((r) => setTimeout(r, Math.min(poll, Math.max(0, deadline - Date.now()))));
+    }
+  }
+
+  /**
+   * Decide what a `sent` row means by asking the chain about every hash the operation had: a receipt completes it;
+   * a pending transaction is returned for replacement; an unknown hash with the nonce still free means re-send; an
+   * unknown hash with the nonce consumed is ambiguous and is never retried automatically.
+   */
+  private async recover(rec: OpRecord, from: string): Promise<{ confirmed: Confirmed | null; pending: TransactionResponse | null }> {
+    for (const h of this.hashesOf(rec.key, rec.txHash!)) {
+      const receipt = await this.provider.getTransactionReceipt(h);
+      if (receipt) {
+        this.store.journal("recovered-receipt", { txHash: h, block: receipt.blockNumber }, rec.key);
+        this.log(`${rec.key}: recovered receipt for ${h} from block ${receipt.blockNumber}; not re-sent`);
+        return { confirmed: this.finish(rec.key, receipt, true), pending: null };
+      }
     }
     const pending = await this.provider.getTransaction(rec.txHash!);
     if (pending) {
       this.store.journal("recovered-pending", { txHash: rec.txHash }, rec.key);
-      this.log(`${rec.key}: ${rec.txHash} is still pending; waiting`);
-      const r = await this.awaitReceipt(rec.key, rec.txHash!);
-      return this.finish(rec.key, r, true);
+      this.log(`${rec.key}: ${rec.txHash} is still pending; replacing it with higher fees`);
+      return { confirmed: null, pending };
     }
     const consumed = await this.provider.getTransactionCount(from, "latest");
     if (consumed > rec.nonce!) {
@@ -179,7 +284,7 @@ export class TxManager {
     }
     this.store.journal("resend", { txHash: rec.txHash, nonce: rec.nonce }, rec.key);
     this.log(`${rec.key}: ${rec.txHash} never reached the chain and nonce ${rec.nonce} is free; sending again`);
-    return null;
+    return { confirmed: null, pending: null };
   }
 
   private finish(key: string, receipt: TransactionReceipt, recovered: boolean): Confirmed {

@@ -1,30 +1,35 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { closeSync, openSync, readFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { createConnection } from "node:net";
-import { cpus, loadavg } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { cpus, homedir, loadavg } from "node:os";
+import { dirname, join, relative, resolve } from "node:path";
 import { buildBundle } from "./build/bundle.js";
 import { syncVendor, verifyVendor } from "./build/vendor.js";
 import { runDoctor } from "./doctor/doctor.js";
 import { ensureDir, exists, readJson, repoRoot, writeJson } from "./util/fs.js";
 import { fail, log } from "./util/log.js";
-import { attachWorld, deployWorld, loadWorldConfig } from "./world/deploy.js";
+import { attachWorld, deployWorld, loadWorldConfig, missingPlanSteps } from "./world/deploy.js";
 import { loadBundle } from "./bundle/load.js";
 
-const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2 cells and the genesis T0-T9)
+const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2 cells and the genesis T0-T9, local and public chains)
 
 usage:
   foga vendor sync [--only <repo,repo>]          fetch the locked upstream sources into vendor/
   foga vendor verify                             check vendor/ against vendor/LOCK.json
   foga build [--verify] [--solc-dir <dir>]       compile the ten reference implementations into artifacts/bundle.json
   foga world deploy --world <config.json> [--rpc <url>] [--out <file>] [--resume] [--gas-multiplier <x>] [--allow-chain-mismatch]
-  foga world attach --world <config.json> [--out <file>]
+                                                 deploy-mode config: the whole stack; attach-mode config: attach what it
+                                                 lists and deploy the reference contracts it does not (deployer = W)
+  foga world attach --world <config.json> [--out <file>]   address book only, no transactions (every contract listed)
+  foga keys new [--out <file>]                   write a fresh 12-word phrase (default ~/.foga/genesis.mnemonic) and print the role addresses
+  foga keys show                                 print the role addresses the environment derives (FOGA_MNEMONIC[_FILE], FOGA_KEY_*)
   foga doctor --world <world.json> [--rpc <url>] [--out <report.json>] [--genesis <evidence.json>]
   foga doctor --world <config.json> --attach [--rpc <url>] [--out <report.json>]
   foga doctor --world <...> --export-probe <probe.json>      write the JSON-RPC probe plan instead of calling an RPC
   foga doctor --world <...> --import-results <results.json>  evaluate results collected by a relay (offline replay)
   foga probe relay-script                        print a dependency-free node script that runs a probe plan
+  foga genesis preflight --world <world.json> [--rpc <url>]   check RPC, keys, balances against the floors, escrow admin, proving material; sends nothing
   foga genesis run --world <world.json> [--rpc <url>] [--until T0..T9] [--store <file.sqlite>] [--out <evidence.json>]
                    [--zk auto|require|skip] [--crash-after <opKey>] [--crash-before <opKey>]
                                                  run the genesis scenario (idempotent; re-run to resume)
@@ -35,9 +40,11 @@ usage:
 environment:
   FOGA_SOLC_DIR   directory with solc-<version> static binaries (offline builds; otherwise forge downloads solc)
   FOGA_FOUNDRY_DIR  directory holding anvil (scripts/install-foundry.sh: the static Foundry build for older Linux)
-  FOGA_RPC_URL    default RPC for doctor and genesis
-  FOGA_DEPLOYER_PK  deployer key for world deploy (worlds/local.json falls back to anvil account #0)
-  FOGA_KEY_<ROLE>   genesis keys on non-anvil chains (W, G, OWNER_A, OPERATOR_A, ... ); anvil derives them
+  FOGA_RPC_URL    default RPC for doctor and genesis (world configs may name their own variable, e.g. SEPOLIA_RPC_URL)
+  FOGA_MNEMONIC   the 12-word phrase the twelve genesis roles are derived from on non-anvil chains (role i at m/44'/60'/0'/0/i;
+                  W = account 0 is also the world deployer); FOGA_MNEMONIC_FILE names a file holding it instead
+  FOGA_KEY_<ROLE>   overrides one role's key (W, G, OWNER_A, OPERATOR_A, ..., E, J1, J2, J3); anvil derives all of them
+  FOGA_DEPLOYER_PK  deployer key for world deploy when it is not W of the phrase (worlds/local.json falls back to anvil account #0)
 `;
 
 interface Args {
@@ -116,8 +123,11 @@ async function main(): Promise<void> {
     if (!worldConfigPath) fail("--world <config.json> is required");
     const cfg = loadWorldConfig(resolve(worldConfigPath));
     const outPath = resolve(str(flags, "out") ?? join(root, "deployments", `${cfg.name}.json`));
-    if (cmd === "attach" || cfg.mode === "attach") {
+    if (cmd === "attach") {
+      if (cfg.mode !== "attach") fail(`${worldConfigPath} is a deploy-mode config; use foga world deploy`);
       const bundle = exists(join(root, "artifacts", "bundle.json")) ? loadBundle() : null;
+      const missing = missingPlanSteps(cfg);
+      if (missing.length) log.warn(`the config does not list ${missing.length} reference contracts (${missing.join(", ")}); this address book is incomplete for a genesis — foga world deploy adds them from the bundle`);
       const world = attachWorld(cfg, bundle);
       writeJson(outPath, world);
       log.info(`attached world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${outPath}`);
@@ -162,6 +172,43 @@ async function main(): Promise<void> {
   if (group === "probe" && cmd === "relay-script") {
     const { RELAY_SCRIPT } = await import("./doctor/probe.js");
     process.stdout.write(RELAY_SCRIPT);
+    return;
+  }
+
+  if (group === "keys" && (cmd === "new" || cmd === "show")) {
+    const { ROLE_ORDER, envKeys, newMnemonic, roleAddresses, mnemonicKeys } = await import("./genesis/roles.js");
+    let keys: Record<string, string>;
+    if (cmd === "new") {
+      const out = resolve(str(flags, "out") ?? join(homedir(), ".foga", "genesis.mnemonic"));
+      if (exists(out)) fail(`${out} exists; pass --out <file> for another phrase (an existing phrase is never overwritten)`);
+      const phrase = newMnemonic();
+      mkdirSync(dirname(out), { recursive: true, mode: 0o700 });
+      writeFileSync(out, phrase + "\n", { mode: 0o600 });
+      keys = mnemonicKeys(phrase);
+      console.log(`new phrase written to ${out} (mode 0600). Keep it out of the repository; anyone holding it holds every role.`);
+      console.log(`  export FOGA_MNEMONIC_FILE=${out}`);
+    } else {
+      keys = envKeys(ROLE_ORDER);
+    }
+    const addresses = roleAddresses(keys);
+    console.log("roles (W is the world deployer and the treasury: fund W, the genesis funds the rest):");
+    for (const role of ROLE_ORDER) console.log(`  ${role.padEnd(11)} ${addresses[role]}${role === "W" ? "   <- fund this address" : ""}`);
+    return;
+  }
+
+  if (group === "genesis" && cmd === "preflight") {
+    const worldPath = str(flags, "world");
+    if (!worldPath) fail("--world <world.json> is required (a deployed world)");
+    const world = readJson<{ network: string }>(resolve(worldPath));
+    const rpc = str(flags, "rpc") ?? process.env.FOGA_RPC_URL ?? (world.network === "anvil" ? "http://127.0.0.1:8545" : undefined);
+    if (!rpc) fail("no RPC: pass --rpc or set FOGA_RPC_URL");
+    const { preflight } = await import("./genesis/preflight.js");
+    const problems = await preflight({ worldPath: resolve(worldPath), rpc, log: (line) => console.log(line) });
+    if (problems.length) {
+      console.log("\nproblems:");
+      for (const p of problems) console.log(`  - ${p}`);
+      process.exitCode = 5;
+    } else console.log("\npreflight: ready");
     return;
   }
 

@@ -7,7 +7,7 @@
 | File | What it is |
 |---|---|
 | `kernel/store.ts` | `OperationStore`: the operation table, scenario facts and an append-only journal in one SQLite file (`node:sqlite`, WAL, `synchronous=FULL`). `:memory:` for tests. |
-| `kernel/tx.ts` | `TxManager`: exactly-once sending by idempotency key, receipt recovery, re-send rules, fault injection. |
+| `kernel/tx.ts` | `TxManager`: exactly-once sending by idempotency key, receipt recovery, re-send and fee-replacement rules, fault injection. |
 | `kernel/cell.ts` | `Cell`: one FogaCellAccount driven through its owner and operator keys (`deploy`, `execute`, `admin`, `adoptBinding`, `status`). |
 | `kernel/kernel.ts` | `Kernel`: a world, a store, the signers, the ten modules opened on that world, `call` / `deploy` / `transfer`, facts, `memo`, evidence. |
 | `kernel/errors.ts` | `RevertDecoder`: custom errors across every world ABI, `Error(string)`, `Panic`, and `CallFailed` unwrapping. |
@@ -21,9 +21,11 @@ Every chain write has a key chosen by the caller (`T3.A.submit`). `TxManager.sen
 3. estimate gas on the pending state and add a margin (25 % + 20 000): the inclusion state differs from the estimate's at least by the block timestamp, and an `SSTORE` that was a no-op during the estimate (a heartbeat written in the same second) costs 2 900 more when the second ticks;
 4. sign, compute the hash, **write the row as `sent` with hash and nonce**;
 5. broadcast;
-6. wait for the receipt; write the row as `confirmed` with block, gas and log count, or `failed` with the reason.
+6. wait for the receipt (120 s by default); write the row as `confirmed` with block, gas and log count, or `failed` with the reason.
 
 Step 4 before step 5 is what makes a crash recoverable: whatever happens afterwards, the store knows which transaction may be out there.
+
+When the wait runs out, the chain is asked what became of the transaction. Still pending (a public chain whose base fee rose after the quote): it is **replaced** — the same payload under the same nonce, signed again with fees a third above the pending ones, recorded as the operation's new hash (`replaced`, naming the hash it replaces) and waited for in turn, up to three times. Gone from the pool with the nonce still free: broadcast again as it was (`resend`). Gone with the nonce consumed by something else: `OperationAmbiguous`. Every hash an operation ever had is in the journal, and the receipt of any of them completes it — the nonce makes them mutually exclusive, so exactly one can be mined. On a local chain a timeout almost always means the node is starved by another process (a proving-key build), not fees; the replacement is harmless there and the message says what to look for.
 
 ### What a resumed run does with a row
 
@@ -31,8 +33,8 @@ Step 4 before step 5 is what makes a crash recoverable: whatever happens afterwa
 |---|---|---|
 | `confirmed` | receipt for the hash exists | answered from the store; the receipt is re-read for its logs (`replayed`) |
 | `confirmed` | no receipt for the hash | the store and the chain have diverged: refuse (`OperationAmbiguous`) |
-| `sent` | receipt exists | finish from the receipt, nothing re-sent (`recovered-receipt`) |
-| `sent` | the transaction is known and pending | wait for it (`recovered-pending`) |
+| `sent` | a receipt exists for any hash the operation had | finish from the receipt, nothing re-sent (`recovered-receipt`) |
+| `sent` | the transaction is known and pending | replace it with higher fees under the same nonce and wait for whichever is mined (`recovered-pending`, `replaced`) |
 | `sent` | unknown hash, the signer's nonce still equals the row's | the transaction never reached the chain: re-send with the same nonce (`resend`) |
 | `sent` | unknown hash, the signer's nonce has moved past the row's | something else consumed the nonce; the outcome cannot be decided by code (`OperationAmbiguous`): never retried automatically |
 | `failed` | — | retried as a new send (a `failed` row means a known revert, usually after a fix) |
@@ -50,7 +52,9 @@ Values a later step needs (ids, addresses, hashes) are facts in the store, writt
 
 ## Chain time
 
-`kernel.advanceTime(seconds, why)` lets a window pass. On anvil it moves the clock (`evm_increaseTime`, then a block) and writes a `time-skipped` journal entry with the interval and the reason, so a skipped window is visible in the evidence; on any other chain it waits for real time (`time-waited`). The genesis chooses realistic windows on a local chain and short ones elsewhere (docs/genesis.md).
+`kernel.advanceTime(seconds, why)` lets a window pass. On anvil it moves the clock (`evm_increaseTime`, then a block) and writes a `time-skipped` journal entry with the interval and the reason, so a skipped window is visible in the evidence; on any other chain it waits for real time (`time-waited`, polling the block timestamp every 5 s). The genesis chooses realistic windows on a local chain and short ones elsewhere (docs/genesis.md).
+
+The provider polls a local node every 250 ms and a public endpoint every 4 s: a shared, rate-limited endpoint that makes a block every 12 s is asked a few times per block, not several times per second.
 
 ## Gas
 
@@ -60,9 +64,11 @@ Every estimate gets a margin (see above). A call whose outcome depends on the ga
 
 `kernel.evidence(step, label, values)` records what a reviewer needs per step (addresses, ids, hashes, transaction hashes, run receipts). The genesis writes it, together with the checks, facts, operation summary and the journal of the run, to `deployments/<world>.genesis.json` (`foga.genesis-evidence/1`). `deployments/local.genesis.example.json` is a committed run. The doctor consumes that file for its fifth layer (docs/doctor.md).
 
-## Keys
+## Keys and funds
 
-The kernel's signers are named by role (`W`, `G`, `owner.A`, `operator.A`, …). On anvil they are derived from anvil's well-known mnemonic in a fixed order (`src/genesis/roles.ts`), so every local run uses the same addresses; on any other chain each role's key comes from `FOGA_KEY_<ROLE>` (`FOGA_KEY_W`, `FOGA_KEY_OWNER_A`, `FOGA_KEY_OPERATOR_A`, …). Keys never leave the kernel: the skill worker (below) is started with an environment reduced to `PATH`.
+The kernel's signers are named by role (`W`, `G`, `owner.A`, `operator.A`, …). All twelve are the first twelve accounts of one BIP-39 phrase (`src/genesis/roles.ts`): anvil's well-known phrase on anvil, so every local run uses the same addresses; on any other chain the phrase in `FOGA_MNEMONIC` or in the file named by `FOGA_MNEMONIC_FILE` (`foga keys new` writes one, `foga keys show` lists the addresses), with `FOGA_KEY_<ROLE>` (`FOGA_KEY_W`, `FOGA_KEY_OWNER_A`, `FOGA_KEY_OPERATOR_A`, …) overriding one role. Keys never leave the kernel: the skill worker (below) is started with an environment reduced to `PATH`.
+
+W is the treasury. Before every step the genesis tops up each role whose balance has fallen below half its floor (`src/genesis/funding.ts`: a gas budget per role from a full local run, priced at the fee the chain quotes when the step starts; fixed floors on anvil, where only the judges beyond the pre-funded accounts need anything) and gives each cell its working capital at birth. The amounts are memoized facts, so a resumed run rebuilds the same transfers. `foga genesis preflight` prints the plan and what W must hold without sending anything.
 
 ## Running a skill
 

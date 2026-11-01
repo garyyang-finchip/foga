@@ -17,11 +17,18 @@ FOGA is a reference autonomous agent built on ten Ethereum ERC drafts written by
 
 ERC-8004 (Trustless Agents) is a required dependency: ERC-8419, ERC-8434 and ERC-8447 bind to its Identity Registry.
 
-The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository is at **Phase 2b: the whole genesis, T0–T9**, on top of the Phase 1 world layer.
+The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository is at **Phase 2c: the genesis on a public chain**, on top of the Phase 2 genesis (T0–T9) and the Phase 1 world layer.
 
-## Status: Phase 2b — the genesis T0–T9 on anvil
+## Status: Phase 2c — the genesis T0–T9, locally and on Sepolia
 
-New in 2b (0.4.0-alpha.1):
+New in 2c (0.5.0-alpha.1):
+
+- **The same scenario on a public chain.** `foga world deploy` on the Sepolia config attaches the upstream reference deployments and adds, from the same bundle, what their records do not provide at the locked revision (the ERC-8471 stack, deployed upstream at revision 3 which a revision-4 escrow cannot be bound to, and the two ERC-8447 eligibility modules never deployed upstream), with W as deployer. Cells keep their liveness in two ERC-8434 registries where the world names a backing one (Sepolia's ARD agent kind is anchored to ARD's own fixture registry). T7 makes an anchor STALE by shortening its own liveness window and waiting, the same way on every chain.
+- **Twelve keys from one phrase, one treasury.** `foga keys new` writes a BIP-39 phrase outside the repository and prints the role addresses; only W is funded by hand — before every step W tops up each role below half its floor (a gas budget from a full local run, priced at the chain's current fee) and gives each cell its capital at birth. `foga genesis preflight` prints the plan, the escrow's admin, the proving material and the waits, and sends nothing.
+- **Public-chain transaction handling.** Public endpoints are polled every 4 s; a transaction still pending after the 120 s receipt wait is replaced under the same nonce with fees raised by a third, up to three times, and a resumed run recognizes whichever of an operation's transactions was mined.
+- **Rehearsed before it is run.** CI builds an attach-mode world on anvil from a deployed local one (`scripts/attach-rehearsal.mjs`: address book attached, 15 contracts added by `foga world deploy`, a second AIDRegistry as backing registry), runs the preflight, the genesis T0–T9 and the doctor on it: 171 checks, all eleven standards Pass. The public timing profile (about fifty minutes of waiting over T5–T7) and the Sepolia runbook are in docs/genesis.md, "Running on a public chain".
+
+From 2b (0.4.0-alpha.1):
 
 - **The predicate-pattern ZK path.** FOGA's own circuit `kya_predicate_count_v1` (8 record slots, source set of depth 16) proves "at least K task-completion records about me, signed by a source of the committed set, are Accepted inside a window" without revealing the records; `Groth16PredicateKYAVerifierAdapter` admits it as scheme `S_pred`. A proves its first completion at the end of T3; a false predicate (K = 2 with one completion) is refused by the adapter, a flipped result bit by the verifier, replays and stale epochs by the registry. The proving material is built locally by a deterministic development ceremony (`npm run zk:predicate`; CI rebuilds it on a cache miss and checks the committed verifier against it). docs/zk.md.
 - **T6 — dispute.** C buys a run of A's skill through the world's ERC-8471 service escrow, bound in T0 to FOGA-Service-v1; A publishes v2 and delivers it against terms committing v1; C files; the declared-version verifier answers the formal question, FOGA-Council the judged one through the bridge; the ruling is Final Sustained and the escrow enacts the refund once. A control call committed to v2 settles and is released.
@@ -29,7 +36,7 @@ New in 2b (0.4.0-alpha.1):
 - **T8 — measurement.** E registers `foga.realized-net-cash-flow/1` and asserts observation receipts for cell A and for the swarm: settled inflows inside each boundary, gas as the cost, unobservable items as missing, never a value; a deterministic resolver recomputes them from the chain and fails a receipt that counts the swarm's tender for A or cites an unregistered method.
 - **T9 — succession.** A moves its ERC-8004 agent to A-prime through its account: A turns STALE, A-prime takes the binding over, A retires naming its successor, A-prime publishes a new record and document, the skill follows and its record is adopted again by recommitment; standing, swarm seat, unit and binding are not inherited.
 - **Doctor layer 5.** `foga doctor --genesis <evidence.json>` turns the genesis checks into per-standard verdicts; the demo runs it after the genesis.
-- 186 operations, 165 checks, all green on anvil in about 95 s (five Groth16 proofs); every step resumes after an injected crash, and a replayed run re-checks what still holds and records the rest as skipped.
+- 187 operations, 166 checks, all green on anvil in about 100 s (five Groth16 proofs); every step resumes after an injected crash, and a replayed run re-checks what still holds and records the rest as skipped.
 
 From 2a-2 (0.3.0-alpha.1):
 
@@ -53,7 +60,7 @@ From Phase 1, unchanged in substance:
 - **The doctor.** `foga doctor` reports five layers per contract — chain and code, interfaces, version match, configuration and permissions, semantic validation — with the verdicts Pass / Fail / Unknown / Not tested / Not applicable. Layers 1–4 probe the chain; layer 5 reads the genesis evidence. A doctor run can be exported as a JSON-RPC probe plan and replayed from results collected elsewhere, so a report never depends on which machine can reach which RPC.
 - **Sepolia address book and report.** `worlds/sepolia.json` records every upstream reference deployment at its deployed revision, including the three seams the inventory found; `deployments/sepolia.doctor.example.json` is the doctor's read-only report against them (2026-10-30: 210 Pass, 6 known Fails from revision drift, see docs/version-lock.md).
 
-What is next: Phase 2c runs the genesis on Sepolia; Phase 3 adds MCP, A2A and the CLI surface for cells; Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
+What is next: the Sepolia run itself (its evidence files join `deployments/` when it lands); Phase 3 adds MCP, A2A and the CLI surface for cells; Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
 
 ## Quick start
 
@@ -100,10 +107,21 @@ npm run foga -- world deploy --world worlds/local.json --rpc http://127.0.0.1:85
 npm run foga -- doctor --world deployments/local.json --rpc http://127.0.0.1:8545 --out deployments/local.doctor.json
 ```
 
-Against Sepolia (read-only; needs an RPC that the machine can reach):
+Against Sepolia (needs an RPC that the machine can reach). The read-only doctor on the attached address book:
 
 ```bash
 FOGA_RPC_URL=$SEPOLIA_RPC_URL npm run foga -- doctor --world worlds/sepolia.json --attach --out deployments/sepolia.doctor.json
+```
+
+The genesis there — one phrase for the twelve roles, W funded by hand, the world completed from the bundle, the preflight, then the run (1.5–2.5 h with the public windows; the same command resumes an interrupted run):
+
+```bash
+npm run foga -- keys new                                   # writes ~/.foga/genesis.mnemonic, prints the addresses; fund W
+export FOGA_MNEMONIC_FILE=~/.foga/genesis.mnemonic
+npm run foga -- world deploy --world worlds/sepolia.json --rpc $SEPOLIA_RPC_URL
+npm run foga -- genesis preflight --world deployments/sepolia.json --rpc $SEPOLIA_RPC_URL
+npm run foga -- genesis run --world deployments/sepolia.json --rpc $SEPOLIA_RPC_URL --until T9
+npm run foga -- doctor --world deployments/sepolia.json --rpc $SEPOLIA_RPC_URL --genesis deployments/sepolia.genesis.json
 ```
 
 Or in two steps through any relay that has an RPC — export the plan here, collect results there, evaluate anywhere:

@@ -7,6 +7,7 @@ import { exists, readJson, repoRoot, writeJson } from "../util/fs.js";
 import { log } from "../util/log.js";
 import { DEPLOY_PLAN, WIRE_PLAN, type PlanContext } from "./plan.js";
 import type { WorldConfig, WorldContract, WorldFile } from "./types.js";
+import { envMnemonic, mnemonicKeys } from "../genesis/roles.js";
 
 export interface DeployOptions {
   worldConfigPath: string;
@@ -92,7 +93,11 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   const bundle = loadBundle(opts.bundlePath);
   const outPath = opts.outPath ?? join(root, "deployments", `${cfg.name}.json`);
 
-  if (cfg.mode === "attach") {
+  // An attach-mode config lists what exists upstream. Plan steps it does not list are deployed from the bundle by
+  // the deployer (W): a reference instance upstream never deployed, or one deployed at another revision than the
+  // locked source. A config that lists everything needs no RPC and no key.
+  const toDeploy = cfg.mode === "attach" ? missingPlanSteps(cfg) : [];
+  if (cfg.mode === "attach" && toDeploy.length === 0) {
     const world = attachWorld(cfg, bundle);
     writeJson(outPath, world);
     log.info(`attached world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${relative(root, outPath)}`);
@@ -101,15 +106,15 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
 
   const rpc = opts.rpc ?? resolveRpc(cfg.rpc);
   const provider = new JsonRpcProvider(rpc, undefined, { staticNetwork: true, cacheTimeout: -1 });
-  provider.pollingInterval = 250;
+  provider.pollingInterval = cfg.network === "anvil" ? 250 : 4_000;
   const net = await provider.getNetwork();
   if (Number(net.chainId) !== cfg.chainId) {
     const msg = `chain id mismatch: rpc reports ${net.chainId}, world config says ${cfg.chainId}`;
     if (!opts.allowChainMismatch) throw new Error(msg + " (pass --allow-chain-mismatch for forks)");
     log.warn(msg);
   }
-  const pk = (cfg.deployer?.privateKeyEnv && process.env[cfg.deployer.privateKeyEnv]) || cfg.deployer?.defaultPrivateKey;
-  if (!pk) throw new Error(`no deployer key: set ${cfg.deployer?.privateKeyEnv ?? "a deployer env var"}`);
+  const pk = deployerKey(cfg);
+  if (!pk) throw new Error(`no deployer key: set ${cfg.deployer?.privateKeyEnv ?? "FOGA_DEPLOYER_PK"}, or FOGA_MNEMONIC / FOGA_MNEMONIC_FILE (the deployer is then W, the phrase's first account)`);
   // NonceManager keeps nonces strictly sequential even when a node mines instantly.
   const wallet = new NonceManager(new Wallet(pk, provider));
   const deployer = await wallet.getAddress();
@@ -121,11 +126,15 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
     world = readJson<WorldFile>(outPath);
     if (world.chainId !== Number(net.chainId) && !opts.allowChainMismatch) throw new Error(`cannot resume ${outPath}: it belongs to chain ${world.chainId}`);
     log.info(`resuming world ${world.worldId} from ${relative(root, outPath)}`);
+  } else if (cfg.mode === "attach") {
+    world = attachWorld(cfg, bundle);
+    world.notes.push(`${toDeploy.length} reference contracts the upstream records do not provide at the locked revision are deployed from the bundle by ${deployer}: ${toDeploy.join(", ")}`);
   } else {
     world = newWorldFile(cfg, bundle, "deployed", deployer);
   }
   world.deployer = deployer;
   world.bundleHash = bundle.hash;
+  if (cfg.mode === "attach") log.info(`attach-mode world: ${Object.keys(cfg.contracts ?? {}).length} contracts attached; deploying ${toDeploy.length} from the bundle (${toDeploy.join(", ")})`);
 
   const stepById = new Map(DEPLOY_PLAN.map((s) => [s.id, s]));
   const ctx: PlanContext = {
@@ -143,6 +152,10 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
 
   for (const step of DEPLOY_PLAN) {
     const existing = world.contracts[step.id];
+    if (existing && cfg.mode === "attach" && cfg.contracts?.[step.id]) {
+      log.step(`${step.id}: attached at ${existing.address}`);
+      continue;
+    }
     if (existing && (await provider.getCode(existing.address)) !== "0x") {
       log.step(`${step.id}: already at ${existing.address}`);
       continue;
@@ -184,7 +197,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
       block: receipt?.blockNumber,
       args: args.map((a) => (typeof a === "bigint" ? a.toString() : a)),
       libraries: Object.keys(libraries).length ? libraries : undefined,
-      note: step.note,
+      note: cfg.mode === "attach" ? `deployed by FOGA from the bundle (not provided upstream at the locked revision)${step.note ? "; " + step.note : ""}` : step.note,
     };
     world.contracts[step.id] = rec;
     if (step.id === "identity8004") world.identity8004 = { mode: "stub", address, note: cfg.identity8004.note ?? "local stand-in, not the reference registry" };
@@ -225,4 +238,27 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   writeJson(outPath, world);
   log.info(`world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${relative(root, outPath)}`);
   return { world, path: outPath };
+}
+
+/**
+ * The deployer's key: the configured variable (FOGA_DEPLOYER_PK), else W as the genesis will see it (FOGA_KEY_W, or
+ * account 0 of the phrase in the environment), else the config's default. The genesis binds the escrow this deploys
+ * as W, so the deployer is W unless the variable says otherwise.
+ */
+export function deployerKey(cfg: WorldConfig): string | undefined {
+  const fromEnv = cfg.deployer?.privateKeyEnv ? process.env[cfg.deployer.privateKeyEnv] : process.env.FOGA_DEPLOYER_PK;
+  if (fromEnv) return fromEnv;
+  if (cfg.network !== "anvil") {
+    // on anvil the genesis derives W from anvil's phrase, so a phrase in the environment must not move the deployer
+    if (process.env.FOGA_KEY_W) return process.env.FOGA_KEY_W;
+    const phrase = envMnemonic();
+    if (phrase) return mnemonicKeys(phrase).W;
+  }
+  return cfg.deployer?.defaultPrivateKey;
+}
+
+/** Plan steps an attach-mode config does not list and does not skip: what `foga world deploy` adds from the bundle. */
+export function missingPlanSteps(cfg: WorldConfig): string[] {
+  const listed = cfg.contracts ?? {};
+  return DEPLOY_PLAN.filter((s) => !listed[s.id] && !(s.id === "identity8004" && cfg.identity8004.mode === "address")).map((s) => s.id);
 }

@@ -14,6 +14,7 @@ import { Cell } from "../kernel/cell.js";
 import { Kernel } from "../kernel/kernel.js";
 import { EPOCH_GRACE, EPOCH_LENGTH, PREDICATE_VALIDITY, attestorKeyFrom, predicateAvailability, proverLibsAvailable, sourceKeyFrom, zk, zkAvailability } from "./zk.js";
 import { CELLS, operatorRole, ownerRole, roleKeys, type CellName } from "./roles.js";
+import { CELL_CAPITAL, fundRoles } from "./funding.js";
 import { runProbe, type ProbeInput } from "./probe.js";
 import { runProbeIsolated, verifiedPackage } from "./skill-runner.js";
 
@@ -21,7 +22,7 @@ export const STEPS = ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"
 export type StepName = (typeof STEPS)[number];
 
 /** Bumped whenever the operation keys or their inputs change; a store written by another version is refused. */
-export const SCENARIO_VERSION = "3";
+export const SCENARIO_VERSION = "4";
 
 export type ZkMode = "auto" | "require" | "skip";
 
@@ -41,7 +42,9 @@ export interface GenesisConfig {
 
 /**
  * Windows and margins of the deliberations. On a local chain they are realistic and the clock is moved past them;
- * on any other chain they are short enough to wait for.
+ * on any other chain they are short enough to wait for (about fifty minutes of waiting over T5-T7 in all), while
+ * keeping the relations the registries enforce: the service policy's decision window holds the council's whole
+ * procedure (2 x window + appeal), and a call's dispute period outlasts the service track plus its enactment margin.
  */
 export interface Timing {
   councilWindow: number;
@@ -69,9 +72,12 @@ export const PUBLIC_TIMING: Timing = {
   governanceWindow: 180,
   margin: 60,
   judgmentWindow: 900,
-  noDecisionJudgmentWindow: 900,
-  service: { filingWindow: 3_600, evidenceWindow: 300, decisionWindow: 900, reviewWindow: 300, enactmentMargin: 300, disputePeriod: 3_600 },
+  noDecisionJudgmentWindow: 600,
+  service: { filingWindow: 1_800, evidenceWindow: 180, decisionWindow: 600, reviewWindow: 120, enactmentMargin: 120, disputePeriod: 1_800 },
 };
+
+/** The liveness window the cells shorten to in T7 so that STALE is reached by waiting, on every chain (seconds). */
+export const LIVENESS_DEMO_WINDOW = 120;
 
 export interface CheckResult {
   step: StepName;
@@ -172,6 +178,7 @@ export class Genesis {
     const stop = STEPS.indexOf(until);
     for (const step of STEPS.slice(0, stop + 1)) {
       this.log(`${step}: start`);
+      await fundRoles(this.kernel, step, (line) => this.log(line));
       if (step === "T0") await this.t0();
       if (step === "T1") await this.t1();
       if (step === "T2") await this.t2();
@@ -268,9 +275,6 @@ export class Genesis {
     const specId = k.asf.specIdFromReceipt(reg.receipt);
     k.setFact("T0.asf.spec", { specId, version: 1, contentHash: commitment.contentHash, salt });
 
-    // The judges: funded by W on a local chain (anvil pre-funds ten accounts; J2 and J3 are beyond them).
-    if (k.isLocalChain) for (const j of ["J1", "J2", "J3"]) await k.transfer(`T0.fund.${j}`, W, k.address(j), parseEther("1"));
-
     // The ACDF policy FOGA-Council (judges J1-J3, two approvals decide) and FOGA's instance of the upstream
     // ACDFTaskTenderAdapter bound to it: the judged acceptance authority of T5.
     const judges = ["J1", "J2", "J3"].map((j) => k.address(j));
@@ -286,7 +290,7 @@ export class Genesis {
     // The ADRF policy FOGA-Service-v1 (judgment tier = FOGA-Council through the bridge) and the world's service
     // escrow bound to it by its admin, W: the dispute path of T6 exists before any call is opened.
     const escrowAdmin: string = await k.adrf.escrow().admin();
-    if (getAddress(escrowAdmin) !== getAddress(k.address(W))) throw new Error(`the world's ADRFServiceEscrow is administered by ${escrowAdmin}, not by W ${k.address(W)}: the world must be deployed by W for the genesis to bind it`);
+    if (getAddress(escrowAdmin) !== getAddress(k.address(W))) throw new Error(`the world's ADRFServiceEscrow ${k.adrf.escrowAddress} is administered by ${escrowAdmin}, not by W ${k.address(W)}: the escrow must be deployed by W for the genesis to bind it (deploy the world with W's key: FOGA_MNEMONIC makes W the deployer, or set FOGA_DEPLOYER_PK to W's key)`);
     const serviceParams = { escrow: k.adrf.escrowAddress, versionVerifier: k.adrf.versionVerifierAddress, bridge: k.adrf.bridgeAddress, councilPolicyId: policyId, timing: this.timing.service };
     const servicePolicy = servicePolicySpec({ ...serviceParams, updateAuthority: k.address(W), descriptor: serviceDescriptor(serviceParams) });
     const spol = await k.call("T0.adrf.policy.register", W, k.adrf.policyRegistryAddress, k.adrf.policies().interface, "registerPolicy", [servicePolicy]);
@@ -372,8 +376,8 @@ export class Genesis {
     k.setFact(`T1.${X}.address`, cell.address);
     this.log(`  ${X}: account ${cell.address} (owner ${cell.ownerAddress}, operator ${cell.operatorAddress})`);
 
-    // 2. working capital on a local chain: W funds the account (gas is the operator's own)
-    if (this.world.file.network === "anvil") await k.transfer(`T1.${X}.fund`, "W", cell.address, parseEther("0.05"));
+    // 2. working capital: W funds the account (gas is the operator's own)
+    await k.transfer(`T1.${X}.fund`, "W", cell.address, k.isLocalChain ? CELL_CAPITAL.local : CELL_CAPITAL.public);
 
     // 3. owner administration: operator scope, AID registry for the commitment gate, selector classes
     await cell.admin(`T1.${X}.setOperator`, "setOperator", [cell.operatorAddress, 0, parseEther("0.01")]);
@@ -417,9 +421,12 @@ export class Genesis {
     const agentId = k.identity.agentIdFromReceipt(reg.receipt);
     k.setFact(`T1.${X}.agentId`, agentId.toString());
 
-    // 6. the anchor: bind, heartbeat; the document follows the attestation so it can cite it
+    // 6. the anchor: bind, heartbeat; the document follows the attestation so it can cite it. Where another
+    //    standard's adapter reads a second ERC-8434 instance (Sepolia: the ARD agent kind is anchored to ARD's own
+    //    fixture registry), the cell keeps its liveness there as well, so its records resolve as backed.
     await cell.execute(`T1.${X}.aid.bind`, k.aid.address, k.aid.encodeBind(k.identity.address, agentId));
     await cell.execute(`T1.${X}.aid.heartbeat`, k.aid.address, k.aid.encodeHeartbeat());
+    if (k.aid.backing) await cell.execute(`T1.${X}.aid.backing.bind`, k.aid.backing.address, k.aid.encodeBind(k.identity.address, agentId));
 
     // 7. standing: W attests S_att level 2 ("bound") for the account subject
     const claim = { scheme: "S_att", level: 2, subject: accountRef(chainId, cell.address), binding: bindingId, basis: "operates under FOGA-Cell-v1 with a guardian intervener" };
@@ -478,7 +485,9 @@ export class Genesis {
       documentDigest: commitment2.digest,
       recordId,
       unitId: unitId.toString(),
-      txs: { deploy: k.store.get(`T1.${X}.deploy`)?.txHash, adopt: k.store.get(`T1.${X}.adopt`)?.txHash, register8004: reg.txHash, attest: att.txHash, ard: ard.txHash, unit: unit.txHash },
+      capital: k.store.get(`T1.${X}.fund`)?.txHash ? (k.isLocalChain ? CELL_CAPITAL.local : CELL_CAPITAL.public).toString() : null,
+      backingRegistry: k.aid.backing?.address ?? null,
+      txs: { deploy: k.store.get(`T1.${X}.deploy`)?.txHash, adopt: k.store.get(`T1.${X}.adopt`)?.txHash, register8004: reg.txHash, attest: att.txHash, ard: ard.txHash, unit: unit.txHash, backingBind: k.store.get(`T1.${X}.aid.backing.bind`)?.txHash ?? null },
     });
 
     // checks (memo T1 "expected")
@@ -488,8 +497,12 @@ export class Genesis {
     this.check("T1", `${X}.kya.level2`, passes === true, `check({account, cell}, S_att, 2, [W]) = ${passes}`);
     const status = await cell.status();
     this.check("T1", `${X}.asf.satisfied`, status.verdict === 1, `status() = ${status.verdictName} [${status.reasonNames.join(",")}]`, X === "A" ? "T7.G.suspend" : []);
+    if (k.aid.backing) {
+      const backingState = await k.aid.stateName(cell.address, k.aid.backing.address);
+      this.check("T1", `${X}.aid.backing`, backingState === "ACTIVE", `state(${cell.address}) in the backing registry ${k.aid.backing.address} (${k.aid.backing.id}) = ${backingState}`, X === "A" ? "T9.A.aid.retire" : []);
+    }
     const backed = await k.ard.backed(recordId);
-    this.check("T1", `${X}.ard.backed`, backed === true, `backed(${recordId.slice(0, 10)}…) = ${backed}`, X === "A" ? "T9.A.aid.retire" : []);
+    this.check("T1", `${X}.ard.backed`, backed === true, `backed(${recordId.slice(0, 10)}…) = ${backed}${k.aid.backing ? " (the ARD agent adapter reads the backing registry)" : ""}`, X === "A" ? "T9.A.aid.retire" : []);
     const controller = await k.units.controllerOf(unitId);
     this.check("T1", `${X}.auf.unit`, getAddress(controller) === getAddress(cell.address), `controllerOf(unit ${unitId}) = ${controller}`);
     const owner8004 = await k.identity.ownerOf(agentId);
@@ -618,7 +631,9 @@ export class Genesis {
 
     // --- B, as demander: the known answer is the probe of C at a fixed block
     const blockN = await k.memo("T3.block", () => k.blockNumber());
-    const input: ProbeInput = { subject: C.address, block: blockN, kya: { schemeId: sAtt, issuers: [k.address("W")] } };
+    // the log-based sections scan the 9 000 blocks before N (about 30 hours on a 12-second chain): public endpoints cap
+    // the range of eth_getLogs, and the range is part of the committed input so both runs read the same one
+    const input: ProbeInput = { subject: C.address, block: blockN, lookback: 9_000, kya: { schemeId: sAtt, issuers: [k.address("W")] } };
     const demanderRun = await runProbe(this.world, input);
     const answerHash = hashlock.answerHash(demanderRun.answer);
     k.setFact("T3.answerHash", answerHash);

@@ -4,7 +4,7 @@ import { Restriction } from "../core/asf.js";
 import { accountRef, dataUri, keccakJcs, sha256Hex } from "../core/canonical.js";
 import { hashlock, nativeTerms } from "../core/tenders.js";
 import { extractVerifyFile } from "./extract.js";
-import type { Genesis } from "./scenario.js";
+import { LIVENESS_DEMO_WINDOW, type Genesis } from "./scenario.js";
 
 /**
  * T7 — safety: the stop is enforced where the cell acts, not where it promises.
@@ -21,8 +21,10 @@ import type { Genesis } from "./scenario.js";
  *      applies (StoppedByIntervener); the adopter cannot lift the intervener's suspension; a non-guardian cannot
  *      suspend.
  *  (5) The guardian resumes; A submits and is paid through its account.
- *  (6) The anchor gate: time passes beyond the liveness window, A is STALE and a commitment-class call is refused
- *      by the gate's AID clause; after a heartbeat it passes the gate again. B and C heartbeat too.
+ *  (6) The anchor gate: A shortens its liveness window (an anchor's own parameter) and the window passes without a
+ *      heartbeat; A is STALE and a commitment-class call is refused by the gate's AID clause; after a heartbeat it
+ *      passes the gate again and A restores the registry's default window. B and C heartbeat too. The same path runs
+ *      on every chain: the clock is moved on anvil and waited for elsewhere.
  */
 export async function t7(g: Genesis): Promise<void> {
   const k = g.kernel;
@@ -145,23 +147,37 @@ export async function t7(g: Genesis): Promise<void> {
   if (!submitDone) g.check("T7", "A.paid", (await A.balance()) - aBefore === reward, `A's account rose by ${(await A.balance()) - aBefore} wei`);
   else g.skipped("T7", "A.paid", "replayed run: the settlement was already made");
 
-  // --- (6) the anchor gate: STALE after the liveness window, back to ACTIVE after a heartbeat
+  // --- (6) the anchor gate: STALE once a liveness window passes without a heartbeat, back to ACTIVE after one
+  const defaultWindow = await k.aid.defaultLivenessWindow();
   if (!replayedStale) {
-    const window = Number(await k.aid.contract().livenessWindow(A.address));
-    const lastSeen = Number(await k.aid.contract().lastSeen(A.address));
+    // the anchor shortens its own window (setLivenessWindow is the anchor's call; it also counts as a heartbeat)
+    await A.execute("T7.A.aid.window", k.aid.address, k.aid.encodeSetLivenessWindow(LIVENESS_DEMO_WINDOW));
+    const window = await k.aid.livenessWindow(A.address);
+    const lastSeen = Number(await k.aid.lastSeen(A.address));
     const now = await k.blockTimestamp();
     const staleAt = (lastSeen || now) + window + 1;
-    if (staleAt > now) await k.advanceTime(staleAt - now, "the liveness window of the cells' anchors passes without a heartbeat");
+    if (staleAt > now) await k.advanceTime(staleAt - now, `A's liveness window (${window} s) passes without a heartbeat`);
     const stateA = await k.aid.stateName(A.address);
     const staleGate = await g.wouldRevert(A, k.tenders.address, submitAsA);
-    g.check("T7", "anchor.stale.gate", stateA === "STALE" && staleGate !== null && /AnchorNotActive/.test(staleGate), `state(A) = ${stateA}; a commitment-class call reverts at the gate: ${staleGate}`);
+    g.check("T7", "anchor.stale.gate", window === LIVENESS_DEMO_WINDOW && stateA === "STALE" && staleGate !== null && /AnchorNotActive/.test(staleGate), `livenessWindow(A) = ${window} s (default ${defaultWindow} s); after it passes, state(A) = ${stateA} and a commitment-class call reverts at the gate: ${staleGate}`);
   } else {
     g.skipped("T7", "anchor.stale.gate", "replayed run: the heartbeat was already sent");
   }
-  for (const X of [A, B, C]) await X.execute(`T7.${X.name}.aid.heartbeat`, k.aid.address, k.aid.encodeHeartbeat());
+  for (const X of [A, B, C]) {
+    await X.execute(`T7.${X.name}.aid.heartbeat`, k.aid.address, k.aid.encodeHeartbeat());
+    if (k.aid.backing) await X.execute(`T7.${X.name}.aid.backing.heartbeat`, k.aid.backing.address, k.aid.encodeHeartbeat());
+  }
   const states = await Promise.all([A, B, C].map((X) => k.aid.stateName(X.address)));
   const afterBeat = await g.wouldRevert(A, k.tenders.address, submitAsA);
   g.check("T7", "anchor.active.gate", states.every((s) => s === "ACTIVE") && afterBeat !== null && !/AnchorNotActive/.test(afterBeat), `states ${states.join("/")} after heartbeats; the same call now passes the gate and fails only inside the tender: ${afterBeat}`, "T9.A.aid.retire");
+  // the default window again: the demonstration leaves no short window behind
+  await A.execute("T7.A.aid.window.reset", k.aid.address, k.aid.encodeSetLivenessWindow(0));
+  const restored = await k.aid.livenessWindow(A.address);
+  g.check("T7", "anchor.window.restored", restored === defaultWindow, `livenessWindow(A) = ${restored} s after the reset (the registry's default)`, "T9.A.aid.retire");
+  if (k.aid.backing) {
+    const backingStates = await Promise.all([A, B, C].map((X) => k.aid.stateName(X.address, k.aid.backing!.address)));
+    g.check("T7", "anchor.backing.active", backingStates.every((s) => s === "ACTIVE"), `states ${backingStates.join("/")} in the backing registry ${k.aid.backing.address} after heartbeats`, "T9.A.aid.retire");
+  }
 
   k.evidence("T7", "safety", {
     binding: bindingId,
@@ -173,6 +189,7 @@ export async function t7(g: Genesis): Promise<void> {
     derisk: { action: "ADRFServiceEscrow.withdrawBalance", amount: earned.toString() },
     unattributed: k.fact("T7.unattributed"),
     attributed: { submissionId: subId.toString(), fulfiller: A.address },
-    txs: { suspend: k.store.get("T7.G.suspend")?.txHash, resume: k.store.get("T7.G.resume")?.txHash, operatorSubmit: rogue.txHash, submit: sub.txHash, heartbeats: [A, B, C].map((X) => k.store.get(`T7.${X.name}.aid.heartbeat`)?.txHash) },
+    liveness: { demonstrationWindow: LIVENESS_DEMO_WINDOW, defaultWindow, backingRegistry: k.aid.backing?.address ?? null },
+    txs: { suspend: k.store.get("T7.G.suspend")?.txHash, resume: k.store.get("T7.G.resume")?.txHash, operatorSubmit: rogue.txHash, submit: sub.txHash, window: k.store.get("T7.A.aid.window")?.txHash, heartbeats: [A, B, C].map((X) => k.store.get(`T7.${X.name}.aid.heartbeat`)?.txHash), windowReset: k.store.get("T7.A.aid.window.reset")?.txHash },
   });
 }

@@ -1,0 +1,613 @@
+{
+  "schema": "foga.world/1",
+  "worldId": "anvil-31337-20261031T172140Z",
+  "name": "local-attach",
+  "network": "anvil",
+  "chainId": 31337,
+  "mode": "attached",
+  "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275",
+  "batch": "2026-10-31T17:21:40.834Z",
+  "forkSourceBlock": null,
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "identity8004": {
+    "mode": "official",
+    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "note": "the local stub, attached by address as a public world attaches the official registry"
+  },
+  "params": {
+    "skillToken": {
+      "name": "FOGA Skill",
+      "symbol": "FSKL"
+    },
+    "taskToken": {
+      "name": "FOGA Task",
+      "symbol": "FTSK"
+    },
+    "aid": {
+      "defaultLivenessWindow": 7776000,
+      "maxLivenessWindow": 31536000
+    },
+    "kya": {
+      "issuerSetRoot": "0x1de029c3b70d5efa4af25f0d1ffb02831eb7c0d9f5a02f3c781d216e2c54b5e8",
+      "epochLength": 2592000,
+      "epochGrace": 1
+    },
+    "ard": {
+      "kindURIs": {
+        "skill": "kind:skill",
+        "task": "kind:task",
+        "agent": "kind:agent",
+        "registry": "kind:registry"
+      }
+    }
+  },
+  "contracts": {
+    "8338/SkillToken": {
+      "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "bundleKey": "skill-token-standard:SkillToken",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8414/TaskToken": {
+      "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      "bundleKey": "task-token-standard:TaskToken",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8414/HashlockVerifier": {
+      "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      "bundleKey": "task-token-standard:HashlockVerifier",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8419/KYASchemeRegistry": {
+      "address": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+      "bundleKey": "kya-standard:KYASchemeRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8419/KYARegistry": {
+      "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "bundleKey": "kya-standard:KYARegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8419/KYAPolicyRegistry": {
+      "address": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+      "bundleKey": "kya-standard:KYAPolicyRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8419/ValidationRegistry8004": {
+      "address": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "bundleKey": "kya-standard:ValidationRegistry8004",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8419/KYABridge8004": {
+      "address": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "bundleKey": "kya-standard:KYABridge8004",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8419/Groth16Verifier": {
+      "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+      "bundleKey": "kya-standard:Groth16Verifier",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8419/Groth16KYAVerifierAdapter": {
+      "address": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+      "bundleKey": "kya-standard:Groth16KYAVerifierAdapter",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8434/AIDRegistry": {
+      "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+      "bundleKey": "aid-standard:AIDRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8436/ACDFPolicyRegistry": {
+      "address": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+      "bundleKey": "acd-framework:ACDFPolicyRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8436/ACDFRegistry": {
+      "address": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+      "bundleKey": "acd-framework:ACDFRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8444/ARDOnchainRegistry": {
+      "address": "0x9A676e781A523b5d0C0e43731313A708CB607508",
+      "bundleKey": "ard-onchain-framework:ARDOnchainRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8444/SkillAdapter": {
+      "address": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+      "bundleKey": "ard-onchain-framework:SkillAdapter",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8444/TaskAdapter": {
+      "address": "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
+      "bundleKey": "ard-onchain-framework:TaskAdapter",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8444/AgentAdapter": {
+      "address": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
+      "bundleKey": "ard-onchain-framework:AgentAdapter",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8444/RegistryAdapter": {
+      "address": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+      "bundleKey": "ard-onchain-framework:RegistryAdapter",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8447/SpecValidator": {
+      "address": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
+      "bundleKey": "swarm-ai-framework:SpecValidator",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8447/LifecycleLib": {
+      "address": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+      "bundleKey": "swarm-ai-framework:LifecycleLib",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8447/MembershipLib": {
+      "address": "0x59b670e9fA9D0A427751Af201D676719a970857b",
+      "bundleKey": "swarm-ai-framework:MembershipLib",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8447/ResourceLib": {
+      "address": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
+      "bundleKey": "swarm-ai-framework:ResourceLib",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8447/SwarmRegistry": {
+      "address": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+      "bundleKey": "swarm-ai-framework:SwarmRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8447/AllowlistEligibility": {
+      "address": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+      "bundleKey": "swarm-ai-framework:AllowlistEligibility",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8447/SwarmTenderAdapter": {
+      "address": "0x09635F643e140090A9A8Dcd712eD6285858ceBef",
+      "bundleKey": "swarm-ai-framework:SwarmTenderAdapter",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8454/AUFUnitRegistry": {
+      "address": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
+      "bundleKey": "aifi-unit-framework:AUFUnitRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8454/AUFAssertionRegistry": {
+      "address": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      "bundleKey": "aifi-unit-framework:AUFAssertionRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8468/ASFEvaluation": {
+      "address": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+      "bundleKey": "agent-safety-framework:ASFEvaluation",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8468/ASFLifecycle": {
+      "address": "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+      "bundleKey": "agent-safety-framework:ASFLifecycle",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8468/ASFSpecificationRegistry": {
+      "address": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
+      "bundleKey": "agent-safety-framework:ASFSpecificationRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8468/ASFBindingRegistry": {
+      "address": "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+      "bundleKey": "agent-safety-framework:ASFBindingRegistry",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    "8434/AIDRegistry(ard-fixture)": {
+      "address": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154",
+      "bundleKey": "aid-standard:AIDRegistry",
+      "note": "a second registry standing in for ARD's fixture instance on Sepolia: cells keep their liveness here as well"
+    },
+    "identity8004": {
+      "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "note": "the local stub, attached by address as a public world attaches the official registry"
+    },
+    "8447/ERC8004Eligibility": {
+      "address": "0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575",
+      "bundleKey": "swarm-ai-framework:ERC8004Eligibility",
+      "txHash": "0xdadc1aa3430c437309d54de3547123dc8b6347b8133408d66ff7d7b5c699b1ce",
+      "block": 53,
+      "args": [
+        "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8447/IdentityStateEligibility": {
+      "address": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
+      "bundleKey": "swarm-ai-framework:IdentityStateEligibility",
+      "txHash": "0xb52a3572623d309b099c015f701a78a6a2234cd348ea49332916439ccaf6d914",
+      "block": 54,
+      "args": [
+        "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFPolicyRegistry": {
+      "address": "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
+      "bundleKey": "ai-dispute-resolution:ADRFPolicyRegistry",
+      "txHash": "0xa1a880e59d68851ea99d19b7c002d99c51c74a9971fbcebf21e256ff046f4033",
+      "block": 55,
+      "args": [],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFBindingModule": {
+      "address": "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
+      "bundleKey": "ai-dispute-resolution:ADRFBindingModule",
+      "txHash": "0xa4d5b58c01360dd2dc54cea406efaae2ace8ab05d129f4b32d2d71777649216f",
+      "block": 56,
+      "args": [
+        "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFFilingModule": {
+      "address": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+      "bundleKey": "ai-dispute-resolution:ADRFFilingModule",
+      "txHash": "0x188e1a1ec72ec031b20b442b748b14047f05a93b69704d45617041dafb9b1212",
+      "block": 57,
+      "args": [
+        "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFResolutionModule": {
+      "address": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
+      "bundleKey": "ai-dispute-resolution:ADRFResolutionModule",
+      "txHash": "0xe293197ab7e2c3681c4a2cf0a88170b9f625e5c427996ec4c5336508eefa7938",
+      "block": 58,
+      "args": [
+        "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFDecisionModule": {
+      "address": "0xc351628EB244ec633d5f21fBD6621e1a683B1181",
+      "bundleKey": "ai-dispute-resolution:ADRFDecisionModule",
+      "txHash": "0xeda90a61372a0ee29058e0dfa908a016577a912a0cea82685cc7d95d105dc39a",
+      "block": 59,
+      "args": [
+        "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFRecordModule": {
+      "address": "0xFD471836031dc5108809D173A067e8486B9047A3",
+      "bundleKey": "ai-dispute-resolution:ADRFRecordModule",
+      "txHash": "0xffb7a85792252c369f4bd33eca6661debe2873ed061e82d0944c7a479b19f27f",
+      "block": 60,
+      "args": [
+        "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFOutcomeModule": {
+      "address": "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc",
+      "bundleKey": "ai-dispute-resolution:ADRFOutcomeModule",
+      "txHash": "0xabcf66f2ad8b6ee5b289db42098960292ae1b99cc23bf47145bccea77f251ffc",
+      "block": 61,
+      "args": [
+        "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFDisputeRegistry": {
+      "address": "0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f",
+      "bundleKey": "ai-dispute-resolution:ADRFDisputeRegistry",
+      "txHash": "0xefb3142a863a018d860deb5683b241e51d78f93803823fdf534fe087ae8269fb",
+      "block": 62,
+      "args": [
+        "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
+        "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
+        "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+        "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
+        "0xc351628EB244ec633d5f21fBD6621e1a683B1181",
+        "0xFD471836031dc5108809D173A067e8486B9047A3",
+        "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision); router over six delegatecall modules (each unit fits Sepolia's per-transaction gas cap)"
+    },
+    "8471/DuplicateSettlementVerifier": {
+      "address": "0xB0D4afd8879eD9F52b28595d31B441D079B2Ca07",
+      "bundleKey": "ai-dispute-resolution:DuplicateSettlementVerifier",
+      "txHash": "0x22100fc9ce7d768b9e662ca51eaf0154b6c4b0b2a427c3ef68e3fe240cbb33f0",
+      "block": 63,
+      "args": [],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/DeclaredVersionVerifier": {
+      "address": "0x162A433068F51e18b7d13932F27e66a3f99E6890",
+      "bundleKey": "ai-dispute-resolution:DeclaredVersionVerifier",
+      "txHash": "0x0e4673b4da5a6259c3070c4d73312608a054296ab6c4d36f8f1194158ddd6bd4",
+      "block": 64,
+      "args": [],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/AttestorQuorumRule": {
+      "address": "0x922D6956C99E12DFeB3224DEA977D0939758A1Fe",
+      "bundleKey": "ai-dispute-resolution:AttestorQuorumRule",
+      "txHash": "0x2bd8c9e1594f7e3b2b8b203a15828b2f1fa258a30406545fc3c1b6d3ab231592",
+      "block": 65,
+      "args": [],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFACDFBridge": {
+      "address": "0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f",
+      "bundleKey": "ai-dispute-resolution:ADRFACDFBridge",
+      "txHash": "0xa1c579579437be16d5856cd21bfc5523e464a60272cb44512de9c52388d6a9b6",
+      "block": 66,
+      "args": [
+        "0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f",
+        "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision)"
+    },
+    "8471/ADRFServiceEscrow": {
+      "address": "0x1fA02b2d6A771842690194Cf62D91bdd92BfE28d",
+      "bundleKey": "ai-dispute-resolution:ADRFServiceEscrow",
+      "txHash": "0xc0e964d724a03f9c05ae19b7e73327dd820bb0cbfd18d6f38e23f2c733db23ce",
+      "block": 67,
+      "args": [
+        "0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f"
+      ],
+      "note": "deployed by FOGA from the bundle (not provided upstream at the locked revision); service escrow example (obligation source + executor); bound to a policy by the genesis runner"
+    }
+  },
+  "wiring": {
+    "8444/kindIds": {
+      "skill": "0x75357da1ea166b9845548f84f7855b7f122cfc7dc349e5edbdca01bd8ca7b0bb",
+      "task": "0x119c021f95332a1e2d06adbfe8e298dc2484ac0daa16e4cd837d8de82fbba87c",
+      "agent": "0x283cdd5ece2ad33dc6be3a32a7a140a653c611b0296c9b54878ae0439bbef3a2",
+      "registry": "0x455d1d9d2b151bdfaa173c1cee0ee26ece8e7bdb98830e8e3ca1e180989cf3c6"
+    }
+  },
+  "steps": [
+    {
+      "id": "8338/SkillToken",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8414/TaskToken",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8414/HashlockVerifier",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8419/KYASchemeRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8419/KYARegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8419/KYAPolicyRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8419/ValidationRegistry8004",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8419/KYABridge8004",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8419/Groth16Verifier",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8419/Groth16KYAVerifierAdapter",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8434/AIDRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8436/ACDFPolicyRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8436/ACDFRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8444/ARDOnchainRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8444/SkillAdapter",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8444/TaskAdapter",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8444/AgentAdapter",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8444/RegistryAdapter",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8447/SpecValidator",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8447/LifecycleLib",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8447/MembershipLib",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8447/ResourceLib",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8447/SwarmRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8447/AllowlistEligibility",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8447/SwarmTenderAdapter",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8454/AUFUnitRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8454/AUFAssertionRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8468/ASFEvaluation",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8468/ASFLifecycle",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8468/ASFSpecificationRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8468/ASFBindingRegistry",
+      "status": "attached",
+      "note": "attached from the deployed local world (rehearsal of the public-chain path)"
+    },
+    {
+      "id": "8434/AIDRegistry(ard-fixture)",
+      "status": "attached",
+      "note": "a second registry standing in for ARD's fixture instance on Sepolia: cells keep their liveness here as well"
+    },
+    {
+      "id": "8447/ERC8004Eligibility",
+      "status": "deployed",
+      "txHash": "0xdadc1aa3430c437309d54de3547123dc8b6347b8133408d66ff7d7b5c699b1ce"
+    },
+    {
+      "id": "8447/IdentityStateEligibility",
+      "status": "deployed",
+      "txHash": "0xb52a3572623d309b099c015f701a78a6a2234cd348ea49332916439ccaf6d914"
+    },
+    {
+      "id": "8471/ADRFPolicyRegistry",
+      "status": "deployed",
+      "txHash": "0xa1a880e59d68851ea99d19b7c002d99c51c74a9971fbcebf21e256ff046f4033"
+    },
+    {
+      "id": "8471/ADRFBindingModule",
+      "status": "deployed",
+      "txHash": "0xa4d5b58c01360dd2dc54cea406efaae2ace8ab05d129f4b32d2d71777649216f"
+    },
+    {
+      "id": "8471/ADRFFilingModule",
+      "status": "deployed",
+      "txHash": "0x188e1a1ec72ec031b20b442b748b14047f05a93b69704d45617041dafb9b1212"
+    },
+    {
+      "id": "8471/ADRFResolutionModule",
+      "status": "deployed",
+      "txHash": "0xe293197ab7e2c3681c4a2cf0a88170b9f625e5c427996ec4c5336508eefa7938"
+    },
+    {
+      "id": "8471/ADRFDecisionModule",
+      "status": "deployed",
+      "txHash": "0xeda90a61372a0ee29058e0dfa908a016577a912a0cea82685cc7d95d105dc39a"
+    },
+    {
+      "id": "8471/ADRFRecordModule",
+      "status": "deployed",
+      "txHash": "0xffb7a85792252c369f4bd33eca6661debe2873ed061e82d0944c7a479b19f27f"
+    },
+    {
+      "id": "8471/ADRFOutcomeModule",
+      "status": "deployed",
+      "txHash": "0xabcf66f2ad8b6ee5b289db42098960292ae1b99cc23bf47145bccea77f251ffc"
+    },
+    {
+      "id": "8471/ADRFDisputeRegistry",
+      "status": "deployed",
+      "txHash": "0xefb3142a863a018d860deb5683b241e51d78f93803823fdf534fe087ae8269fb"
+    },
+    {
+      "id": "8471/DuplicateSettlementVerifier",
+      "status": "deployed",
+      "txHash": "0x22100fc9ce7d768b9e662ca51eaf0154b6c4b0b2a427c3ef68e3fe240cbb33f0"
+    },
+    {
+      "id": "8471/DeclaredVersionVerifier",
+      "status": "deployed",
+      "txHash": "0x0e4673b4da5a6259c3070c4d73312608a054296ab6c4d36f8f1194158ddd6bd4"
+    },
+    {
+      "id": "8471/AttestorQuorumRule",
+      "status": "deployed",
+      "txHash": "0x2bd8c9e1594f7e3b2b8b203a15828b2f1fa258a30406545fc3c1b6d3ab231592"
+    },
+    {
+      "id": "8471/ADRFACDFBridge",
+      "status": "deployed",
+      "txHash": "0xa1c579579437be16d5856cd21bfc5523e464a60272cb44512de9c52388d6a9b6"
+    },
+    {
+      "id": "8471/ADRFServiceEscrow",
+      "status": "deployed",
+      "txHash": "0xc0e964d724a03f9c05ae19b7e73327dd820bb0cbfd18d6f38e23f2c733db23ce"
+    },
+    {
+      "id": "8444/registerKinds",
+      "status": "skipped",
+      "note": "ARD registry attached: the kinds were registered upstream"
+    }
+  ],
+  "notes": [
+    "Rehearsal of the attach-mode path on anvil (scripts/attach-rehearsal.mjs): the ERC-8471 stack and the ERC-8004 / identity-state eligibility modules are left out of the address book so that `foga world deploy` adds them from the bundle, as on Sepolia; a second AIDRegistry is listed as the ARD backing registry.",
+    "15 reference contracts the upstream records do not provide at the locked revision are deployed from the bundle by 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266: 8447/ERC8004Eligibility, 8447/IdentityStateEligibility, 8471/ADRFPolicyRegistry, 8471/ADRFBindingModule, 8471/ADRFFilingModule, 8471/ADRFResolutionModule, 8471/ADRFDecisionModule, 8471/ADRFRecordModule, 8471/ADRFOutcomeModule, 8471/ADRFDisputeRegistry, 8471/DuplicateSettlementVerifier, 8471/DeclaredVersionVerifier, 8471/AttestorQuorumRule, 8471/ADRFACDFBridge, 8471/ADRFServiceEscrow"
+  ]
+}

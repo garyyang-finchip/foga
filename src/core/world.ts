@@ -29,7 +29,9 @@ export class World {
     const url = rpc ?? process.env.FOGA_RPC_URL ?? (file.network === "anvil" ? "http://127.0.0.1:8545" : undefined);
     if (!url) throw new Error("no RPC: pass --rpc or set FOGA_RPC_URL");
     const provider = new JsonRpcProvider(url, undefined, { staticNetwork: true, cacheTimeout: -1 });
-    provider.pollingInterval = 250;
+    // A local node answers in microseconds and mines on demand; a public endpoint is shared, rate-limited and
+    // makes a block every 12 s, so it is asked a few times per block, not several times per second.
+    provider.pollingInterval = file.network === "anvil" ? 250 : 4_000;
     return new World(file, bundle, provider);
   }
 

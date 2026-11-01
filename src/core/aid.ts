@@ -33,14 +33,30 @@ export interface AIDDocument {
   alsoKnownAs?: string[];
 }
 
+/**
+ * A second ERC-8434 instance another standard's adapter reads. On Sepolia the ERC-8444 agent kind is anchored to
+ * ARD's own fixture AIDRegistry, not to aid-standard's reference instance (docs/version-lock.md, seam 1); a cell
+ * whose records must resolve as backed keeps its liveness in both. The world file names it under this id.
+ */
+export const BACKING_REGISTRY_ID = "8434/AIDRegistry(ard-fixture)";
+
 export class AID {
   readonly address: string;
+  /** The backing registry, when the world has one at another address than the primary registry. */
+  readonly backing: { id: string; address: string } | null;
   constructor(readonly world: World) {
     this.address = world.address("8434/AIDRegistry");
+    const backing = world.has(BACKING_REGISTRY_ID) ? world.address(BACKING_REGISTRY_ID) : null;
+    this.backing = backing && backing.toLowerCase() !== this.address.toLowerCase() ? { id: BACKING_REGISTRY_ID, address: backing } : null;
   }
 
   contract(runner?: ContractRunner): Contract {
     return this.world.contract("8434/AIDRegistry", runner);
+  }
+
+  /** The same ABI at another registry address (the backing registry). */
+  at(address: string, runner?: ContractRunner): Contract {
+    return this.world.at("aid-standard:AIDRegistry", address, runner);
   }
 
   encodeBind(identityRegistry: string, agentId: bigint): string {
@@ -63,12 +79,25 @@ export class AID {
     return this.contract().interface.encodeFunctionData("retire", [successor]);
   }
 
-  async state(anchor: string): Promise<number> {
-    return Number(await this.contract().state(anchor));
+  /** `window` in seconds, at most the registry's maximum; 0 restores the registry's default. */
+  encodeSetLivenessWindow(window: number): string {
+    return this.contract().interface.encodeFunctionData("setLivenessWindow", [window]);
   }
 
-  async stateName(anchor: string): Promise<string> {
-    return AIDStateName[await this.state(anchor)];
+  async state(anchor: string, registry = this.address): Promise<number> {
+    return Number(await this.at(registry).state(anchor));
+  }
+
+  async stateName(anchor: string, registry = this.address): Promise<string> {
+    return AIDStateName[await this.state(anchor, registry)];
+  }
+
+  async livenessWindow(anchor: string): Promise<number> {
+    return Number(await this.contract().livenessWindow(anchor));
+  }
+
+  async defaultLivenessWindow(): Promise<number> {
+    return Number(await this.contract().defaultLivenessWindow());
   }
 
   async bindingOf(anchor: string): Promise<{ registry: string; agentId: bigint; boundAt: bigint }> {

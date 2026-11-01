@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "name": "foga-probe",
-  "skillVersion": "1.0.0",
+  "skillVersion": "1.1.0",
   "summary": "Probe one address against the ten-ERC agent stack at one block and produce a canonical report",
   "entrypoint": "SKILL.md",
   "skillType": "protocol",

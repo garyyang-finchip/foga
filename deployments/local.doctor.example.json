@@ -1,8 +1,8 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-10-31T08:54:03.209Z",
+  "at": "2026-10-31T17:21:30.215Z",
   "world": {
-    "worldId": "anvil-31337-20261031T085035Z",
+    "worldId": "anvil-31337-20261031T171910Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
@@ -11,12 +11,12 @@
   },
   "source": {
     "rpc": "http://127.0.0.1:8545",
-    "collectedAt": "2026-10-31T08:54:03.082Z",
+    "collectedAt": "2026-10-31T17:21:30.034Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 31337,
-    "blockNumber": 245
+    "blockNumber": 246
   },
   "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275",
   "layers": {
@@ -1762,8 +1762,8 @@
       "subject": "genesis",
       "check": "evidence",
       "verdict": "Pass",
-      "expected": "anvil-31337-20261031T085035Z (chain 31337)",
-      "actual": "anvil-31337-20261031T085035Z (chain 31337), until T9, 165 checks, 0 failed, ran 2026-10-31T08:52:15.630Z"
+      "expected": "anvil-31337-20261031T171910Z (chain 31337)",
+      "actual": "anvil-31337-20261031T171910Z (chain 31337), until T9, 166 checks, 0 failed, ran 2026-10-31T17:20:56.966Z"
     },
     {
       "layer": 5,
@@ -1807,8 +1807,8 @@
       "check": "semantic validation",
       "verdict": "Pass",
       "expected": "every genesis check that exercises the standard passes",
-      "actual": "16 pass, 0 fail, 0 skipped",
-      "detail": "16/16 checks pass over T1, T2, T7, T9"
+      "actual": "17 pass, 0 fail, 0 skipped",
+      "detail": "17/17 checks pass over T1, T2, T7, T9"
     },
     {
       "layer": 5,

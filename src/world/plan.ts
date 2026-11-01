@@ -116,6 +116,8 @@ export const DEPLOY_PLAN: DeployStep[] = [
 export const WIRE_PLAN: WireStep[] = [
   {
     id: "8444/registerKinds",
+    // An attached registry was wired upstream (its owner key registered the kinds); only a registry this run deployed is wired here.
+    skip: (c) => (c.world.steps.some((s) => s.id === "8444/ARDOnchainRegistry" && s.status === "attached") ? "ARD registry attached: the kinds were registered upstream" : null),
     calls: (c) => {
       const kinds = c.bundle.extras["ard-onchain-framework"]?.kindIds?.kinds as Record<string, string> | undefined;
       if (!kinds) throw new Error("bundle extras lack ARD kind ids (ard-onchain-framework/kindIds)");

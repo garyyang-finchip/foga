@@ -1,6 +1,6 @@
 # The genesis scenario (T0–T9)
 
-The genesis is the run that proves the ten-ERC stack composes into a working agent: a world is set up, three cells are born, one of them acquires skills and earns a reward by doing verifiable work for another, the three organize into a swarm, the swarm earns a reward on a tender judged by a council, a service call between cells ends in a dispute whose ruling the escrow enacts, a guardian stops a cell at its execution gate, an independent measurer records what the cells realized, and an identity moves to a new body. Design memo section 4 defines ten phases, T0–T9; Phase 2a implemented T0–T5 (2a-1: T0–T3; 2a-2: T4–T5, the credential-pattern ZK path and the council), Phase 2b adds T6–T9, the predicate-pattern ZK path (`S_pred`), the measurement receipts and the doctor's fifth layer. The Sepolia run is Phase 2c.
+The genesis is the run that proves the ten-ERC stack composes into a working agent: a world is set up, three cells are born, one of them acquires skills and earns a reward by doing verifiable work for another, the three organize into a swarm, the swarm earns a reward on a tender judged by a council, a service call between cells ends in a dispute whose ruling the escrow enacts, a guardian stops a cell at its execution gate, an independent measurer records what the cells realized, and an identity moves to a new body. Design memo section 4 defines ten phases, T0–T9; Phase 2a implemented T0–T5 (2a-1: T0–T3; 2a-2: T4–T5, the credential-pattern ZK path and the council), Phase 2b adds T6–T9, the predicate-pattern ZK path (`S_pred`), the measurement receipts and the doctor's fifth layer. Phase 2c runs the same scenario on a public chain (Sepolia): the section "Running on a public chain" below says what differs, which is less than it looks.
 
 Everything below runs on anvil with `foga demo --genesis T9` (fresh chain) or, against a deployed world, with `foga genesis run --world deployments/local.json --until T9`. The run is idempotent: a second invocation replays every recorded operation from the operation store and re-checks the end state without sending a transaction; an interrupted run is resumed by invoking it again (docs/kernel.md). Checks that cannot be remade on a replayed run (the state of a suspension that has since been lifted) are recorded as skipped with the reason, never as passed.
 
@@ -8,14 +8,16 @@ Two ZK paths need proving material. The credential path (`S_cred`) needs the ups
 
 ## Actors
 
-| Signer | anvil account | Role |
+| Signer | account | Role |
 |---|---|---|
-| `W` | #0 | world operator: deploys the world, registers the KYA schemes and the ASF specification, issues the attested standing assertions, funds the cells on a local chain |
+| `W` | #0 | world operator: deploys the world, registers the KYA schemes and the ASF specification, issues the attested standing assertions; the treasury: funds the other roles to their floors and the cells with their capital |
 | `G` | #1 | guardian: the intervener with suspend and resume rights in every cell's binding |
 | `owner.A/B/C` | #2 #3 #4 | cold principals: deploy and administer the accounts, adopt the bindings |
 | `operator.A/B/C` | #5 #6 #7 | hot signers: act through `execute` |
 | `E` | #8 | the measurer of T8 (registers the method, asserts the receipts); in T4 and T5 also the stranger: an account with no identity and no standing |
-| `J1`, `J2`, `J3` | #9, #10, #11 | the judges of the FOGA-Council (J2 and J3 are beyond anvil's ten pre-funded accounts, so W funds them in T0) |
+| `J1`, `J2`, `J3` | #9, #10, #11 | the judges of the FOGA-Council |
+
+The twelve keys are the first twelve accounts of one BIP-39 phrase (role i at `m/44'/60'/0'/0/i`). On anvil the phrase is anvil's well-known one, so a fresh local world always has the same addresses; on any other chain it is the phrase in `FOGA_MNEMONIC` or in the file `FOGA_MNEMONIC_FILE` names (`foga keys new` writes one, `foga keys show` lists the addresses), and `FOGA_KEY_<ROLE>` overrides one role (`FOGA_KEY_W` to make an account that already holds the chain's ether the treasury, for instance). anvil pre-funds its first ten accounts; J2 and J3 are beyond them, so W funds the judges in T0 there — the same funding step that, on a public chain, funds every role (below).
 
 The cells are contract accounts (`FogaCellAccount`, docs/cell-account.md), not the signers: `A` is `0x663F…`, `B` is `0x057e…`, `C` is `0xbdEd…` on a fresh anvil world (deterministic: same keys, same nonces).
 
@@ -31,13 +33,13 @@ Pre-condition: a deployed world (`foga world deploy`, 47 contracts, four ARD kin
 | `T0.kya.predicate.verifier.deploy`, `T0.kya.predicate.adapter.deploy` | deploy `Groth16PredicateVerifier` (generated from FOGA's circuit `kya_predicate_count_v1`, docs/zk.md) and `Groth16PredicateKYAVerifierAdapter(verifier, source-set root, 30-day epochs, grace 1, validity 30 d)` — FOGA's own IKYAVerifier for the predicate pattern, pinned to a source set of one key held by W (the node that indexes task completions; `T0.kya.sourceSet` records the root and the public key). Both are deployed on every machine; the proving material is needed only to prove (T3) | `T0.kya.S_pred` |
 | `T0.kya.S_pred.register` | `registerScheme` — proved, verifier = the predicate adapter, levels 0–1 ("not shown", "shown"): the rule "at least K accepted task completions about the subject inside [t0, t1], signed by a source of the set" | `T0.kya.S_pred.schemeId` |
 | `T0.asf.spec.register` | `ASFSpecificationRegistry.registerSpecification(salt, keccak(JCS(spec)), data: URI, [])` — the FOGA-Cell-v1 specification: commitment-class actions only while the anchor is ACTIVE, interventions honored at the gate, de-risking always open, attribution only through the account | `T0.asf.spec` (specId, version 1, contentHash) |
-| `T0.fund.J1..J3` | 1 ETH each (local chains) | — |
+| `T<n>.fund.<role>` | before every step, W tops up each role whose balance has fallen below half its floor (on anvil: 1 ETH for J1–J3 in T0; on a public chain: every role, see "Running on a public chain") | `T<n>.fund.price`, `T<n>.fund.<role>.amount` |
 | `T0.acdf.policy.register` | `ACDFPolicyRegistry.registerPolicy` — FOGA-Council: one ROSTER_KOFN body of J1–J3, k = 2, on-chain tally, window; one appeal of a Decided result within the appeal window (an appeal round that ends without a decision preserves the first); a NoDecision is final at once; hard cap = 2 windows + appeal window; descriptorHash = keccak(JCS(descriptor)) | `T0.acdf.policy` |
 | `T0.acdf.tenderAdapter.deploy` | deploy `ACDFTaskTenderAdapter(ACDFRegistry, TaskToken, policyId, margin)` — FOGA's instance of the upstream adapter: the judged acceptance authority of T4/T5 | `T0.acdf.tenderAdapter` |
 | `T0.adrf.policy.register` | `ADRFPolicyRegistry.registerPolicy` — FOGA-Service-v1: (result, FORMAL) → the upstream `DeclaredVersionVerifier` over the world's `ADRFServiceEscrow`; (result, JUDGED) → the `ADRFACDFBridge` with FOGA-Council as parameters, burden NO_DECISION; one substantive effect, the escrow's refund; standing = the parties of a call; windows below (the decision window must hold the council's whole procedure, which the policy registry verifies) | `T0.adrf` |
 | `T0.adrf.escrow.bind` | `ADRFServiceEscrow.bindTo(input)` by its admin W — all the escrow's calls, PRE_COMMIT, refund authorized, the escrow itself the executor; the binding document is a `data:` URI committed by hash | `T0.adrf.bindingId` |
 
-Checks: the pinned version's content hash equals `keccak(JCS(spec))`; the three schemes exist; FOGA's credential adapter pins the issuer-set root and the predicate adapter the source-set root; the policy exists; the tender adapter is bound to it and does not declare `ITaskVerifier` (a judged authority, never machine settlement); the service policy exists and the escrow is bound to it. The genesis refuses to run when the world's escrow is not administered by W (the world must be deployed by W).
+Checks: the pinned version's content hash equals `keccak(JCS(spec))`; the three schemes exist; FOGA's credential adapter pins the issuer-set root and the predicate adapter the source-set root; the policy exists; the tender adapter is bound to it and does not declare `ITaskVerifier` (a judged authority, never machine settlement); the service policy exists and the escrow is bound to it. The genesis refuses to run when the world's escrow is not administered by W (the escrow must be deployed by W: on a public chain `foga world deploy` deploys it with W as deployer).
 
 ### Windows and margins
 
@@ -48,27 +50,27 @@ Checks: the pinned version's content hash equals `keccak(JCS(spec))`; the three 
 | workers' decision window | 1 day | 180 s |
 | execution margin | 1 hour | 60 s |
 | judgment window of the T4 tender | 7 days | 900 s |
-| judgment window of the no-decision tender | 3 days | 900 s |
-| service dispute: filing window | 7 days | 1 hour |
-| service dispute: evidence window / decision window | 1 day / 3 days | 300 s / 900 s |
-| service dispute: review window (one review) / enactment margin | 1 day / 1 day | 300 s / 300 s |
-| service dispute: hard cap (decision + review + decision) | 7 days | 2100 s |
-| escrow dispute period (how long a charge is held) | 10 days | 1 hour |
-| AID liveness window (world parameter) | 90 days | 90 days |
+| judgment window of the no-decision tender | 3 days | 600 s |
+| service dispute: filing window | 7 days | 1800 s |
+| service dispute: evidence window / decision window | 1 day / 3 days | 180 s / 600 s |
+| service dispute: review window (one review) / enactment margin | 1 day / 1 day | 120 s / 120 s |
+| service dispute: hard cap (decision + review + decision) | 7 days | 1320 s |
+| escrow dispute period (how long a charge is held) | 10 days | 1800 s |
+| AID liveness window (world parameter; T7 shortens A's to 120 s for the demonstration and restores it) | 90 days | 90 days (30 days in Sepolia's backing registry) |
 
-On anvil the kernel moves the clock past a window (`evm_increaseTime`; every skip is a journal entry and part of the evidence); elsewhere it waits. T7 skips the liveness window to make the anchors STALE and heartbeats all three cells afterwards.
+The relations the registries enforce hold in both columns: the service policy's decision window holds the council's whole procedure (2 x window + appeal = 420 s), and a call's dispute period outlasts the service track's hard cap plus its enactment margin (1320 + 120 = 1440 s < 1800 s) so a ruling can still be enacted on the held charge. On anvil the kernel moves the clock past a window (`evm_increaseTime`; every skip is a journal entry and part of the evidence); elsewhere it waits (about fifty minutes in all over T5–T7).
 
 ## T1 — birth, for each of A, B, C
 
 | # | Operation key | Who | Call |
 |---|---|---|---|
 | 1 | `T1.X.deploy` | owner | deploy `FogaCellAccount(safety = ASFBindingRegistry, owner, operator, guardian = G, recovery = owner, requirement)`; the requirement is one clause — FOGA-Cell-v1 version 1, adopter = the account, subjectKey = keccak(`eip155:<chain>:<account>`), scopeKey = keccak(JCS({ref})), enforcement account+contract, intervener G with suspend+resume — built from the address predicted for the deployment nonce |
-| 2 | `T1.X.fund` | W | 0.05 ETH of working capital to the account (local chains only) |
+| 2 | `T1.X.fund` | W | working capital to the account: 0.05 ETH on anvil, 0.01 ETH on a public chain (what a cell funds and deposits over the run is about 0.005 ETH) |
 | 3 | `T1.X.setOperator`, `T1.X.setAIDRegistry` | owner | operator scope (no expiry, 0.01 ETH per day), the AID registry for the commitment gate |
 | 4 | `T1.X.class.*` ×5, `T1.X.derisk.*` ×4 | owner | commitment-class selectors (8414 submitFulfillment, 8447 join / applyToJoin, 8454 assertStatement, 8436 castBallot) and de-risk selectors (8414 withdrawCredit / reclaimEscrow, 8447 leave, 8471 ADRFServiceEscrow.withdrawBalance) |
 | 5 | `T1.X.adopt` | owner | `adoptBinding(input, 0)`: the account adopts FOGA-Cell-v1 v1 with G as intervener (rights suspend+resume), params and authority documents as `data:` URIs; the binding is presented for clause 0 |
 | 6 | `T1.X.8004.register` | operator via `execute` | `IdentityRegistry.register(agentURI)` with an ERC-8004 registration file; the NFT belongs to the account |
-| 7 | `T1.X.aid.bind`, `T1.X.aid.heartbeat` | operator via `execute` | `AIDRegistry.bind(identityRegistry, agentId)` (the account owns the agent), `heartbeat()` |
+| 7 | `T1.X.aid.bind`, `T1.X.aid.heartbeat` (and `T1.X.aid.backing.bind` where the world has a backing registry) | operator via `execute` | `AIDRegistry.bind(identityRegistry, agentId)` (the account owns the agent), `heartbeat()`; the same `bind` in the backing registry (below) |
 | 8 | `T1.X.kya.attest` | W | `KYARegistry.attest({account, (chain, account)}, S_att, level 2, claimDigest, expiresAt = +365 d, evidence data: URI, claimDigest)` |
 | 9 | `T1.X.aid.document` | operator via `execute` | `setDocumentURI(data: URI, keccak(JCS(document)))` — an `aid-document/v1` with a SELF identity facet (resolver erc8004-identity) and an ATTESTED standing facet (resolver erc8419-assertion citing the assertion) |
 | 10 | `T1.X.ard.register` | operator via `execute` | `ARDOnchainRegistry.register(kind agent, target = account, id = 0, sha256(JCS(authored descriptor)), data: URI, urn)` — the AgentAdapter makes the anchor its own controller |
@@ -202,10 +204,12 @@ Checks: the judges are no party to the call; the call holds the charge with comm
 | `T7.A.adopt2` | owner | `adoptBinding(input₂, 0)`: a fresh binding of the same specification presented while the first is suspended |
 | `T7.G.resume` | G | `resume(bindingId, reasonRef)` — lifts the standing stop with it |
 | `T7.A.submit`, `T7.A.settle` | A via `execute` | A takes the second completion through its account and is paid |
-| — | kernel | moves the clock past the liveness window (90 d): A, B and C are STALE |
-| `T7.A.aid.heartbeat`, `T7.B.aid.heartbeat`, `T7.C.aid.heartbeat` | each cell via `execute` | back to ACTIVE |
+| `T7.A.aid.window` | A via `execute` | `AIDRegistry.setLivenessWindow(120)` — the anchor shortens its own window (its parameter, bounded by the registry's maximum) |
+| — | kernel | lets the window pass without a heartbeat (moved on anvil, waited for elsewhere): A is STALE |
+| `T7.A.aid.heartbeat`, `T7.B.aid.heartbeat`, `T7.C.aid.heartbeat` (and `T7.X.aid.backing.heartbeat` in a backing registry) | each cell via `execute` | A back to ACTIVE; B and C renew |
+| `T7.A.aid.window.reset` | A via `execute` | `setLivenessWindow(0)`: the registry's default again (90 days) |
 
-Checks: a non-guardian cannot suspend (`NotAuthorized`); `status()` is NotSatisfied [Suspended] during the stop; the operator's bypass transaction failed on chain with the gate's reason; a call that is neither de-risk nor allow-listed (an escrow deposit) reverts under the suspension; the de-risk withdrawal succeeded and A's account rose by the earnings; the operator's own submission is not attributable (fulfiller ≠ the account) and its payout left the cell's boundary; with the fresh binding presented `status()` is NotSatisfied [StoppedByIntervener] and the commitment-class call still reverts (the stop follows the adopter and the subject, not the binding); the adopter cannot lift the intervener's suspension; after `resume` the status is Satisfied, A's submission is Accepted with the account as fulfiller and A is paid; after the liveness window `state(A) = STALE` and the commitment-class call reverts at the gate's AID clause (`AnchorNotActive`); after the heartbeats all three are ACTIVE and the same call passes the gate (it then fails only inside the tender, both completions being taken). On a replayed run the checks that depend on the suspended or stale state are recorded as skipped.
+Checks: a non-guardian cannot suspend (`NotAuthorized`); `status()` is NotSatisfied [Suspended] during the stop; the operator's bypass transaction failed on chain with the gate's reason; a call that is neither de-risk nor allow-listed (an escrow deposit) reverts under the suspension; the de-risk withdrawal succeeded and A's account rose by the earnings; the operator's own submission is not attributable (fulfiller ≠ the account) and its payout left the cell's boundary; with the fresh binding presented `status()` is NotSatisfied [StoppedByIntervener] and the commitment-class call still reverts (the stop follows the adopter and the subject, not the binding); the adopter cannot lift the intervener's suspension; after `resume` the status is Satisfied, A's submission is Accepted with the account as fulfiller and A is paid; with its window shortened to 120 s and the window passed, `state(A) = STALE` and the commitment-class call reverts at the gate's AID clause (`AnchorNotActive`); after the heartbeats the three anchors are ACTIVE (in the backing registry too, where there is one) and the same call passes the gate; A's window is the registry's default again; after the heartbeats all three are ACTIVE and the same call passes the gate (it then fails only inside the tender, both completions being taken). On a replayed run the checks that depend on the suspended or stale state are recorded as skipped.
 
 ## T8 — value, as measured (ERC-8454 observation receipts)
 
@@ -228,8 +232,8 @@ Deviation from the memo: the measured unit for A is the cell's unit (every inflo
 | `T9.Aprime.deploy`, `T9.Aprime.fund`, `T9.Aprime.setOperator`, `T9.Aprime.setAIDRegistry`, `T9.Aprime.class.8414.submitFulfillment` | owner.A (the same owner and operator keys as A); W funds on a local chain | the new body, configured as a cell |
 | `T9.Aprime.adopt` | owner | `adoptBinding` of A-prime's own binding (the old one is A's); nothing executes before it |
 | `T9.A.8004.transfer` | A via `execute` | `IdentityRegistry.transferFrom(A, A-prime, agentId)` — A's anchor turns STALE: the binding predicate no longer holds |
-| `T9.Aprime.aid.bind` | A-prime via `execute` | `AIDRegistry.bind(registry, agentId)` — the takeover: the stale binding does not hold the agent hostage; A's binding record is cleared; A-prime is ACTIVE |
-| `T9.A.aid.retire` | A via `execute` | `retire(successor = A-prime)` — only the anchor itself; `retire` has no delegated form |
+| `T9.Aprime.aid.bind` (and `T9.Aprime.aid.backing.bind`) | A-prime via `execute` | `AIDRegistry.bind(registry, agentId)` — the takeover: the stale binding does not hold the agent hostage; A's binding record is cleared; A-prime is ACTIVE (the same in the backing registry) |
+| `T9.A.aid.retire` (and `T9.A.aid.backing.retire`) | A via `execute` | `retire(successor = A-prime)` — only the anchor itself; `retire` has no delegated form |
 | `T9.Aprime.ard.register`, `T9.Aprime.aid.document` | A-prime via `execute` | a new ARD agent record anchored at (chain, A-prime, 0) and A-prime's own AID document (identity facet only: A's standing facet is not carried over) |
 | `T9.A.skill.transfer` | A via `execute` | `SkillToken.safeTransferFrom(A, A-prime, finch-extract-verify)` — the ARD skill record's controller follows the token; the record is no longer adopted (committed by a former controller) |
 | `T9.Aprime.skill.adopt` | A-prime via `execute` | `ARDOnchainRegistry.updateDescriptor(recordId, same hash, same URI, same urn)` — recommitting the same descriptor is the adoption |
@@ -253,9 +257,34 @@ Checks: A-prime cannot execute before presenting a binding (`BindingsNotPresente
 
 ## Operation count and evidence
 
-A complete T0–T9 run is 186 operations (14 in T0, 64 in T1, 7 in T2, 7 in T3, 22 in T4, 20 in T5, 21 in T6, 14 in T7, 3 in T8, 14 in T9) and 165 checks, about 95 s on anvil including five Groth16 proofs (two credential, three predicate; the predicate proofs take 10-15 s each on a small machine). The evidence file `deployments/<world>.genesis.json` holds the checks, the facts, per-step evidence (addresses, ids, hashes, transaction hashes, run receipts, case documents, measurement receipts and their resolver reports, results of the deliberations), the operation summary of the store and the run's journal (time skips included); `deployments/local.genesis.example.json` is a committed run. `foga doctor --genesis <evidence.json>` turns the checks into the doctor's fifth layer, per standard (docs/doctor.md).
+A complete T0–T9 run on anvil is 187 operations (13 in T0, 64 in T1, 7 in T2, 7 in T3, 22 in T4, 20 in T5, 21 in T6, 16 in T7, 3 in T8, 14 in T9) and 166 checks, about 100 s including five Groth16 proofs (two credential, three predicate; the predicate proofs take 10-15 s each on a small machine). On a world with a backing registry the run adds the bind, heartbeat, takeover and retirement there (197 operations, 171 checks in the anvil rehearsal of that path; the public-chain funding adds one transfer per role topped up). The evidence file `deployments/<world>.genesis.json` holds the checks, the facts, per-step evidence (addresses, ids, hashes, transaction hashes, run receipts, case documents, measurement receipts and their resolver reports, results of the deliberations), the operation summary of the store and the run's journal (time skips included); `deployments/local.genesis.example.json` is a committed run. `foga doctor --genesis <evidence.json>` turns the checks into the doctor's fifth layer, per standard (docs/doctor.md).
+
+## Running on a public chain
+
+The scenario is the same; the chain is not. Four things differ, and each is a branch the anvil run also takes, so the public-chain path is rehearsed in CI on anvil (an attach-mode world built by `scripts/attach-rehearsal.mjs`) before it is run for real.
+
+**The world is attached and completed.** `worlds/sepolia.json` is an attach-mode config: every address comes from the upstream deployment records (docs/version-lock.md). Plan steps the config does not list are what the upstream records do not provide at the locked revision — on Sepolia the whole ERC-8471 stack (deployed upstream at revision 3, which cannot be bound to a revision-4 escrow: the binding module admits only sources declaring its own `IADRFObligationSource` id) and the two ERC-8447 eligibility modules never deployed upstream. `foga world deploy --world worlds/sepolia.json` attaches what is listed and deploys the rest from the bundle, with W as deployer (about 16 M gas), so the escrow the genesis binds in T0 is administered by W. The resulting `deployments/sepolia.json` is an ordinary world file (`mode: attached`; the steps say which contracts were deployed here), and the doctor runs on it as on any other.
+
+**Twelve keys, one treasury.** `foga keys new` writes a BIP-39 phrase to a file outside the repository (`~/.foga/genesis.mnemonic`, mode 0600) and prints the twelve role addresses; `FOGA_MNEMONIC_FILE` (or `FOGA_MNEMONIC`) hands it to every command, and `FOGA_KEY_<ROLE>` overrides a role. Only W needs to be funded by hand: before every step the kernel tops up each role whose balance has fallen below half its floor, and gives each cell its capital at birth (`T<n>.fund.<role>`, `T1.X.fund`, `T9.Aprime.fund`). A floor is a gas budget — what the role spent in a full local run, with a margin of about one half (`src/genesis/funding.ts`) — priced at the fee the chain quotes when the step starts (at least 1 gwei), so a rising base fee raises the top-up rather than starving a role, and the amount of every transfer is fixed in the store the first time so a resumed run rebuilds it. `foga genesis preflight --world deployments/sepolia.json` prints the plan without sending anything: every role's balance against its floor, what W must hold (the top-ups, the cells' capital and W's own budget of about 42 M gas, the world deployment included), the escrow's admin, the backing registry, the proving material and the waits. The whole run is about 125 M gas (107 M in the genesis, 16 M in the world deployment, the rest in top-ups): at 2 gwei a quarter of an ether, at 10 gwei about 1.3 ETH. The floors carry margins (163 M gas of budgets in all), priced at the fee the chain quotes (2 x base fee + priority), so the preflight asks W for about 0.16 ETH per gwei of that quote plus the cells' capital — half an ether at a 3 gwei quote; what the roles do not spend stays in their accounts (the phrase holds every key).
+
+**Two liveness registries.** On Sepolia the ERC-8444 agent kind is anchored to ARD's own fixture `AIDRegistry` (`8434/AIDRegistry(ard-fixture)`, 30-day default window), not to aid-standard's reference instance the cells' accounts gate on (seam 1 of docs/version-lock.md). A world that names a backing registry under that id makes the cells keep their liveness in both: `bind` at birth (T1), heartbeats in T7, the takeover and the retirement in T9, each a `backing.*` operation mirroring the primary one; the ARD `backed` checks read the backing registry, and the evidence records both states. Documents and facets stay in the reference registry; the backing registry carries liveness only.
+
+**Real time.** The public timing profile (table above) is waited for: about fifty minutes over T5–T7, plus one block per operation. T7 makes A STALE by shortening A's own liveness window to 120 s rather than by moving the clock 90 days, which is also what the anvil run does now. Receipts are awaited for 120 s per operation; a transaction still pending after that is replaced under the same nonce with fees raised by a third (up to three times), and a resumed run recognizes whichever of an operation's transactions was mined (docs/kernel.md). The probe of T3 reads state at a fixed block; a run resumed hours later needs an archive-capable RPC for that block.
+
+The sequence on a machine that reaches a Sepolia RPC (the repository's EC2, for instance):
+
+```bash
+export SEPOLIA_RPC_URL=https://...                   # the config's rpc is ${SEPOLIA_RPC_URL}
+npm run foga -- keys new                             # once; prints W's address: fund it (0.5-1.5 ETH depending on the fee level)
+export FOGA_MNEMONIC_FILE=~/.foga/genesis.mnemonic
+npm run foga -- world deploy --world worlds/sepolia.json --rpc $SEPOLIA_RPC_URL     # attaches 35, deploys 15 (W pays); add --resume to continue an interrupted deployment
+npm run foga -- genesis preflight --world deployments/sepolia.json --rpc $SEPOLIA_RPC_URL
+npm run foga -- genesis run --world deployments/sepolia.json --rpc $SEPOLIA_RPC_URL --until T9     # 1.5-2.5 h; re-run to resume
+npm run foga -- doctor --world deployments/sepolia.json --rpc $SEPOLIA_RPC_URL --genesis deployments/sepolia.genesis.json
+```
+
+`--zk auto` records which proving paths the machine has; `--zk require` insists on both (the predicate material is built with `npm run zk:predicate`, docs/zk.md). The store `deployments/sepolia.genesis.sqlite` is the run's memory: an interrupted run is resumed by the same command; nothing is sent twice.
 
 ## Not in this phase
 
-- The Sepolia run — 2c (the keys come from `FOGA_KEY_<ROLE>`; the judges, E and the cells' operators must be funded there; the AgentAdapter seam documented in docs/version-lock.md means cells bind in both AID registries; the short windows of the public timing profile apply; the escrow's dispute period is one hour there, so T6 must file within minutes of the delivery).
 - A production trusted setup for the predicate circuit: the committed keys come from a development ceremony with a public beacon (docs/zk.md).
