@@ -61,6 +61,12 @@ export class Kernel {
     this.signers = Object.fromEntries(Object.entries(keys).map(([name, pk]) => [name, new Wallet(pk, world.provider)]));
     // a public endpoint is usually a cluster: after a receipt, wait until the cluster answers from that block before reading
     this.tx = new TxManager(world.provider, store, this.signers, { awaitVisibility: world.file.network !== "anvil", ...options });
+    // reads are pinned to the last seen block (kernel/provider.ts); a read that had to give the pin up is part of the record
+    const pinned = world.provider as { onLag?: (e: Record<string, unknown>) => void };
+    if ("pin" in world.provider) pinned.onLag = (e) => {
+      store.journal("pinned-read", e);
+      options.log?.(`  rpc: ${e.method} at block ${e.block} refused ${e.attempts} time(s) by the endpoint (${e.nodeError}); ${e.outcome === "fell-back" ? "read at latest instead" : "no answer at latest either"}`);
+    };
     this.kya = new KYA(world);
     this.aid = new AID(world);
     this.asf = new ASF(world);

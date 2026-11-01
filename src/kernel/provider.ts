@@ -15,11 +15,23 @@ import { JsonRpcProvider, toQuantity, type JsonRpcApiProviderOptions, type Netwo
 const BLOCK_PARAM: Record<string, number> = { eth_call: 1, eth_estimateGas: 1, eth_getBalance: 1, eth_getCode: 1, eth_getTransactionCount: 1, eth_getStorageAt: 2 };
 const BEHIND = /header not found|unknown block|block not found|missing trie node|cannot query|beyond|out of range|unknown header|no state|state (is )?not available|pruned|too old|invalid block|resource not found/i;
 
+export interface PinnedReadEvent {
+  method: string;
+  block: number;
+  attempts: number;
+  /** The node's own words for the last refusal. */
+  nodeError: string;
+  /** What was done after the retries ran out: the read was made at "latest" after all, or the error was raised. */
+  outcome: "fell-back" | "raised";
+}
+
 export class PinnedProvider extends JsonRpcProvider {
   /** The highest block seen; reads are made no earlier than this. */
   pin = 0;
-  /** Milliseconds to keep retrying a read that a lagging node refused before giving up. */
-  settleMs = 30_000;
+  /** Milliseconds to keep retrying a read that a lagging node refused before falling back to "latest". */
+  settleMs = 20_000;
+  /** Told when a pinned read ran out of retries (the kernel journals it). */
+  onLag?: (event: PinnedReadEvent) => void;
 
   constructor(url: string, network?: Networkish, options?: JsonRpcApiProviderOptions) {
     super(url, network, options);
@@ -36,18 +48,34 @@ export class PinnedProvider extends JsonRpcProvider {
     }
     const pinned = [...params];
     while (pinned.length <= idx) pinned.push("latest");
-    pinned[idx] = toQuantity(this.pin);
+    const block = this.pin;
+    pinned[idx] = toQuantity(block);
     const deadline = Date.now() + this.settleMs;
-    for (let attempt = 0; ; attempt++) {
+    for (let attempt = 1; ; attempt++) {
       try {
         return await super.send(method, pinned);
       } catch (e: any) {
-        // ethers wraps a node's error (a call's as CALL_EXCEPTION); the node's own words are in info.error
+        // ethers wraps a node's error (a call's as CALL_EXCEPTION, "missing revert data"); the node's own words are in info.error
         const text = [e?.info?.error?.message, e?.error?.message, e?.shortMessage, e?.message].filter(Boolean).join(" | ");
         // a contract's revert is an answer, not a lag: it is never retried
         const reverted = /execution reverted/i.test(text) || Boolean(e?.data) || Boolean(e?.revert);
-        if (reverted || !BEHIND.test(text) || Date.now() >= deadline) throw e;
-        await new Promise((r) => setTimeout(r, Math.min(2_000, 250 * (attempt + 1))));
+        if (reverted) throw e;
+        const behind = BEHIND.test(text);
+        if (behind && Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, Math.min(2_000, 250 * attempt)));
+          continue;
+        }
+        // Not a lag we recognize, or the lag outlasted the retries: read at "latest" after all, so that one node's
+        // trouble with an explicit block does not stop the run; the kernel is told and journals it.
+        try {
+          const result = await super.send(method, params);
+          this.onLag?.({ method, block, attempts: attempt, nodeError: text, outcome: "fell-back" });
+          return result;
+        } catch (e2: any) {
+          this.onLag?.({ method, block, attempts: attempt, nodeError: text, outcome: "raised" });
+          if (e2 && typeof e2 === "object" && typeof e2.message === "string") e2.message += ` [pinned read at block ${block} refused ${attempt} time${attempt === 1 ? "" : "s"}: ${text}]`;
+          throw e2;
+        }
       }
     }
   }

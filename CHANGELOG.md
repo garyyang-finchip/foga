@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-alpha.6 — 2026-11-01
+
+- `PinnedProvider`: a pinned read the endpoint refuses for a reason the provider does not recognize, or that stays refused past the retries (20 s), is made at "latest" after all instead of failing the run; the kernel journals the event (`pinned-read`) and logs the node's own words. On Sepolia a resumed run stopped on the escrow's `admin()` with ethers' "missing revert data", which hides the node's message; the raised error now carries it.
+
 ## 0.5.0-alpha.5 — 2026-11-01
 
 - Kernel: reads are pinned to the highest block the provider has seen (`src/kernel/provider.ts`, `PinnedProvider`, used by every world handle and by `foga world deploy`): `eth_call`, `eth_estimateGas`, balances, code and storage asked at "latest" are sent at the pin, a node behind it answers with an error and is retried (up to 30 s) instead of answering from stale state; explicit block tags and "pending" pass through; the pin advances with receipts and block headers. The visibility wait of alpha.3 was not enough on Sepolia's cluster: a second enactment read as possible right after the first (`refund.twice.refused`), and the delivery of a call opened one block earlier was refused by the estimate (`Escrow_UnknownCall`). Test against a mock endpoint with a lagging node (`test/provider.test.ts`).
