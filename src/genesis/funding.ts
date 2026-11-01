@@ -111,7 +111,8 @@ export async function fundingPlan(k: Kernel, price?: bigint): Promise<FundingPla
  * itself cannot cover the step, naming the shortfall.
  */
 export async function fundRoles(k: Kernel, step: StepName, log: (line: string) => void): Promise<FundingLine[]> {
-  const price = await k.memo(`${step}.fund.price`, () => quotePrice(k));
+  // facts hold bigints as decimal strings: a resumed run reads the price back as a string
+  const price = BigInt(await k.memo<string>(`${step}.fund.price`, async () => (await quotePrice(k)).toString()));
   const plan = await fundingPlan(k, price);
   const due = plan.lines.filter((l) => l.topUp > 0n || k.store.get(`${step}.fund.${l.role}`)?.status === "confirmed");
   if (!due.length) return [];

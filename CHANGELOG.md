@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-alpha.3 — 2026-11-01
+
+- Fix: a resumed run on a public chain read the memoized fee of a step's funding back as a string and failed in `floorOf` ("Cannot mix BigInt and other types"); the memo now stores and reads a decimal string explicitly. anvil did not show it because its floors are fixed amounts.
+- Kernel: on a public chain the transaction manager waits, after every receipt, until the endpoint reports the receipt's block twice in a row (up to 60 s; `visibility-waited` journal entry when it had to) before the kernel reads or estimates again. Seen on Sepolia with a load-balanced RPC: the third `join` confirmed, and the roster read one second later from another node of the cluster came back as not met, so `activate` was refused by that node's estimate. Off on anvil.
+
 ## 0.5.0-alpha.2 — 2026-11-01
 
 - Funding on public chains priced for a quiet testnet: the fee a budget is priced at is never below `FOGA_FEE_FLOOR_GWEI` (default 0.1 gwei; was a fixed 1 gwei), the cells' public capital is 0.005 ETH (the successor 0.001), W's requirement counts the tender rewards it pays (0.003 ETH), and the cells' pre-commitment check compares the operator's gas with a quarter of its budget at the current price instead of a fixed 0.01 ETH. The preflight now needs about 0.035 ETH on W at the floor (Sepolia was quoting fractions of a wei per gas on the first attempt, and W held a faucet's 0.05 ETH). The preflight says whether the price is the chain's quote or the floor.

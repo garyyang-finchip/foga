@@ -56,6 +56,8 @@ Values a later step needs (ids, addresses, hashes) are facts in the store, writt
 
 The provider polls a local node every 250 ms and a public endpoint every 4 s: a shared, rate-limited endpoint that makes a block every 12 s is asked a few times per block, not several times per second.
 
+A public RPC URL usually fronts a cluster whose nodes import a block at slightly different times, so a read made right after a receipt can land on a node that has not seen the block yet (on Sepolia the roster of a swarm read as not met one second after its third `join` confirmed). On a public chain the transaction manager therefore waits, after every receipt, until the endpoint reports the receipt's block twice in a row (up to 60 s) before the kernel reads or estimates again; a wait that was actually needed is a `visibility-waited` journal entry.
+
 ## Gas
 
 Every estimate gets a margin (see above). A call whose outcome depends on the gas it is given — the SwarmRegistry's `challenge`, which treats an eligibility module's `false` returned with little gas left as unevaluable — takes an explicit `gasLimit` through `kernel.call`, because an estimate stops at the first non-reverting path, and "unevaluable, nothing changed" is one.

@@ -59,7 +59,8 @@ export class Kernel {
     options: TxManagerOptions,
   ) {
     this.signers = Object.fromEntries(Object.entries(keys).map(([name, pk]) => [name, new Wallet(pk, world.provider)]));
-    this.tx = new TxManager(world.provider, store, this.signers, options);
+    // a public endpoint is usually a cluster: after a receipt, wait until the cluster answers from that block before reading
+    this.tx = new TxManager(world.provider, store, this.signers, { awaitVisibility: world.file.network !== "anvil", ...options });
     this.kya = new KYA(world);
     this.aid = new AID(world);
     this.asf = new ASF(world);

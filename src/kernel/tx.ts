@@ -47,6 +47,13 @@ export interface TxManagerOptions {
   receiptTimeoutMs?: number;
   /** How many times a transaction still pending after the timeout is re-sent with higher fees (same nonce) before the run stops. */
   maxReplacements?: number;
+  /**
+   * After a receipt, wait until the endpoint reports the receipt's block twice in a row before returning: a public RPC
+   * URL usually fronts a cluster whose nodes import a block at slightly different times, and a read or a gas estimate
+   * made right after a receipt can land on a node that has not seen it yet (a roster read as not met one second after
+   * the third join confirmed, for instance). Off on a local node.
+   */
+  awaitVisibility?: boolean;
   /** Fault injection: exit the process right after this op's hash is recorded, before the broadcast. */
   crashBeforeBroadcast?: string;
   /** Fault injection: exit the process right after this op is broadcast, before its receipt is read. */
@@ -116,6 +123,7 @@ export class TxManager {
     if (pendingBefore) {
       // the recorded transaction is still in the pool: raise its fees and take its place rather than wait again
       const replaced = await this.replace(req, wallet, populated, pendingBefore, 0);
+      await this.ensureVisible(replaced.blockNumber);
       return this.finish(req.key, replaced, true);
     }
     const signed = await wallet.signTransaction(populated);
@@ -129,7 +137,26 @@ export class TxManager {
     if (this.options.crashAfterBroadcast === req.key) this.crash(req.key, "after-broadcast");
 
     const receipt = await this.awaitInclusion(req, wallet, populated, txHash);
+    await this.ensureVisible(receipt.blockNumber);
     return this.finish(req.key, receipt, false);
+  }
+
+  /** With `awaitVisibility`: wait (up to 60 s) until two consecutive block-number reads are at or past `block`. */
+  private async ensureVisible(block: number): Promise<void> {
+    if (!this.options.awaitVisibility) return;
+    const deadline = Date.now() + 60_000;
+    let agreeing = 0;
+    let lagged = false;
+    while (agreeing < 2 && Date.now() < deadline) {
+      const n = await this.provider.getBlockNumber();
+      if (n >= block) agreeing++;
+      else {
+        agreeing = 0;
+        lagged = true;
+      }
+      if (agreeing < 2) await new Promise((r) => setTimeout(r, 750));
+    }
+    if (lagged) this.store.journal("visibility-waited", { block, caughtUp: agreeing >= 2 });
   }
 
   /** Build, estimate and populate the request for a nonce; a failing estimate marks the operation failed. */
@@ -268,6 +295,7 @@ export class TxManager {
       if (receipt) {
         this.store.journal("recovered-receipt", { txHash: h, block: receipt.blockNumber }, rec.key);
         this.log(`${rec.key}: recovered receipt for ${h} from block ${receipt.blockNumber}; not re-sent`);
+        await this.ensureVisible(receipt.blockNumber);
         return { confirmed: this.finish(rec.key, receipt, true), pending: null };
       }
     }
