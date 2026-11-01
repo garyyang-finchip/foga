@@ -32,7 +32,7 @@ jobs:
 
       - name: Restore the predicate circuit's proving material (development ceremony output)
         id: zk-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             zk/build/kya_predicate_count_v1_js
