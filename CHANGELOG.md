@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-alpha.2 — 2026-11-01
+
+- Funding on public chains priced for a quiet testnet: the fee a budget is priced at is never below `FOGA_FEE_FLOOR_GWEI` (default 0.1 gwei; was a fixed 1 gwei), the cells' public capital is 0.005 ETH (the successor 0.001), W's requirement counts the tender rewards it pays (0.003 ETH), and the cells' pre-commitment check compares the operator's gas with a quarter of its budget at the current price instead of a fixed 0.01 ETH. The preflight now needs about 0.035 ETH on W at the floor (Sepolia was quoting fractions of a wei per gas on the first attempt, and W held a faucet's 0.05 ETH). The preflight says whether the price is the chain's quote or the floor.
+
 ## 0.5.0-alpha.1 — 2026-11-01 (Phase 2c: the genesis on a public chain)
 
 - `foga world deploy` on an attach-mode config attaches the listed contracts and deploys the plan steps the config does not list from the bundle, with W as deployer (`FOGA_DEPLOYER_PK`, or W of the phrase); the world file records them as `deployed by FOGA from the bundle`, the ARD kind registration is skipped on an attached registry, and `foga world attach` warns when an address book is incomplete for a genesis. `worlds/sepolia.json` lists no ERC-8471 contract any more — the upstream deployment is revision 3 and the revision-4 binding module admits only sources declaring its own interface id, so the two cannot be combined; the revision-3 addresses stay under `upstreamNotAttached` — and FOGA deploys the revision-4 stack together with the two eligibility modules upstream never deployed (15 contracts, about 16 M gas). docs/version-lock.md (seams 1–3 updated).

@@ -13,8 +13,8 @@ import { escrowBindingInput, serviceDescriptor, servicePolicySpec, type ServiceT
 import { Cell } from "../kernel/cell.js";
 import { Kernel } from "../kernel/kernel.js";
 import { EPOCH_GRACE, EPOCH_LENGTH, PREDICATE_VALIDITY, attestorKeyFrom, predicateAvailability, proverLibsAvailable, sourceKeyFrom, zk, zkAvailability } from "./zk.js";
-import { CELLS, operatorRole, ownerRole, roleKeys, type CellName } from "./roles.js";
-import { CELL_CAPITAL, fundRoles } from "./funding.js";
+import { CELLS, operatorRole, ownerRole, roleKeys, type CellName, type Role } from "./roles.js";
+import { CELL_CAPITAL, fundRoles, operatorGasFloor } from "./funding.js";
 import { runProbe, type ProbeInput } from "./probe.js";
 import { runProbeIsolated, verifiedPackage } from "./skill-runner.js";
 
@@ -783,7 +783,8 @@ export class Genesis {
     const status = await cell.status();
     if (status.verdict !== 1) problems.push(`safety ${status.verdictName} [${status.reasonNames.join(",")}]`);
     const gas = await k.balance(cell.operatorAddress);
-    if (gas < parseEther("0.01")) problems.push(`operator gas ${gas} wei below budget floor`);
+    const gasFloor = await operatorGasFloor(k, cell.roles.operator as Role);
+    if (gas < gasFloor) problems.push(`operator gas ${gas} wei below the budget floor ${gasFloor} wei`);
     const terms = await k.tenders.terms(tokenId);
     const now = await this.world.blockTimestamp();
     if (terms.submitBy !== 0n && BigInt(now) > terms.submitBy) problems.push("past submitBy");
