@@ -169,14 +169,16 @@ export async function t7(g: Genesis): Promise<void> {
   }
   const states = await Promise.all([A, B, C].map((X) => k.aid.stateName(X.address)));
   const afterBeat = await g.wouldRevert(A, k.tenders.address, submitAsA);
-  g.check("T7", "anchor.active.gate", states.every((s) => s === "ACTIVE") && afterBeat !== null && !/AnchorNotActive/.test(afterBeat), `states ${states.join("/")} after heartbeats; the same call now passes the gate and fails only inside the tender: ${afterBeat}`, "T9.A.aid.retire");
+  // A's anchor state changes first at the identity transfer of T9 (STALE, then taken over), then at the retirement
+  const untilA = ["T9.A.8004.transfer", "T9.A.aid.retire"];
+  g.check("T7", "anchor.active.gate", states.every((s) => s === "ACTIVE") && afterBeat !== null && !/AnchorNotActive/.test(afterBeat), `states ${states.join("/")} after heartbeats; the same call now passes the gate and fails only inside the tender: ${afterBeat}`, untilA);
   // the default window again: the demonstration leaves no short window behind
   await A.execute("T7.A.aid.window.reset", k.aid.address, k.aid.encodeSetLivenessWindow(0));
   const restored = await k.aid.livenessWindow(A.address);
   g.check("T7", "anchor.window.restored", restored === defaultWindow, `livenessWindow(A) = ${restored} s after the reset (the registry's default)`, "T9.A.aid.retire");
   if (k.aid.backing) {
     const backingStates = await Promise.all([A, B, C].map((X) => k.aid.stateName(X.address, k.aid.backing!.address)));
-    g.check("T7", "anchor.backing.active", backingStates.every((s) => s === "ACTIVE"), `states ${backingStates.join("/")} in the backing registry ${k.aid.backing.address} after heartbeats`, "T9.A.aid.retire");
+    g.check("T7", "anchor.backing.active", backingStates.every((s) => s === "ACTIVE"), `states ${backingStates.join("/")} in the backing registry ${k.aid.backing.address} after heartbeats`, untilA);
   }
 
   k.evidence("T7", "safety", {

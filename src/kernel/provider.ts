@@ -24,15 +24,15 @@ export interface PinnedReadEvent {
   attempts: number;
   /** The node's own words for the last refusal. */
   nodeError: string;
-  /** What was done after the retries ran out: the read was made at "latest" after all, or the error was raised. */
-  outcome: "fell-back" | "raised";
+  /** What happened after the retries: the pin was lowered to the head the endpoint reports and the read made there, or the error was raised. */
+  outcome: "re-pinned" | "raised";
 }
 
 export class PinnedProvider extends JsonRpcProvider {
   /** The highest block seen; reads are made no earlier than this. */
   pin = 0;
-  /** Milliseconds to keep retrying a read that a lagging node refused before falling back to "latest". */
-  settleMs = 20_000;
+  /** Milliseconds to keep retrying a read that a lagging node refused before re-sampling the head and, failing that, raising. */
+  settleMs = 60_000;
   /** Told when a pinned read ran out of retries (the kernel journals it). */
   onLag?: (event: PinnedReadEvent) => void;
 
@@ -68,19 +68,47 @@ export class PinnedProvider extends JsonRpcProvider {
           await new Promise((r) => setTimeout(r, Math.min(2_000, 250 * attempt)));
           continue;
         }
-        // Not a lag we recognize, or the lag outlasted the retries: read at "latest" after all, so that one node's
-        // trouble with an explicit block does not stop the run; the kernel is told and journals it.
-        try {
-          const result = await super.send(method, params);
-          this.onLag?.({ method, block, attempts: attempt, nodeError: text, outcome: "fell-back" });
-          return result;
-        } catch (e2: any) {
-          this.onLag?.({ method, block, attempts: attempt, nodeError: text, outcome: "raised" });
-          if (e2 && typeof e2 === "object" && typeof e2.message === "string") e2.message += ` [pinned read at block ${block} refused ${attempt} time${attempt === 1 ? "" : "s"}: ${text}]`;
-          throw e2;
+        // The lag outlasted the retries, or the refusal is one we do not recognize. A read at "latest" is not an
+        // option: the node that refuses an explicit block may be the one that is hours behind, and a stale answer is
+        // worse than no answer (it fails checks that hold on chain). Instead the head is sampled again: when the pin
+        // came from a node ahead of the rest, it is lowered to what the endpoint reports now and the read made there,
+        // once; otherwise the error is raised with the node's own words, and the run resumes from its store.
+        const head = await this.sampleHead();
+        if (head > 0 && head < block && pinned[idx] !== toQuantity(head)) {
+          this.pin = head;
+          pinned[idx] = toQuantity(head);
+          try {
+            const result = await super.send(method, pinned);
+            this.onLag?.({ method, block, attempts: attempt, nodeError: text, outcome: "re-pinned" });
+            return result;
+          } catch (e2: any) {
+            this.raise(e2, method, block, attempt, text);
+          }
         }
+        this.raise(e, method, block, attempt, text);
       }
     }
+  }
+
+  /** The highest block number three consecutive samples of the endpoint report (an outlier ahead is not followed twice). */
+  private async sampleHead(): Promise<number> {
+    const seen: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      try {
+        seen.push(parseInt(await super.send("eth_blockNumber", []), 16));
+      } catch {
+        /* a sample that fails is left out */
+      }
+      if (i < 2) await new Promise((r) => setTimeout(r, 300));
+    }
+    seen.sort((a, b) => a - b);
+    return seen.length ? seen[Math.floor(seen.length / 2)] : 0;
+  }
+
+  private raise(e: any, method: string, block: number, attempts: number, text: string): never {
+    this.onLag?.({ method, block, attempts, nodeError: text, outcome: "raised" });
+    if (e && typeof e === "object" && typeof e.message === "string") e.message += ` [read at block ${block} refused ${attempts} time${attempts === 1 ? "" : "s"} by the endpoint: ${text}]`;
+    throw e;
   }
 
   /** Move the pin forward from what the chain tells us. */

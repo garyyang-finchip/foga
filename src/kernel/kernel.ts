@@ -65,7 +65,7 @@ export class Kernel {
     const pinned = world.provider as { onLag?: (e: Record<string, unknown>) => void };
     if ("pin" in world.provider) pinned.onLag = (e) => {
       store.journal("pinned-read", e);
-      options.log?.(`  rpc: ${e.method} at block ${e.block} refused ${e.attempts} time(s) by the endpoint (${e.nodeError}); ${e.outcome === "fell-back" ? "read at latest instead" : "no answer at latest either"}`);
+      options.log?.(`  rpc: ${e.method} at block ${e.block} refused ${e.attempts} time(s) by the endpoint (${e.nodeError}); ${e.outcome === "re-pinned" ? "read at the head the endpoint reports instead" : "giving up: the run stops here and resumes from its store"}`);
     };
     this.kya = new KYA(world);
     this.aid = new AID(world);

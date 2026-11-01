@@ -492,17 +492,18 @@ export class Genesis {
 
     // checks (memo T1 "expected")
     const state = await k.aid.stateName(cell.address);
-    this.check("T1", `${X}.aid.active`, state === "ACTIVE", `state(${cell.address}) = ${state}`, X === "A" ? "T9.A.aid.retire" : []);
+    const untilA = X === "A" ? ["T9.A.8004.transfer", "T9.A.aid.retire"] : [];
+    this.check("T1", `${X}.aid.active`, state === "ACTIVE", `state(${cell.address}) = ${state}`, untilA);
     const passes = await k.kya.check(subject, sAtt, 2, [k.address("W")]);
     this.check("T1", `${X}.kya.level2`, passes === true, `check({account, cell}, S_att, 2, [W]) = ${passes}`);
     const status = await cell.status();
     this.check("T1", `${X}.asf.satisfied`, status.verdict === 1, `status() = ${status.verdictName} [${status.reasonNames.join(",")}]`, X === "A" ? "T7.G.suspend" : []);
     if (k.aid.backing) {
       const backingState = await k.aid.stateName(cell.address, k.aid.backing.address);
-      this.check("T1", `${X}.aid.backing`, backingState === "ACTIVE", `state(${cell.address}) in the backing registry ${k.aid.backing.address} (${k.aid.backing.id}) = ${backingState}`, X === "A" ? "T9.A.aid.retire" : []);
+      this.check("T1", `${X}.aid.backing`, backingState === "ACTIVE", `state(${cell.address}) in the backing registry ${k.aid.backing.address} (${k.aid.backing.id}) = ${backingState}`, untilA);
     }
     const backed = await k.ard.backed(recordId);
-    this.check("T1", `${X}.ard.backed`, backed === true, `backed(${recordId.slice(0, 10)}…) = ${backed}${k.aid.backing ? " (the ARD agent adapter reads the backing registry)" : ""}`, X === "A" ? "T9.A.aid.retire" : []);
+    this.check("T1", `${X}.ard.backed`, backed === true, `backed(${recordId.slice(0, 10)}…) = ${backed}${k.aid.backing ? " (the ARD agent adapter reads the backing registry)" : ""}`, untilA);
     const controller = await k.units.controllerOf(unitId);
     this.check("T1", `${X}.auf.unit`, getAddress(controller) === getAddress(cell.address), `controllerOf(unit ${unitId}) = ${controller}`);
     const owner8004 = await k.identity.ownerOf(agentId);

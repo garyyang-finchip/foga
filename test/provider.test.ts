@@ -9,7 +9,7 @@ import { PinnedProvider } from "../src/kernel/provider.js";
  */
 function mockRpc(): Promise<{ server: Server; url: string; calls: { method: string; params: any[] }[]; state: { tip: number; laggingAnswers: number } }> {
   const calls: { method: string; params: any[] }[] = [];
-  const state = { tip: 100, laggingAnswers: 0 };
+  const state = { tip: 100, laggingAnswers: 0, laggingHead: 99 };
   const server = createServer((req, res) => {
     let body = "";
     req.on("data", (c) => (body += c));
@@ -29,9 +29,9 @@ function mockRpc(): Promise<{ server: Server; url: string; calls: { method: stri
             const tag = r.params[1];
             if (tag === "latest") return ok("0x" + "00".repeat(31) + "aa"); // the stale answer a lagging node would give
             const n = parseInt(tag, 16);
-            if (n > state.tip - 1 && state.laggingAnswers > 0) {
+            if (n > state.laggingHead && state.laggingAnswers > 0) {
               state.laggingAnswers--;
-              return err("header not found"); // this request landed on the node that is a block behind
+              return err("header not found"); // this request landed on a node whose head is laggingHead
             }
             return ok("0x" + "00".repeat(31) + "bb");
           }
@@ -82,12 +82,35 @@ test("state reads at latest are pinned to the highest block seen and retried pas
     await provider.call({ to: "0x" + "11".repeat(20), data: "0x", blockTag: 42 });
     assert.ok(calls.some((c) => c.method === "eth_call" && c.params[1] === "0x2a"));
 
-    // the pin never moves backwards
+    // the pin never moves backwards on its own
     state.tip = 90;
     await provider.getBlockNumber();
     assert.equal(provider.pin, 100);
     provider.advanceTo(120);
     assert.equal(provider.pin, 120);
+
+    // a pin ahead of every node (an outlier's head): after the retries the head is sampled and the pin lowered
+    state.tip = 100;
+    state.laggingHead = 100; // every node has block 100, nobody has 120
+    state.laggingAnswers = 1_000;
+    provider.settleMs = 600;
+    const events: any[] = [];
+    provider.onLag = (e) => events.push(e);
+    const repinned = await provider.call({ to: "0x" + "11".repeat(20), data: "0x" });
+    assert.equal(repinned, "0x" + "00".repeat(31) + "bb");
+    assert.equal(provider.pin, 100);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].outcome, "re-pinned");
+    assert.match(events[0].nodeError, /header not found/);
+    assert.ok(!calls.some((c) => c.method === "eth_call" && c.params[1] === "latest" && calls.indexOf(c) > 3), "never read at latest once pinned");
+
+    // a block the endpoint reports but no node serves the state of: raised with the node's words, never answered from latest
+    state.tip = 100;
+    state.laggingHead = 99;
+    provider.pin = 100;
+    state.laggingAnswers = 1_000;
+    await assert.rejects(() => provider.call({ to: "0x" + "11".repeat(20), data: "0x" }), /refused .* by the endpoint: .*header not found/);
+    assert.equal(events.at(-1).outcome, "raised");
   } finally {
     provider.destroy();
     server.close();

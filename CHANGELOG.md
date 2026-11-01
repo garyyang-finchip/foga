@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-alpha.8 — 2026-11-01
+
+- `PinnedProvider` no longer falls back to a read at "latest": the Sepolia replay showed that the node refusing an explicit block can be the one hours behind, and its stale answers failed `T4 swarm.active` (ACTIVE after the conclusion) and `T2 A.document.prior` (the digest before the update) although both hold on chain. Retries now last up to 60 s; then the endpoint's head is sampled and a pin that came from a node ahead of the rest is lowered to it, once; otherwise the error is raised with the node's own words and the run stops, to be resumed from its store. The provider test covers both paths.
+- Replay guards: A's liveness checks of T1 and T7 (`A.aid.active`, `A.aid.backing`, `A.ard.backed`, `anchor.active.gate`, `anchor.backing.active`) are also superseded by `T9.A.8004.transfer`, the first operation that changes A's anchor state, not only by the retirement; a run resumed between the two read them as failed.
+
 ## 0.5.0-alpha.7 — 2026-11-01
 
 - `PinnedProvider` recognizes nethermind's refusal ("historical state ... is not available", which that client also gives for a block one behind its own head) as a lag to retry on another node, instead of falling back to "latest" at once; the Sepolia log showed it on balances and on a gas estimate.
