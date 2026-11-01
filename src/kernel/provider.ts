@@ -13,7 +13,10 @@ import { JsonRpcProvider, toQuantity, type JsonRpcApiProviderOptions, type Netwo
  * is not a state read pass through unchanged. On a single local node the pin is always the node's own tip.
  */
 const BLOCK_PARAM: Record<string, number> = { eth_call: 1, eth_estimateGas: 1, eth_getBalance: 1, eth_getCode: 1, eth_getTransactionCount: 1, eth_getStorageAt: 2 };
-const BEHIND = /header not found|unknown block|block not found|missing trie node|cannot query|beyond|out of range|unknown header|no state|state (is )?not available|pruned|too old|invalid block|resource not found/i;
+// what the clients of a public cluster say when asked about a block they do not (yet) have the state of: geth ("header
+// not found", "missing trie node"), erigon and reth ("block not found"), nethermind ("historical state ... is not
+// available", which it also says for a block one behind its own head), besu ("Block not found"), and a few gateways
+const BEHIND = /header not found|unknown block|block not found|missing trie node|cannot query|beyond|out of range|unknown header|no state|historical state|state (is )?not available|not available|pruned|too old|invalid block|resource not found/i;
 
 export interface PinnedReadEvent {
   method: string;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0-alpha.7 — 2026-11-01
+
+- `PinnedProvider` recognizes nethermind's refusal ("historical state ... is not available", which that client also gives for a block one behind its own head) as a lag to retry on another node, instead of falling back to "latest" at once; the Sepolia log showed it on balances and on a gas estimate.
+- The kernel logs a wait for a window when it starts (`wait: N s of chain time (why); until <time>`) and when it is over; before, a thirty-minute dispute period looked like a stalled run.
+
 ## 0.5.0-alpha.6 — 2026-11-01
 
 - `PinnedProvider`: a pinned read the endpoint refuses for a reason the provider does not recognize, or that stays refused past the retries (20 s), is made at "latest" after all instead of failing the run; the kernel journals the event (`pinned-read`) and logs the node's own words. On Sepolia a resumed run stopped on the escrow's `admin()` with ethers' "missing revert data", which hides the node's message; the raised error now carries it.

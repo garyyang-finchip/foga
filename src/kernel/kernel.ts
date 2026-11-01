@@ -56,7 +56,7 @@ export class Kernel {
     readonly world: World,
     readonly store: OperationStore,
     keys: Record<string, string>,
-    options: TxManagerOptions,
+    private readonly options: TxManagerOptions,
   ) {
     this.signers = Object.fromEntries(Object.entries(keys).map(([name, pk]) => [name, new Wallet(pk, world.provider)]));
     // a public endpoint is usually a cluster: after a receipt, wait until the cluster answers from that block before reading
@@ -246,7 +246,9 @@ export class Kernel {
     }
     const target = before + seconds;
     this.store.journal("time-waited", { seconds, from: before, until: target, why });
+    this.options.log?.(`  wait: ${seconds} s of chain time (${why}); until ${new Date(target * 1000).toISOString()}`);
     while ((await this.blockTimestamp()) < target) await new Promise((r) => setTimeout(r, 5_000));
+    this.options.log?.(`  wait: over (${why})`);
   }
 
   /** Decode the first event `name` from a receipt with the ABI of world contract `id` (or any interface). */
