@@ -92,7 +92,7 @@ jobs:
             const e = require("./deployments/ci-local.genesis.json");
             if (e.summary.failed !== 0) throw new Error("checks failed: " + JSON.stringify(e.checks.filter(c => !c.pass)));
             if (e.summary.recovered !== 1) throw new Error("expected exactly one recovered operation, got " + e.summary.recovered);
-            for (const name of ["submissions.one", "A.kya.S_cred.level4", "A.kya.S_pred.shown", "A.kya.S_pred.below.refused", "swarm.active", "council.final.yes", "nd.claimUnjudged", "swarm.achieved", "ruling.sustained", "refund.enacted", "bypass.reverted", "derisk.allowed", "escape.sibling.refused", "anchor.stale.gate", "resolver.A", "resolver.doubleCount", "A.retired", "skill.adopted", "inherit.kya.none"]) {
+            for (const name of ["submissions.one", "A.kya.S_cred.level4", "A.kya.S_pred.shown", "A.kya.S_pred.below.refused", "swarm.active", "council.final.yes", "nd.claimUnjudged", "swarm.achieved", "ruling.sustained", "refund.enacted", "bypass.reverted", "derisk.allowed", "escape.sibling.refused", "anchor.stale.gate", "anchor.window.restored", "resolver.A", "resolver.doubleCount", "A.retired", "skill.adopted", "inherit.kya.none"]) {
               const c = e.checks.find(c => c.name === name);
               if (!c || !c.pass) throw new Error("check missing or failed: " + name);
               if (/^skipped:/.test(c.detail)) throw new Error("check was skipped: " + name + " (" + c.detail + ")");
@@ -114,7 +114,36 @@ jobs:
           '
           npm run foga -- genesis status --world deployments/ci-local.json --store deployments/ci-local.genesis.sqlite
 
-      - name: Attach the Sepolia world (address book only; no RPC in CI)
+      - name: Rehearse the public-chain path (attach-mode world on a second anvil, backing AID registry, hybrid deploy, genesis T0-T9, doctor)
+        run: |
+          anvil --silent --port 8546 &
+          for i in $(seq 1 40); do
+            if curl -s -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:8546 >/dev/null; then break; fi
+            sleep 0.5
+          done
+          npm run foga -- world deploy --world worlds/local.json --rpc http://127.0.0.1:8546 --out .foga-build/rehearsal-base.json
+          node scripts/attach-rehearsal.mjs .foga-build/rehearsal-base.json .foga-build/local-attach.config.json http://127.0.0.1:8546
+          npm run foga -- world deploy --world .foga-build/local-attach.config.json --rpc http://127.0.0.1:8546 --out deployments/ci-local-attach.json
+          node -e '
+            const w = require("./deployments/ci-local-attach.json");
+            const deployed = w.steps.filter(s => s.status === "deployed").map(s => s.id);
+            if (deployed.length !== 15) throw new Error("expected 15 contracts deployed from the bundle, got " + deployed.join(","));
+            if (!w.steps.some(s => s.id === "8444/registerKinds" && s.status === "skipped")) throw new Error("kind registration should be skipped on an attached ARD registry");
+          '
+          npm run foga -- genesis preflight --world deployments/ci-local-attach.json --rpc http://127.0.0.1:8546
+          npm run foga -- genesis run --world deployments/ci-local-attach.json --rpc http://127.0.0.1:8546 --until T9 --zk require --store deployments/ci-local-attach.genesis.sqlite --out deployments/ci-local-attach.genesis.json
+          node -e '
+            const e = require("./deployments/ci-local-attach.genesis.json");
+            if (e.summary.failed !== 0) throw new Error("checks failed: " + JSON.stringify(e.checks.filter(c => !c.pass)));
+            for (const name of ["A.aid.backing", "A.ard.backed", "service.policy", "ruling.sustained", "anchor.backing.active", "anchor.window.restored", "Aprime.backing.active", "Aprime.record"]) {
+              const c = e.checks.find(c => c.name === name);
+              if (!c || !c.pass || /^skipped:/.test(c.detail)) throw new Error("check missing, failed or skipped: " + name);
+            }
+            if (!e.journal.some(j => j.opKey === "T1.A.aid.backing.bind" && j.event === "confirmed")) throw new Error("the backing registry bind did not run");
+          '
+          npm run foga -- doctor --world deployments/ci-local-attach.json --rpc http://127.0.0.1:8546 --genesis deployments/ci-local-attach.genesis.json --out deployments/ci-local-attach.doctor.json
+
+      - name: Attach the Sepolia world (address book only; no RPC in CI; warns about the steps foga world deploy adds)
         run: npm run foga -- world attach --world worlds/sepolia.json --out deployments/ci-sepolia.json
 
       - name: Compile the CLI
@@ -129,6 +158,9 @@ jobs:
             deployments/ci-local.doctor.json
             deployments/ci-local.genesis.json
             deployments/ci-local.genesis.replay.json
+            deployments/ci-local-attach.json
+            deployments/ci-local-attach.genesis.json
+            deployments/ci-local-attach.doctor.json
             deployments/ci-sepolia.json
             .foga-build/bundle.verify.json
           if-no-files-found: ignore
