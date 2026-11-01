@@ -71,6 +71,30 @@ export interface JobRecord {
   updatedAt: string;
 }
 
+/**
+ * A decision record (Phase 3): every attempt to act through the node, allowed or refused, with who asked, the hash
+ * of what they asked, which gate decided and why, and the operation or job it led to. Reads are not recorded. The
+ * model's words never enter the record, only their hashes (design memo, section 2).
+ */
+export type Verdict = "allowed" | "refused";
+
+export interface DecisionRecord {
+  id: number;
+  at: string;
+  entrance: string;
+  caller: string;
+  capability: string;
+  mode: string;
+  inputHash: string;
+  verdict: Verdict;
+  /** Which check decided: permission, input, policy, skill, verifier, budget, safety, wallet, conflict, execution. */
+  gate: string;
+  reason: string;
+  jobId: string | null;
+  operationId: string | null;
+  model: { provider: string; model: string; promptHash: string; responseHash: string } | null;
+}
+
 /** Thrown when a key is claimed again with a different request than the one it was claimed with. */
 export class OperationConflict extends Error {
   constructor(
@@ -160,6 +184,21 @@ CREATE TABLE IF NOT EXISTS jobs (
   operations TEXT NOT NULL DEFAULT '[]',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS decisions (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  at           TEXT NOT NULL,
+  entrance     TEXT NOT NULL,
+  caller       TEXT NOT NULL,
+  capability   TEXT NOT NULL,
+  mode         TEXT NOT NULL,
+  input_hash   TEXT NOT NULL,
+  verdict      TEXT NOT NULL,
+  gate         TEXT NOT NULL,
+  reason       TEXT NOT NULL,
+  job_id       TEXT,
+  operation_id TEXT,
+  model        TEXT
 );
 `;
 
@@ -337,6 +376,30 @@ export class OperationStore {
     return { spentWei: spent, reservedWei: reserved };
   }
 
+  /** The same figures kept apart: value moved and fees paid since `sinceIso`, and what open operations reserve of each. */
+  budgetBooks(signer: string, sinceIso: string): { valueWei: bigint; gasWei: bigint; reservedValueWei: bigint; reservedFeeWei: bigint } {
+    let valueWei = 0n;
+    let gasWei = 0n;
+    for (const r of this.db.prepare("SELECT value_wei, gas_cost_wei, status FROM ops WHERE signer = ? AND updated_at >= ? AND status IN ('confirmed', 'failed')").all(signer, sinceIso)) {
+      if (r.status === "confirmed") valueWei += BigInt(r.value_wei ?? "0");
+      gasWei += BigInt(r.gas_cost_wei ?? "0");
+    }
+    let reservedValueWei = 0n;
+    let reservedFeeWei = 0n;
+    for (const r of this.db.prepare("SELECT value_wei, fee_cap_wei FROM ops WHERE signer = ? AND status IN ('prepared', 'sent')").all(signer)) {
+      reservedValueWei += BigInt(r.value_wei ?? "0");
+      reservedFeeWei += BigInt(r.fee_cap_wei ?? "0");
+    }
+    return { valueWei, gasWei, reservedValueWei, reservedFeeWei };
+  }
+
+  /** Jobs of a kind in given states (the running commitments of a cell, for instance). */
+  countJobs(kind: string, statuses: JobStatus[]): number {
+    if (!statuses.length) return 0;
+    const marks = statuses.map(() => "?").join(", ");
+    return Number(this.db.prepare(`SELECT COUNT(*) AS n FROM jobs WHERE kind = ? AND status IN (${marks})`).get(kind, ...statuses).n);
+  }
+
   // ---------------------------------------------------------------------------- jobs
 
   /** Create a job, or return the existing one for the id; the same id with another input is a conflict. */
@@ -380,6 +443,41 @@ export class OperationStore {
     return rows.map(rowToJob);
   }
 
+  // ---------------------------------------------------------------------------- decisions
+
+  /** Write a decision record; returns its id. */
+  decide(d: Omit<DecisionRecord, "id" | "at">): DecisionRecord {
+    this.db
+      .prepare("INSERT INTO decisions (at, entrance, caller, capability, mode, input_hash, verdict, gate, reason, job_id, operation_id, model) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(now(), d.entrance, d.caller, d.capability, d.mode, d.inputHash, d.verdict, d.gate, d.reason, d.jobId ?? null, d.operationId ?? null, d.model ? toJson(d.model) : null);
+    const row = this.db.prepare("SELECT * FROM decisions ORDER BY id DESC LIMIT 1").get();
+    return rowToDecision(row);
+  }
+
+  /** Decision records, oldest first; `caller` restricts to one caller's own (a caller sees its own attempts, the operator every one). */
+  decisions(filter: { caller?: string | null; capability?: string; verdict?: Verdict; since?: string; limit?: number } = {}): DecisionRecord[] {
+    const where: string[] = [];
+    const args: unknown[] = [];
+    if (filter.caller) {
+      where.push("caller = ?");
+      args.push(filter.caller);
+    }
+    if (filter.capability) {
+      where.push("capability = ?");
+      args.push(filter.capability);
+    }
+    if (filter.verdict) {
+      where.push("verdict = ?");
+      args.push(filter.verdict);
+    }
+    if (filter.since) {
+      where.push("at >= ?");
+      args.push(filter.since);
+    }
+    const sql = `SELECT * FROM decisions${where.length ? " WHERE " + where.join(" AND ") : ""} ORDER BY id LIMIT ?`;
+    return this.db.prepare(sql).all(...args, filter.limit ?? 1000).map(rowToDecision);
+  }
+
   // ---------------------------------------------------------------------------- facts
 
   /** Scenario-level values (ids, addresses, hashes) that later steps and a resumed run read back. */
@@ -417,12 +515,15 @@ export class OperationStore {
 
   // ---------------------------------------------------------------------------- summary
 
-  summary(): { ops: Record<OpStatus, number>; facts: number; journal: number } {
+  summary(): { ops: Record<OpStatus, number>; facts: number; journal: number; jobs: number; decisions: Record<Verdict, number> } {
     const ops: Record<OpStatus, number> = { prepared: 0, sent: 0, confirmed: 0, failed: 0 };
     for (const r of this.db.prepare("SELECT status, COUNT(*) AS n FROM ops GROUP BY status").all()) ops[r.status as OpStatus] = Number(r.n);
     const facts = Number(this.db.prepare("SELECT COUNT(*) AS n FROM facts").get().n);
     const journal = Number(this.db.prepare("SELECT COUNT(*) AS n FROM journal").get().n);
-    return { ops, facts, journal };
+    const jobs = Number(this.db.prepare("SELECT COUNT(*) AS n FROM jobs").get().n);
+    const decisions: Record<Verdict, number> = { allowed: 0, refused: 0 };
+    for (const r of this.db.prepare("SELECT verdict, COUNT(*) AS n FROM decisions GROUP BY verdict").all()) decisions[r.verdict as Verdict] = Number(r.n);
+    return { ops, facts, journal, jobs, decisions };
   }
 }
 
@@ -465,5 +566,23 @@ function rowToJob(row: any): JobRecord {
     operations: row.operations ? JSON.parse(row.operations) : [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function rowToDecision(row: any): DecisionRecord {
+  return {
+    id: Number(row.id),
+    at: row.at,
+    entrance: row.entrance,
+    caller: row.caller,
+    capability: row.capability,
+    mode: row.mode,
+    inputHash: row.input_hash,
+    verdict: row.verdict,
+    gate: row.gate,
+    reason: row.reason,
+    jobId: row.job_id ?? null,
+    operationId: row.operation_id ?? null,
+    model: row.model ? JSON.parse(row.model) : null,
   };
 }

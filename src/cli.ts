@@ -12,7 +12,7 @@ import { fail, log } from "./util/log.js";
 import { attachWorld, deployWorld, loadWorldConfig, missingPlanSteps } from "./world/deploy.js";
 import { loadBundle } from "./bundle/load.js";
 
-const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2 cells and the genesis T0-T9, local and public chains)
+const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2 cells and the genesis T0-T9, local and public chains; Phase 3 a cell as a node)
 
 usage:
   foga vendor sync [--only <repo,repo>]          fetch the locked upstream sources into vendor/
@@ -39,6 +39,8 @@ usage:
   foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
   foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga bundle info                               summarize the committed bundle
+  foga cell …                                    a cell as a node: birth, migration, and every capability of the catalog as a subcommand (foga cell help)
+  foga node tick | watch --config <cell.config.json>   the watchers of a running node (operator key alone)
 
 environment:
   FOGA_SOLC_DIR   directory with solc-<version> static binaries (offline builds; otherwise forge downloads solc)
@@ -86,6 +88,17 @@ async function main(): Promise<void> {
 
   if (!group || flags.help || group === "help") {
     console.log(USAGE);
+    return;
+  }
+
+  if (group === "cell") {
+    const { cellCommand } = await import("./cli-cell.js");
+    await cellCommand(cmd, positional.slice(2), flags);
+    return;
+  }
+  if (group === "node") {
+    const { nodeCommand } = await import("./cli-cell.js");
+    await nodeCommand(cmd, flags);
     return;
   }
 

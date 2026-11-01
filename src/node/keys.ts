@@ -14,7 +14,15 @@ export const OPERATOR_KEY_ENV = "FOGA_OPERATOR_KEY";
 export const OPERATOR_KEY_FILE_ENV = "FOGA_OPERATOR_KEY_FILE";
 
 /** Variables whose presence means the process could sign as more than the operator. */
-export const FORBIDDEN_IN_NODE_ENV = ["FOGA_MNEMONIC", "FOGA_MNEMONIC_FILE", "FOGA_DEPLOYER_PK"];
+export const FORBIDDEN_IN_NODE_ENV = ["FOGA_MNEMONIC", "FOGA_MNEMONIC_FILE", "FOGA_DEPLOYER_PK", "FOGA_OWNER_KEY", "FOGA_OWNER_KEY_FILE", "FOGA_GUARDIAN_KEY", "FOGA_GUARDIAN_KEY_FILE"];
+
+export type KeyRole = "operator" | "owner" | "guardian";
+
+/** The variables a role's key is read from: FOGA_<ROLE>_KEY or FOGA_<ROLE>_KEY_FILE. */
+export function roleKeyEnv(role: KeyRole): { inline: string; file: string } {
+  const up = role.toUpperCase();
+  return { inline: `FOGA_${up}_KEY`, file: `FOGA_${up}_KEY_FILE` };
+}
 
 export interface OperatorKey {
   privateKey: string;
@@ -55,22 +63,35 @@ export function loadOperatorKey(env: NodeJS.ProcessEnv = process.env): OperatorK
   if (forbidden.length) {
     throw new KeyIsolationError(`the node's environment holds ${forbidden.join(", ")}: a node runs with its operator key alone (${OPERATOR_KEY_ENV} or ${OPERATOR_KEY_FILE_ENV}). Unset these for the node's user; they belong to the operator's shell.`);
   }
-  const inline = env[OPERATOR_KEY_ENV]?.trim();
-  const file = env[OPERATOR_KEY_FILE_ENV]?.trim();
-  if (inline && file) throw new KeyIsolationError(`both ${OPERATOR_KEY_ENV} and ${OPERATOR_KEY_FILE_ENV} are set; set one`);
-  if (!inline && !file) throw new KeyIsolationError(`no operator key: set ${OPERATOR_KEY_FILE_ENV} to a file written by 'foga keys export --role operator.<X>' (or ${OPERATOR_KEY_ENV} to the key itself)`);
+  return loadRoleKey("operator", env);
+}
+
+/**
+ * Read one role's key from the environment without the isolation check: for the CLI's one-shot commands in the
+ * operator's own shell (an owner's or guardian's act, a cell's birth), never for a running node. The file rules
+ * are the same as the node's.
+ */
+export function loadRoleKey(role: KeyRole, env: NodeJS.ProcessEnv = process.env): OperatorKey {
+  const names = roleKeyEnv(role);
+  const inline = env[names.inline]?.trim();
+  const file = env[names.file]?.trim();
+  if (inline && file) throw new KeyIsolationError(`both ${names.inline} and ${names.file} are set; set one`);
+  if (!inline && !file) {
+    if (role === "operator") throw new KeyIsolationError(`no operator key: set ${names.file} to a file written by 'foga keys export --role operator.<X>' (or ${names.inline} to the key itself)`);
+    throw new KeyIsolationError(`no ${role} key: set ${names.file} (a 0600 file holding the key) or ${names.inline} for this one command`);
+  }
   if (inline) {
-    const privateKey = parseKey(inline, OPERATOR_KEY_ENV);
-    return { privateKey, address: new Wallet(privateKey).address, source: { kind: "env", name: OPERATOR_KEY_ENV } };
+    const privateKey = parseKey(inline, names.inline);
+    return { privateKey, address: new Wallet(privateKey).address, source: { kind: "env", name: names.inline } };
   }
   const path = file!;
   let st;
   try {
     st = statSync(path);
   } catch {
-    throw new KeyIsolationError(`${OPERATOR_KEY_FILE_ENV}=${path}: no such file`);
+    throw new KeyIsolationError(`${names.file}=${path}: no such file`);
   }
-  if (!st.isFile()) throw new KeyIsolationError(`${OPERATOR_KEY_FILE_ENV}=${path} is not a regular file`);
+  if (!st.isFile()) throw new KeyIsolationError(`${names.file}=${path} is not a regular file`);
   if (process.platform !== "win32") {
     if (st.mode & 0o077) throw new KeyIsolationError(`${path} is readable by other users (mode ${(st.mode & 0o777).toString(8)}); make it 0600 (chmod 600)`);
     const uid = process.getuid?.();

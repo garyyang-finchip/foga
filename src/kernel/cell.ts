@@ -1,6 +1,7 @@
 import { Contract, Interface, type ContractRunner } from "ethers";
 import { ReasonName, VerdictName, type BindingInput, type RequirementSet } from "../core/asf.js";
 import type { Kernel } from "./kernel.js";
+import type { OpBinding } from "./store.js";
 import type { Confirmed } from "./tx.js";
 
 export interface CellRoles {
@@ -62,23 +63,30 @@ export class Cell {
 
   // ---------------------------------------------------------------------------- acting
 
-  /** Act as the cell: `execute(target, value, data)` signed by the operator (default) or the owner. */
-  async execute(key: string, target: string, data: string, opts: { value?: bigint; by?: "operator" | "owner" } = {}): Promise<Confirmed> {
+  /** The calldata of `execute(target, value, data)` on this account. */
+  encodeExecute(target: string, value: bigint, data: string): string {
+    return this.iface.encodeFunctionData("execute", [target, value, data]);
+  }
+
+  /** Act as the cell: `execute(target, value, data)` signed by the operator (default) or the owner; `binding` ties the operation to the request that asked for it (the node). */
+  async execute(key: string, target: string, data: string, opts: { value?: bigint; by?: "operator" | "owner"; binding?: OpBinding } = {}): Promise<Confirmed> {
     const signer = opts.by === "owner" ? this.roles.owner : this.roles.operator;
     return this.kernel.tx.send({
       key,
       signer,
       kind: "execute",
-      build: () => ({ to: this.address, data: this.iface.encodeFunctionData("execute", [target, opts.value ?? 0n, data]) }),
+      binding: opts.binding,
+      build: () => ({ to: this.address, data: this.encodeExecute(target, opts.value ?? 0n, data) }),
     });
   }
 
   /** Owner administration (setOperator, setAIDRegistry, setCommitmentClass, setDeriskAllowed, ...). */
-  async admin(key: string, fn: string, args: unknown[]): Promise<Confirmed> {
+  async admin(key: string, fn: string, args: unknown[], binding?: OpBinding): Promise<Confirmed> {
     return this.kernel.tx.send({
       key,
       signer: this.roles.owner,
       kind: "admin",
+      binding,
       build: () => ({ to: this.address, data: this.iface.encodeFunctionData(fn, args) }),
     });
   }
