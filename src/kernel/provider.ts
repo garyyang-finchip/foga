@@ -11,6 +11,10 @@ import { JsonRpcProvider, toQuantity, type JsonRpcApiProviderOptions, type Netwo
  * "latest") is sent at that block instead, so a node behind the pin answers with an error rather than with stale state,
  * and the request is retried until a node that has the block answers. Explicit block tags, "pending" and everything that
  * is not a state read pass through unchanged. On a single local node the pin is always the node's own tip.
+ *
+ * The pin must start at the chain's head (the kernel reads the block number when it opens): the receipts a replayed
+ * run reads back are old, and a pin seeded from them would make every read a read of the past — a document read as
+ * its earlier version, a swarm read as still active — which is what the first Sepolia replays did.
  */
 const BLOCK_PARAM: Record<string, number> = { eth_call: 1, eth_estimateGas: 1, eth_getBalance: 1, eth_getCode: 1, eth_getTransactionCount: 1, eth_getStorageAt: 2 };
 // what the clients of a public cluster say when asked about a block they do not (yet) have the state of: geth ("header

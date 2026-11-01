@@ -102,6 +102,9 @@ export class Kernel {
     const store = OperationStore.open(opts.storePath);
     const net = await world.provider.getNetwork();
     if (Number(net.chainId) !== world.chainId) throw new Error(`RPC chain ${net.chainId} is not the world's chain ${world.chainId}`);
+    // Seed the read pin with the chain's head (kernel/provider.ts). A replayed run sees only the receipts of its old
+    // operations, whose blocks must not become the pin: reads are about the chain as it is now, not as it was then.
+    await world.provider.getBlockNumber();
     // A store belongs to one chain instance: the hash of block 0 tells a restarted local chain from a resumed one.
     const genesis = (await world.provider.getBlock(0))?.hash ?? "unknown";
     const known = store.getMeta("genesisBlockHash");

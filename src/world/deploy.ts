@@ -109,6 +109,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   const provider = new PinnedProvider(rpc, undefined, { staticNetwork: true, cacheTimeout: -1 });
   provider.pollingInterval = cfg.network === "anvil" ? 250 : 4_000;
   const net = await provider.getNetwork();
+  await provider.getBlockNumber(); // seeds the read pin at the head (kernel/provider.ts)
   if (Number(net.chainId) !== cfg.chainId) {
     const msg = `chain id mismatch: rpc reports ${net.chainId}, world config says ${cfg.chainId}`;
     if (!opts.allowChainMismatch) throw new Error(msg + " (pass --allow-chain-mismatch for forks)");

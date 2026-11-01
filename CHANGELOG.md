@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-alpha.9 — 2026-11-01
+
+- Fix: the read pin is seeded with the chain's head when the kernel (or `foga world deploy`) opens. A replayed run sends nothing, so the only blocks the provider saw were those of the old receipts it read back, and the pin followed them: every check read the chain as it was at that step, not as it is now — `T2 A.document.prior` read the document before its own update and `T4 swarm.active` read the swarm before its conclusion, on every Sepolia replay, although both hold on chain (verified against an independent node). The alpha.8 diagnosis of stale nodes was wrong; the reads were at the right node and the wrong block. anvil hid it by answering requests for blocks it no longer holds state for from its tip.
+
 ## 0.5.0-alpha.8 — 2026-11-01
 
 - `PinnedProvider` no longer falls back to a read at "latest": the Sepolia replay showed that the node refusing an explicit block can be the one hours behind, and its stale answers failed `T4 swarm.active` (ACTIVE after the conclusion) and `T2 A.document.prior` (the digest before the update) although both hold on chain. Retries now last up to 60 s; then the endpoint's head is sampled and a pin that came from a node ahead of the rest is lowered to it, once; otherwise the error is raised with the node's own words and the run stops, to be resumed from its store. The provider test covers both paths.
