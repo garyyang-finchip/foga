@@ -1,6 +1,6 @@
 import { keccak256, type Provider, type TransactionReceipt, type TransactionRequest, type TransactionResponse, type Wallet } from "ethers";
 import { RevertDecoder } from "./errors.js";
-import type { OperationStore, OpRecord } from "./store.js";
+import type { OperationStore, OpBinding, OpRecord } from "./store.js";
 
 /** A transaction the kernel intends to send, identified by an idempotency key. */
 export interface SendRequest {
@@ -9,6 +9,15 @@ export interface SendRequest {
   kind?: string;
   /** Builds the request once the nonce is fixed (a deployment may need it to predict its own address). */
   build: (ctx: { nonce: number; from: string }) => TransactionRequest | Promise<TransactionRequest>;
+  /** What the key is bound to: the same key with another request hash is a conflict (store.ts). */
+  binding?: OpBinding;
+  /**
+   * A key whose operation failed (an estimate that reverted, a transaction reverted on chain) answers with that
+   * failure again by default; only an explicit retry sends anew (the genesis driver retries, a public caller does not).
+   */
+  retryFailed?: boolean;
+  /** The most this operation may pay per gas, replacements included (default: the manager's cap, if any). */
+  maxFeePerGasCap?: bigint;
 }
 
 export interface Confirmed {
@@ -45,8 +54,12 @@ export class OperationReverted extends Error {
 export interface TxManagerOptions {
   /** Milliseconds to wait for a broadcast transaction's receipt before replacing it or giving up (the op stays `sent`). */
   receiptTimeoutMs?: number;
-  /** How many times a transaction still pending after the timeout is re-sent with higher fees (same nonce) before the run stops. */
+  /** How many times a transaction still pending after the timeout is re-sent with higher fees (same nonce) before the run stops. The count is cumulative over the operation's life and persisted in the store. */
   maxReplacements?: number;
+  /** The most any transaction may pay per gas (wei); a replacement that would exceed it is not made and the operation stays pending. */
+  maxFeePerGasCap?: bigint;
+  /** Default for requests that do not say: whether a failed operation is sent anew under the same key. */
+  retryFailed?: boolean;
   /**
    * After a receipt, wait until the endpoint reports the receipt's block twice in a row before returning: a public RPC
    * URL usually fronts a cluster whose nodes import a block at slightly different times, and a read or a gas estimate
@@ -95,9 +108,23 @@ export class TxManager {
     return w;
   }
 
+  /** One transaction at a time per signer: nonces are taken and used in order, whoever asks concurrently. */
+  private readonly queues = new Map<string, Promise<unknown>>();
+
   async send(req: SendRequest): Promise<Confirmed> {
     const wallet = this.signer(req.signer);
-    const rec = this.store.prepare(req.key, req.kind ?? "tx", req.signer);
+    const previous = this.queues.get(wallet.address) ?? Promise.resolve();
+    const turn = previous.catch(() => undefined).then(() => this.sendInTurn(req, wallet));
+    this.queues.set(wallet.address, turn);
+    try {
+      return await turn;
+    } finally {
+      if (this.queues.get(wallet.address) === turn) this.queues.delete(wallet.address);
+    }
+  }
+
+  private async sendInTurn(req: SendRequest, wallet: Wallet): Promise<Confirmed> {
+    let rec = this.store.prepare(req.key, req.kind ?? "tx", req.signer, req.binding);
 
     if (rec.status === "confirmed" && rec.txHash) {
       const receipt = await this.provider.getTransactionReceipt(rec.txHash);
@@ -106,6 +133,18 @@ export class TxManager {
       }
       this.store.journal("replayed", { txHash: rec.txHash }, req.key);
       return { key: req.key, txHash: rec.txHash, receipt, replayed: true, recovered: false };
+    }
+
+    if (rec.status === "failed") {
+      // The failure is the operation's answer. A new attempt is a decision the caller makes explicitly (and re-checks
+      // its budget for); nothing is sent anew because a key was asked for again.
+      if (!(req.retryFailed ?? this.options.retryFailed)) {
+        this.store.journal("replayed-failure", { error: rec.error }, req.key);
+        throw new OperationReverted(req.key, `operation ${req.key} failed before (${rec.error}); the same key answers with that failure. Retry explicitly to send it again.`, null);
+      }
+      this.store.markRetry(req.key);
+      this.store.journal("retry", { previousError: rec.error, attempts: rec.attempts }, req.key);
+      rec = this.store.get(req.key)!;
     }
 
     let nonce: number;
@@ -122,14 +161,16 @@ export class TxManager {
     const populated = await this.populate(req, wallet, nonce);
     if (pendingBefore) {
       // the recorded transaction is still in the pool: raise its fees and take its place rather than wait again
-      const replaced = await this.replace(req, wallet, populated, pendingBefore, 0);
-      await this.ensureVisible(replaced.blockNumber);
-      return this.finish(req.key, replaced, true);
+      const next = await this.replace(req, wallet, populated, pendingBefore);
+      // no replacement possible (limit or fee cap): the pending transaction is waited for as it is
+      const receipt = next ? await this.awaitInclusion(req, wallet, next.populated, next.hash) : await this.awaitOnly(req, pendingBefore.hash);
+      await this.ensureVisible(receipt.blockNumber);
+      return this.finish(req.key, receipt, true);
     }
     const signed = await wallet.signTransaction(populated);
     const txHash = keccak256(signed);
-    this.store.markSent(req.key, txHash, nonce);
-    this.store.journal("sent", { txHash, nonce, to: populated.to ?? null, kind: req.kind ?? "tx" }, req.key);
+    this.store.markSent(req.key, txHash, nonce, BigInt(populated.value ?? 0));
+    this.store.journal("sent", { txHash, nonce, to: populated.to ?? null, value: (populated.value ?? 0n).toString(), kind: req.kind ?? "tx" }, req.key);
     if (this.options.crashBeforeBroadcast === req.key) this.crash(req.key, "before-broadcast");
 
     await this.provider.broadcastTransaction(signed);
@@ -171,7 +212,14 @@ export class TxManager {
         const estimate = await this.provider.estimateGas({ ...base, from: wallet.address, nonce });
         gasLimit = estimate + estimate / 4n + 20_000n;
       }
-      return await wallet.populateTransaction({ ...base, from: wallet.address, nonce, gasLimit });
+      const populated = await wallet.populateTransaction({ ...base, from: wallet.address, nonce, gasLimit });
+      const cap = req.maxFeePerGasCap ?? this.options.maxFeePerGasCap;
+      if (cap !== undefined && populated.maxFeePerGas !== null && populated.maxFeePerGas !== undefined && BigInt(populated.maxFeePerGas) > cap) {
+        populated.maxFeePerGas = cap;
+        if (populated.maxPriorityFeePerGas !== null && populated.maxPriorityFeePerGas !== undefined && BigInt(populated.maxPriorityFeePerGas) > cap) populated.maxPriorityFeePerGas = cap;
+        this.store.journal("fee-capped", { maxFeePerGas: cap.toString() }, req.key);
+      }
+      return populated;
     } catch (e: any) {
       const data = RevertDecoder.revertData(e);
       const explained = this.decoder.explain(e);
@@ -181,11 +229,20 @@ export class TxManager {
     }
   }
 
-  /** Every hash this operation was ever broadcast under, oldest first (the store row holds only the latest). */
+  /**
+   * Every hash this operation's current attempt was broadcast under, oldest first (the store row holds only the
+   * latest). An explicit retry starts a new attempt: the hashes before it belong to the failure that was retried and
+   * must not be waited for again (their receipt is the old revert).
+   */
   private hashesOf(key: string, latest: string): string[] {
-    const out: string[] = [];
+    let out: string[] = [];
     for (const j of this.store.journalEntries()) {
-      if (j.opKey !== key || !j.detail) continue;
+      if (j.opKey !== key) continue;
+      if (j.event === "retry") {
+        out = [];
+        continue;
+      }
+      if (!j.detail) continue;
       const h = j.event === "sent" || j.event === "replaced" ? (j.detail.txHash as string | undefined) : undefined;
       if (h && !out.includes(h)) out.push(h);
     }
@@ -195,28 +252,35 @@ export class TxManager {
 
   /**
    * Wait for the broadcast transaction's receipt. When the timeout passes and the transaction is still pending, it is
-   * replaced with higher fees (same nonce), up to `maxReplacements` times; when it has vanished from the pool and the
-   * nonce is free, it is broadcast again as it was; when any earlier hash of the operation was mined instead, that
-   * receipt completes it. After the last attempt the row stays `sent` and the next run resolves it from the chain
-   * (docs/kernel.md). A timeout on a local chain usually means the node is starved (another heavy process on the
-   * machine) rather than a lost transaction.
+   * replaced with higher fees (same nonce) until the operation's cumulative count reaches `maxReplacements` (the
+   * count is in the store, so a resumed run continues it rather than starting over) or the fee cap would be passed;
+   * when it has vanished from the pool and the nonce is free, it is broadcast again as it was; when any earlier hash
+   * of the operation was mined instead, that receipt completes it. After the last attempt the row stays `sent` and
+   * the next run resolves it from the chain (docs/kernel.md). A timeout on a local chain usually means the node is
+   * starved (another heavy process on the machine) rather than a lost transaction.
    */
   private async awaitInclusion(req: SendRequest, wallet: Wallet, populated: TransactionRequest, txHash: string): Promise<TransactionReceipt> {
     const timeoutMs = this.options.receiptTimeoutMs ?? 120_000;
     const max = this.options.maxReplacements ?? 3;
     let current = populated;
     let hash = txHash;
-    for (let attempt = 0; ; attempt++) {
+    for (;;) {
       const receipt = await this.waitAny(req.key, hash, timeoutMs);
       if (receipt) return receipt;
-      this.store.journal("receipt-timeout", { txHash: hash, timeoutMs, attempt }, req.key);
+      const made = this.store.get(req.key)?.replacements ?? 0;
+      this.store.journal("receipt-timeout", { txHash: hash, timeoutMs, replacements: made }, req.key);
       const pending = await this.provider.getTransaction(hash);
-      if (attempt >= max) {
-        throw new Error(`operation ${req.key}: no receipt for ${hash} within ${timeoutMs / 1000} s${attempt ? ` after ${attempt} fee replacement${attempt === 1 ? "" : "s"}` : ""}${pending ? " (still pending)" : " (not in the pool)"}. The row stays 'sent' and is recovered on the next run (the receipt is read if a transaction of this operation was mined, otherwise it is sent again). If the node is local, check that nothing else is saturating the machine (a proving-key build, for instance) and run again.`);
-      }
       if (pending) {
-        const r = await this.replace(req, wallet, current, pending, attempt + 1);
-        return r;
+        if (made >= max) {
+          throw new Error(`operation ${req.key}: no receipt for ${hash} within ${timeoutMs / 1000} s after ${made} fee replacement${made === 1 ? "" : "s"} (still pending; the limit is ${max}). The row stays 'sent' and is recovered on the next run (the receipt is read if a transaction of this operation was mined, otherwise it is replaced or sent again). If the node is local, check that nothing else is saturating the machine (a proving-key build, for instance) and run again.`);
+        }
+        const next = await this.replace(req, wallet, current, pending);
+        if (!next) {
+          throw new Error(`operation ${req.key}: ${hash} is still pending after ${timeoutMs / 1000} s and raising its fees would pass the fee cap; the row stays 'sent' and is recovered on the next run.`);
+        }
+        current = next.populated;
+        hash = next.hash;
+        continue;
       }
       // not pending, not mined: either the nonce moved on (ambiguous) or the pool dropped it (send again as it was)
       const consumed = await this.provider.getTransactionCount(wallet.address, "latest");
@@ -233,11 +297,26 @@ export class TxManager {
     }
   }
 
+  /** Wait for the operation's hashes without replacing (a resumed operation whose replacement is capped or at its limit). */
+  private async awaitOnly(req: SendRequest, hash: string): Promise<TransactionReceipt> {
+    const timeoutMs = this.options.receiptTimeoutMs ?? 120_000;
+    const receipt = await this.waitAny(req.key, hash, timeoutMs);
+    if (!receipt) throw new Error(`operation ${req.key}: ${hash} is still pending and cannot be replaced (replacement limit or fee cap); the row stays 'sent' and is recovered on the next run.`);
+    return receipt;
+  }
+
   /**
    * Replace a pending transaction of the operation: the same payload and nonce with fees a third above the pending
-   * ones (and above the current quote), recorded as the operation's new hash. Waits for it like a first send.
+   * ones (and above the current quote), recorded as the operation's new hash and counted in the store. Returns
+   * null, without sending, when the raised fee would pass the cap or the cumulative limit is reached.
    */
-  private async replace(req: SendRequest, wallet: Wallet, populated: TransactionRequest, pending: TransactionResponse, attempt: number): Promise<TransactionReceipt> {
+  private async replace(req: SendRequest, wallet: Wallet, populated: TransactionRequest, pending: TransactionResponse): Promise<{ populated: TransactionRequest; hash: string } | null> {
+    const made = this.store.get(req.key)?.replacements ?? 0;
+    const max = this.options.maxReplacements ?? 3;
+    if (made >= max) {
+      this.store.journal("replace-limit", { replacements: made, max }, req.key);
+      return null;
+    }
     const bump = (v: bigint | null | undefined, floor: bigint | null | undefined) => {
       const a = BigInt(v ?? 0n);
       const b = BigInt(floor ?? 0n);
@@ -245,20 +324,30 @@ export class TxManager {
       return base + base / 3n + 1n;
     };
     const next: TransactionRequest = { ...populated };
+    const cap = req.maxFeePerGasCap ?? this.options.maxFeePerGasCap;
     if (pending.maxFeePerGas !== null && pending.maxFeePerGas !== undefined) {
       next.maxFeePerGas = bump(pending.maxFeePerGas, populated.maxFeePerGas as bigint | undefined);
       next.maxPriorityFeePerGas = bump(pending.maxPriorityFeePerGas, populated.maxPriorityFeePerGas as bigint | undefined);
       if ((next.maxPriorityFeePerGas as bigint) > (next.maxFeePerGas as bigint)) next.maxFeePerGas = next.maxPriorityFeePerGas;
+      if (cap !== undefined && (next.maxFeePerGas as bigint) > cap) {
+        this.store.journal("replace-capped", { wanted: (next.maxFeePerGas as bigint).toString(), cap: cap.toString() }, req.key);
+        return null;
+      }
     } else {
       next.gasPrice = bump(pending.gasPrice, populated.gasPrice as bigint | undefined);
       delete next.maxFeePerGas;
       delete next.maxPriorityFeePerGas;
+      if (cap !== undefined && (next.gasPrice as bigint) > cap) {
+        this.store.journal("replace-capped", { wanted: (next.gasPrice as bigint).toString(), cap: cap.toString() }, req.key);
+        return null;
+      }
     }
     const signed = await wallet.signTransaction(next);
     const hash = keccak256(signed);
-    this.store.markSent(req.key, hash, Number(next.nonce));
+    this.store.markReplaced(req.key, hash, Number(next.nonce));
+    const attempt = made + 1;
     this.store.journal("replaced", { txHash: hash, replaces: pending.hash, nonce: next.nonce, attempt, maxFeePerGas: next.maxFeePerGas?.toString() ?? null, maxPriorityFeePerGas: next.maxPriorityFeePerGas?.toString() ?? null, gasPrice: next.gasPrice?.toString() ?? null }, req.key);
-    this.log(`${req.key}: ${pending.hash} still pending after the timeout; replaced by ${hash} with fees raised by a third (attempt ${attempt})`);
+    this.log(`${req.key}: ${pending.hash} still pending after the timeout; replaced by ${hash} with fees raised by a third (replacement ${attempt} of ${max})`);
     try {
       await this.provider.broadcastTransaction(signed);
     } catch (e: any) {
@@ -266,7 +355,7 @@ export class TxManager {
       this.store.journal("replace-rejected", { txHash: hash, error: String(e?.shortMessage ?? e?.message ?? e) }, req.key);
       this.log(`${req.key}: the node refused the replacement (${e?.shortMessage ?? e?.message}); waiting for whichever transaction is included`);
     }
-    return this.awaitInclusion(req, wallet, next, hash);
+    return { populated: next, hash };
   }
 
   /** The receipt of any hash the operation ever had, or null when none is mined within the timeout. */
@@ -316,22 +405,31 @@ export class TxManager {
   }
 
   private finish(key: string, receipt: TransactionReceipt, recovered: boolean): Confirmed {
+    const price = receipt.gasPrice ?? 0n;
+    const gasCost = receipt.gasUsed * price;
     if (receipt.status === 0) {
-      this.store.markFailed(key, `reverted on chain in tx ${receipt.hash}`);
-      this.store.journal("reverted", { txHash: receipt.hash, block: receipt.blockNumber }, key);
+      this.store.markFailed(key, `reverted on chain in tx ${receipt.hash}`, gasCost);
+      this.store.journal("reverted", { txHash: receipt.hash, block: receipt.blockNumber, gasUsed: receipt.gasUsed.toString(), effectiveGasPrice: price.toString() }, key);
       throw new OperationReverted(key, `operation ${key} reverted on chain (tx ${receipt.hash})`, null);
     }
-    this.store.markConfirmed(key, receipt.hash, receipt.blockNumber, {
-      txHash: receipt.hash,
-      blockNumber: receipt.blockNumber,
-      blockHash: receipt.blockHash,
-      gasUsed: receipt.gasUsed.toString(),
-      from: receipt.from,
-      to: receipt.to,
-      contractAddress: receipt.contractAddress,
-      logs: receipt.logs.length,
-    });
-    this.store.journal("confirmed", { txHash: receipt.hash, block: receipt.blockNumber, gasUsed: receipt.gasUsed.toString() }, key);
+    this.store.markConfirmed(
+      key,
+      receipt.hash,
+      receipt.blockNumber,
+      {
+        txHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        blockHash: receipt.blockHash,
+        gasUsed: receipt.gasUsed.toString(),
+        effectiveGasPrice: price.toString(),
+        from: receipt.from,
+        to: receipt.to,
+        contractAddress: receipt.contractAddress,
+        logs: receipt.logs.length,
+      },
+      gasCost,
+    );
+    this.store.journal("confirmed", { txHash: receipt.hash, block: receipt.blockNumber, gasUsed: receipt.gasUsed.toString(), effectiveGasPrice: price.toString() }, key);
     return { key, txHash: receipt.hash, receipt, replayed: false, recovered };
   }
 

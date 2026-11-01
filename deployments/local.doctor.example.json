@@ -1,24 +1,24 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-10-31T17:21:30.215Z",
+  "at": "2026-11-01T20:02:46.777Z",
   "world": {
-    "worldId": "anvil-31337-20261031T171910Z",
+    "worldId": "anvil-31337-20261101T200100Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
     "mode": "deployed",
-    "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275"
+    "bundleHash": "0xb09770ec43673cca94f9f6feb5ad6050a24aee510792078fd5c87bed389cdcd2"
   },
   "source": {
-    "rpc": "http://127.0.0.1:8545",
-    "collectedAt": "2026-10-31T17:21:30.034Z",
+    "rpc": "http://127.0.0.1:8553",
+    "collectedAt": "2026-11-01T20:02:46.639Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 31337,
-    "blockNumber": 246
+    "blockNumber": 252
   },
-  "bundleHash": "0x29340bc3fb0a3a5c93d9ecb1bfc5d63393fe62b9bbd6cdcc739d8644bdb10275",
+  "bundleHash": "0xb09770ec43673cca94f9f6feb5ad6050a24aee510792078fd5c87bed389cdcd2",
   "layers": {
     "1": "chain and code: the address holds code on the expected chain",
     "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
@@ -1762,8 +1762,8 @@
       "subject": "genesis",
       "check": "evidence",
       "verdict": "Pass",
-      "expected": "anvil-31337-20261031T171910Z (chain 31337)",
-      "actual": "anvil-31337-20261031T171910Z (chain 31337), until T9, 166 checks, 0 failed, ran 2026-10-31T17:20:56.966Z"
+      "expected": "anvil-31337-20261101T200100Z (chain 31337)",
+      "actual": "anvil-31337-20261101T200100Z (chain 31337), until T9, 166 checks, 0 failed, ran 2026-11-01T20:02:45.255Z"
     },
     {
       "layer": 5,

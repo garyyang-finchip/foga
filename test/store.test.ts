@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { OperationStore } from "../src/kernel/store.js";
+import { OperationConflict, OperationStore } from "../src/kernel/store.js";
 
 test("operation rows move prepared -> sent -> confirmed and keep their key", () => {
   const store = OperationStore.open(":memory:");
@@ -57,5 +58,139 @@ test("a file-backed store survives close and reopen", () => {
   s2.markFailed("T0.spec", "reverted");
   assert.equal(s2.get("T0.spec")?.error, "reverted");
   s2.close();
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("a claim binds the key to its request: the same request is idempotent, another request is a conflict", () => {
+  const store = OperationStore.open(":memory:");
+  const bound = store.prepare("tender.submit:9", "execute", "operator.A", { requestHash: "0x" + "11".repeat(32), capability: "tender.submit", caller: "k1", cell: "A", valueWei: 5n, feeCapWei: 7n });
+  assert.equal(bound.requestHash, "0x" + "11".repeat(32));
+  assert.equal(bound.capability, "tender.submit");
+  assert.equal(bound.caller, "k1");
+  assert.equal(bound.cell, "A");
+  assert.equal(bound.valueWei, 5n);
+  assert.equal(bound.feeCapWei, 7n);
+  assert.deepEqual(store.prepare("tender.submit:9", "execute", "operator.A", { requestHash: "0x" + "11".repeat(32) }), bound);
+  assert.throws(() => store.prepare("tender.submit:9", "execute", "operator.A", { requestHash: "0x" + "22".repeat(32) }), (e: Error) => e instanceof OperationConflict && e.storedHash === "0x" + "11".repeat(32) && e.requestHash === "0x" + "22".repeat(32));
+  assert.equal(store.get("tender.submit:9")!.status, "prepared", "a refused claim changes nothing");
+  // an unbound key (the genesis) takes the first binding it is asked with
+  store.prepare("T1.A.register", "execute", "operator.A");
+  assert.equal(store.get("T1.A.register")!.requestHash, null);
+  store.prepare("T1.A.register", "execute", "operator.A", { requestHash: "0x" + "33".repeat(32), caller: "k2" });
+  assert.equal(store.get("T1.A.register")!.requestHash, "0x" + "33".repeat(32));
+  assert.equal(store.get("T1.A.register")!.caller, "k2");
+  store.close();
+});
+
+test("replacements and fees are counted over the operation's life; a retry keeps what was paid", () => {
+  const store = OperationStore.open(":memory:");
+  store.prepare("k", "execute", "operator.A", { valueWei: 100n, feeCapWei: 50n });
+  store.markSent("k", "0x01", 4, 80n);
+  assert.equal(store.get("k")!.valueWei, 80n, "the value the transaction carries replaces the reservation");
+  store.markReplaced("k", "0x02", 4);
+  store.markReplaced("k", "0x03", 4);
+  let rec = store.get("k")!;
+  assert.equal(rec.replacements, 2);
+  assert.equal(rec.txHash, "0x03");
+  assert.equal(rec.attempts, 1, "a replacement is not a new attempt");
+  store.markFailed("k", "reverted on chain in tx 0x03", 30n);
+  assert.equal(store.get("k")!.gasCostWei, 30n);
+  store.markRetry("k");
+  rec = store.get("k")!;
+  assert.equal(rec.status, "prepared");
+  assert.equal(rec.txHash, null);
+  assert.equal(rec.nonce, null);
+  assert.equal(rec.error, null);
+  assert.equal(rec.gasCostWei, 30n, "the reverted attempt was paid for");
+  assert.equal(rec.replacements, 2, "the count is for the operation's life");
+  store.markSent("k", "0x04", 5, 80n);
+  store.markConfirmed("k", "0x04", 9, {}, 20n);
+  rec = store.get("k")!;
+  assert.equal(rec.attempts, 2);
+  assert.equal(rec.gasCostWei, 50n, "fees of both attempts");
+  store.close();
+});
+
+test("budget use: value and fees of settled operations since a time, and what open operations still reserve", () => {
+  const store = OperationStore.open(":memory:");
+  const since = new Date(Date.now() - 1000).toISOString();
+  store.prepare("a", "execute", "operator.A", { valueWei: 10n, feeCapWei: 3n });
+  store.markSent("a", "0xa", 0, 10n);
+  store.markConfirmed("a", "0xa", 1, {}, 2n);
+  store.prepare("b", "execute", "operator.A", { valueWei: 20n, feeCapWei: 3n });
+  store.markSent("b", "0xb", 1, 20n);
+  store.markFailed("b", "reverted on chain", 2n);
+  store.prepare("c", "execute", "operator.A", { valueWei: 40n, feeCapWei: 5n });
+  store.prepare("d", "execute", "operator.A", { valueWei: 80n, feeCapWei: 6n });
+  store.markSent("d", "0xd", 2, 70n);
+  store.prepare("e", "execute", "operator.B", { valueWei: 1000n, feeCapWei: 1000n });
+  const use = store.budgetUse("operator.A", since);
+  assert.equal(use.spentWei, 10n + 2n + 2n, "value of the confirmed operation plus fees of both settled ones (a revert still paid)");
+  assert.equal(use.reservedWei, 40n + 5n + 70n + 6n, "prepared and sent operations: value plus fee cap");
+  assert.deepEqual(store.openOps("operator.A").map((o) => o.key), ["c", "d"]);
+  assert.equal(store.budgetUse("operator.A", new Date(Date.now() + 1000).toISOString()).spentWei, 0n, "nothing settled since the future");
+  assert.equal(store.budgetUse("operator.B", since).reservedWei, 2000n);
+  store.close();
+});
+
+test("jobs: created once per id, conflicting input refused, operations attached once, visible to their caller", () => {
+  const store = OperationStore.open(":memory:");
+  const job = store.createJob({ id: "job-1", kind: "tender.take", caller: "k1", cell: "A", inputHash: "0x" + "aa".repeat(32), input: { tokenId: 7 } });
+  assert.equal(job.status, "accepted");
+  assert.deepEqual(job.input, { tokenId: 7 });
+  assert.deepEqual(job.operations, []);
+  assert.deepEqual(store.createJob({ id: "job-1", kind: "tender.take", caller: "k1", inputHash: "0x" + "aa".repeat(32), input: { tokenId: 7 } }), job, "the same id and input is the same job");
+  assert.throws(() => store.createJob({ id: "job-1", kind: "tender.take", caller: "k1", inputHash: "0x" + "bb".repeat(32), input: { tokenId: 8 } }), OperationConflict);
+  let updated = store.updateJob("job-1", { status: "running", addOperation: "tender.submit:7" });
+  updated = store.updateJob("job-1", { addOperation: "tender.submit:7" });
+  updated = store.updateJob("job-1", { addOperation: "tender.settle:7" });
+  assert.equal(updated.status, "running");
+  assert.deepEqual(updated.operations, ["tender.submit:7", "tender.settle:7"]);
+  updated = store.updateJob("job-1", { status: "done", result: { fulfilmentId: 3n } });
+  assert.equal(updated.status, "done");
+  assert.deepEqual(updated.result, { fulfilmentId: "3" });
+  assert.equal(updated.error, null);
+  store.createJob({ id: "job-2", kind: "skill.run", caller: "k2", inputHash: "0x" + "cc".repeat(32), input: {} });
+  store.updateJob("job-2", { status: "failed", error: "out of budget" });
+  assert.equal(store.getJob("job-2")!.error, "out of budget");
+  assert.deepEqual(store.jobs("k1").map((j) => j.id), ["job-1"], "a caller sees its own jobs");
+  assert.deepEqual(store.jobs("k2").map((j) => j.id), ["job-2"]);
+  assert.deepEqual(store.jobs(null).map((j) => j.id).sort(), ["job-1", "job-2"], "the operator sees every job");
+  assert.deepEqual(store.jobs("k3"), []);
+  assert.throws(() => store.updateJob("job-9", { status: "done" }), /no job job-9/);
+  store.close();
+});
+
+test("a 0.5.0 store (no replacement, binding or job columns) is migrated on open and keeps its rows", () => {
+  const dir = mkdtempSync(join(tmpdir(), "foga-store-"));
+  const path = join(dir, "ops.sqlite");
+  const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite");
+  const old = new DatabaseSync(path);
+  old.exec(`
+    CREATE TABLE ops (key TEXT PRIMARY KEY, kind TEXT NOT NULL, signer TEXT NOT NULL, status TEXT NOT NULL, nonce INTEGER, tx_hash TEXT, block INTEGER, result TEXT, error TEXT, attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE facts (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE journal (seq INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, op_key TEXT, event TEXT NOT NULL, detail TEXT);
+    CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+    INSERT INTO ops VALUES ('T3.A.submit', 'execute', 'operator.A', 'confirmed', 12, '0xabc', 90, '{"gasUsed":"1"}', NULL, 1, '2026-11-01T00:00:00.000Z', '2026-11-01T00:00:01.000Z');
+    INSERT INTO ops VALUES ('T3.B.fund', 'execute', 'operator.B', 'failed', 3, '0xdef', NULL, NULL, 'reverted on chain in tx 0xdef', 1, '2026-11-01T00:00:02.000Z', '2026-11-01T00:00:03.000Z');
+  `);
+  old.close();
+  const store = OperationStore.open(path);
+  const a = store.get("T3.A.submit")!;
+  assert.equal(a.status, "confirmed");
+  assert.equal(a.replacements, 0);
+  assert.equal(a.requestHash, null);
+  assert.equal(a.valueWei, 0n);
+  assert.equal(a.feeCapWei, 0n);
+  assert.equal(a.gasCostWei, null);
+  assert.deepEqual(a.result, { gasUsed: "1" });
+  assert.equal(store.get("T3.B.fund")!.error, "reverted on chain in tx 0xdef");
+  store.markReplaced("T3.B.fund", "0xfed", 3);
+  assert.equal(store.get("T3.B.fund")!.replacements, 1);
+  store.createJob({ id: "j", kind: "k", inputHash: "0x00", input: null });
+  assert.equal(store.getJob("j")!.status, "accepted");
+  assert.deepEqual(store.budgetUse("operator.A", "2026-01-01T00:00:00.000Z"), { spentWei: 0n, reservedWei: 0n });
+  store.close();
+  assert.equal(OperationStore.open(path).get("T3.B.fund")!.replacements, 1, "a second open does not migrate twice");
   rmSync(dir, { recursive: true, force: true });
 });

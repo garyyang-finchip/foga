@@ -19,7 +19,9 @@ ERC-8004 (Trustless Agents) is a required dependency: ERC-8419, ERC-8434 and ERC
 
 The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository has completed **Phase 2c: the genesis on a public chain**, on top of the Phase 2 genesis (T0–T9) and the Phase 1 world layer.
 
-## Status: Phase 2c done — the genesis T0–T9 ran on Sepolia
+## Status: Phase 3 started — the kernel hardened for a public node (3a-1); Phase 2c done
+
+**3a-1 (0.6.0-alpha.1, 2026-11-02).** Phase 3 turns the kernel into a node other agents can call, and its first slice gives the kernel what a public service needs and a scenario driver did not: `FogaCellAccount` revision 2 — the operator may call only what the owner allow-listed, never an asset-moving selector, and signs for the account only when enabled and the gate is satisfied; a node holds one key, its cell's operator, and refuses an environment from which any other role could be derived (`foga keys export`, `foga keys check`); the transaction manager counts fee replacements on the row so the limit holds across restarts, caps fees, runs one signer's operations one at a time, binds a key to the hash of its request (another request under the same key is a conflict), and answers a failed operation with its failure until it is retried explicitly; jobs sit beside operations in the store; the skill worker runs both executors out of process under Node's permission model. All of it is tested offline against an in-process chain (`test/tx-semantics.test.ts`) and by the genesis on anvil, which now opens each cell's scope itself (193 operations, 166 checks). docs/kernel.md, docs/cell-account.md, docs/design-memo.md (section 9) and the changelog have the detail; what 3a-2 to 3d add is in the memo.
 
 **The Sepolia run (0.5.0, 2026-11-01).** World `sepolia-11155111-20261101T043153Z`: the 35 upstream reference deployments attached, 15 contracts added from the bundle by W, the official ERC-8004 registry. The genesis T0–T9 ran from the project's EC2 against a public RPC: 203 operations in blocks 12038641–12040082, three cells born (ERC-8004 agents 11255–11257), A's skills minted and run for B's tender, the swarm formed and paid on a council-judged tender, the dispute refunded by the escrow, the guardian's stop enforced at the gate, the measurements asserted, A's identity moved to A-prime. The doctor on the completed world: Pass 234, Fail 1 (the ARD fixture registry's known older source), Unknown 2, all eleven standards Pass on layer 5. The three files are committed: `deployments/sepolia.example.json` (the world), `deployments/sepolia.genesis.example.json` (the evidence: checks, facts, per-step evidence, the journal of the whole run including its resumes) and `deployments/sepolia.doctor.example.json`. What the run taught — a public RPC cluster's nodes disagree for a second after every block, Sepolia's repriced gas schedule charges 4.4 times anvil's figures (586 M gas for world and genesis), a replay must read the chain at its head — is in docs/genesis.md ("The Sepolia run"), docs/kernel.md and the 0.5.0 changelog; the gas budgets of the roles are now the measured Sepolia figures with a margin.
 
@@ -62,7 +64,7 @@ From Phase 1, unchanged in substance:
 - **The doctor.** `foga doctor` reports five layers per contract — chain and code, interfaces, version match, configuration and permissions, semantic validation — with the verdicts Pass / Fail / Unknown / Not tested / Not applicable. Layers 1–4 probe the chain; layer 5 reads the genesis evidence. A doctor run can be exported as a JSON-RPC probe plan and replayed from results collected elsewhere, so a report never depends on which machine can reach which RPC.
 - **Sepolia address book.** `worlds/sepolia.json` records every upstream reference deployment at its deployed revision, including the three seams the inventory found (docs/version-lock.md); the completed world and the doctor's report on it are the 2c files above.
 
-What is next: Phase 3 adds MCP, A2A and the CLI surface for cells; Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
+What is next: Phase 3 continues with the capability catalog, policy engine and node skeleton (3a-2), MCP and the HTTP API (3b), loop D (3c), A2A and the OG instance's move to a revision-2 account with public endpoints (3d); Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
 
 ## Quick start
 
@@ -154,8 +156,9 @@ scenarios/fixtures/  the pinned document finch-extract-verify works on in T5 and
 scripts/             install-solc.sh, install-foundry.sh, relay.mjs
 src/                 TypeScript: build/ (vendor + bundle), world/ (plan + deploy), doctor/ (probe + evaluate),
                      core/ (foga-core: one module per ERC incl. acdf, adrf and swarm, measure, canonicalization, DAG-CBOR packager),
-                     kernel/ (store, transaction manager, cell, kernel), genesis/ (roles, probe, extract, zk, scenario T0-T3, t3-zk, t4..t9, runner), cli.ts
-test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, swarm/ACDF vectors, extractor, measurement resolver, doctor layer 5
+                     kernel/ (store, transaction manager, cell, kernel), genesis/ (roles, operator scope, probe, extract, skill worker, zk, scenario T0-T3, t3-zk, t4..t9, runner),
+                     node/ (the node's one key), cli.ts
+test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, transaction semantics against an in-process chain (mock-chain.ts), keys, swarm/ACDF vectors, extractor, measurement resolver, doctor layer 5
 vendor/              LOCK.json (sources are materialized here and gitignored)
 worlds/              world configs: local.json (deploy), sepolia.json (attach)
 ```
@@ -172,6 +175,7 @@ foga doctor --world <world|config> [--attach] [--rpc <url>] [--out <report>] [--
 foga probe relay-script
 foga genesis run --world <world> [--rpc <url>] [--until T0..T9] [--store <file>] [--out <evidence>] [--zk auto|require|skip] [--crash-after <key>] [--crash-before <key>]
 foga genesis status --world <world> [--store <file>]
+foga keys new [--out <file>] | show | export --role <role> [--out <file>] | check
 foga demo [--port <n>] [--keep] [--genesis <T0..T9>]
 ```
 

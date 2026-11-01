@@ -3,7 +3,7 @@ import { getAddress, parseEther } from "ethers";
 import { Restriction } from "../core/asf.js";
 import { accountRef, dataUri, keccakJcs, sha256Hex } from "../core/canonical.js";
 import { hashlock, nativeTerms } from "../core/tenders.js";
-import { extractVerifyFile } from "./extract.js";
+import { runExtractIsolated } from "./skill-runner.js";
 import { LIVENESS_DEMO_WINDOW, type Genesis } from "./scenario.js";
 
 /**
@@ -44,7 +44,7 @@ export async function t7(g: Genesis): Promise<void> {
   const replayedStale = k.store.get("T7.A.aid.heartbeat")?.status === "confirmed";
 
   // --- (0) the pending opportunity: a hashlock tender over the deterministic report, two completions
-  const run = extractVerifyFile(join(g.cfg.fixturesDir, "sample-filing.txt"), join(g.cfg.skillsDir, "finch-extract-verify", "fields.json"), extractSkill.packageHash);
+  const run = await runExtractIsolated({ documentPath: join(g.cfg.fixturesDir, "sample-filing.txt"), fieldsPath: join(g.cfg.skillsDir, "finch-extract-verify", "fields.json"), packageHash: extractSkill.packageHash, inputDir: g.cfg.fixturesDir, skillsDir: g.cfg.skillsDir });
   const answer = run.canonical;
   const answerHash = hashlock.answerHash(answer);
   const task = { schema: "foga.task/1", skill: "finch-extract-verify", packageHash: extractSkill.packageHash, input: { document: "scenarios/fixtures/sample-filing.txt", documentDigest: run.report.documentDigest }, acceptance: { mode: "verifier", profile: "x-hashlock-v1", verifier: k.tenders.hashlockAddress, answerHash }, deliverable: "the canonical finch.extract-verify/1 report; resultHash = sha256(report || fulfiller)", completions: 2 };

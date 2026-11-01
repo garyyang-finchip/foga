@@ -11,16 +11,25 @@ import {ASFLike, IASFBindingRegistryLike, IAIDRegistryLike} from "./interfaces/I
 ///         cell needs on top:
 ///         * roles: `owner` (cold principal), `operator` (the node's hot signer, scoped), `guardian`
 ///           (informational: the intervener named in the cell's safety binding), `recovery`;
-///         * operator scope: an expiry and a per-day native-value cap; the owner may also act directly;
-///         * ERC-1271: signatures by the operator (while in scope) or the owner are the account's signatures,
-///           so `bindWithSig`, `joinBySig`, `assertStatementBySig` and signed ballots work for the cell;
+///         * operator scope (revision 2): an allow-list of target x selector the operator may call, an expiry
+///           and a per-day native-value cap; asset-moving selectors (transfers, approvals, allowances) are never
+///           open to the operator, whatever the allow-list says — moving assets is the owner's act; the owner
+///           may also act directly;
+///         * ERC-1271: a signature by the owner is the account's signature; a signature by the operator counts
+///           only when the owner has enabled operator signing, the operator is in scope and the safety gate is
+///           satisfied at the time of the check — so a suspended cell signs nothing through its operator;
 ///         * an AID-state clause gate: selectors marked as commitment-class require the anchor to be ACTIVE in
 ///           the configured ERC-8434 registry, so "no delivery while not ACTIVE" is enforced, not promised;
 ///         * ERC-721 / ERC-1155 receiver hooks;
 ///         * `sweep` to the owner, open to the owner and the recovery address at all times (a de-risking
 ///           action by construction: it only reduces the account's exposure).
-///         There is no execution path that skips the safety gate.
+///         There is no execution path that skips the safety gate, and none that lets the operator act outside
+///         the allow-list.
 contract FogaCellAccount {
+    /// @notice Revision of the account's authorization model (2: operator allow-list, asset selectors closed to
+    ///         the operator, operator signing off by default). Accounts of revision 1 cannot be upgraded.
+    uint8 public constant ACCOUNT_VERSION = 2;
+
     // ---------------------------------------------------------------------------- roles and config
 
     IASFBindingRegistryLike public immutable safety;
@@ -34,6 +43,8 @@ contract FogaCellAccount {
     uint128 public operatorDailyValueCap; // 0 = unlimited
     uint64 private _spentDay;
     uint128 private _spentToday;
+    /// @notice Whether a signature by the operator is accepted as the account's (ERC-1271). Off by default.
+    bool public operatorMaySign;
 
     bytes private _requirementEncoded;
     bytes32 public immutable requirementId;
@@ -41,10 +52,15 @@ contract FogaCellAccount {
 
     mapping(address => mapping(bytes4 => bool)) public deriskAllowed;
     mapping(address => mapping(bytes4 => bool)) public commitmentClass;
+    /// @notice What the operator may call through `execute`: target x selector. A plain value transfer is
+    ///         selector 0x00000000. Set by the owner, widened and narrowed deliberately.
+    mapping(address => mapping(bytes4 => bool)) public operatorAllowed;
 
     // ---------------------------------------------------------------------------- events and errors
 
     event OperatorSet(address indexed operator, uint64 validUntil, uint128 dailyValueCap);
+    event OperatorAllowedSet(address indexed target, bytes4 selector, bool allowed);
+    event OperatorSigningSet(bool allowed);
     event GuardianSet(address indexed guardian);
     event RecoverySet(address indexed recovery);
     event AIDRegistrySet(address indexed registry);
@@ -59,6 +75,9 @@ contract FogaCellAccount {
     error NotOperatorOrOwner();
     error NotOwnerOrRecovery();
     error OperatorExpired(uint64 validUntil);
+    error OperatorNotAllowed(address target, bytes4 selector);
+    error OperatorAssetSelector(address target, bytes4 selector);
+    error LengthMismatch();
     error DailyValueCapExceeded(uint128 cap, uint128 spent, uint256 requested);
     error BindingNotSatisfied(ASFLike.Verdict verdict, ASFLike.Reason[] reasons);
     error BindingsNotPresented(uint256 presented, uint256 required);
@@ -99,6 +118,25 @@ contract FogaCellAccount {
         operatorValidUntil = validUntil;
         operatorDailyValueCap = dailyValueCap;
         emit OperatorSet(operator_, validUntil, dailyValueCap);
+    }
+
+    /// @notice Open or close one target x selector to the operator. Asset-moving selectors cannot be opened.
+    function setOperatorAllowed(address target, bytes4 selector, bool allowed) external onlyOwner {
+        _setOperatorAllowed(target, selector, allowed);
+    }
+
+    /// @notice The same for a list (one transaction configures a cell's whole scope).
+    function setOperatorAllowedBatch(address[] calldata targets, bytes4[] calldata selectors, bool allowed) external onlyOwner {
+        if (targets.length != selectors.length) revert LengthMismatch();
+        for (uint256 i = 0; i < targets.length; i++) _setOperatorAllowed(targets[i], selectors[i], allowed);
+    }
+
+    /// @notice Let the operator's ECDSA signatures count as the account's (ERC-1271) while in scope and
+    ///         while the safety gate is satisfied. Off by default: a cell that never relays signed actions
+    ///         through third parties has no reason to open it.
+    function setOperatorMaySign(bool allowed) external onlyOwner {
+        operatorMaySign = allowed;
+        emit OperatorSigningSet(allowed);
     }
 
     function setGuardian(address guardian_) external onlyOwner {
@@ -157,15 +195,15 @@ contract FogaCellAccount {
 
     // ---------------------------------------------------------------------------- execution
 
-    /// @notice Act as the cell. The operator (within scope) or the owner may call; every call passes the
-    ///         safety gate and, for commitment-class selectors, the AID-state gate.
+    /// @notice Act as the cell. The operator (within its allow-list, expiry and daily value cap) or the owner may
+    ///         call; every call passes the safety gate and, for commitment-class selectors, the AID-state gate.
     function execute(address target, uint256 value, bytes calldata data) external returns (bytes memory ret) {
+        bytes4 selector = data.length >= 4 ? bytes4(data[:4]) : bytes4(0);
         if (msg.sender == operator) {
-            _checkOperatorScope(value);
+            _checkOperatorScope(target, selector, value);
         } else if (msg.sender != owner) {
             revert NotOperatorOrOwner();
         }
-        bytes4 selector = data.length >= 4 ? bytes4(data[:4]) : bytes4(0);
         bool underDerisk = _gate(target, selector);
         bool ok;
         (ok, ret) = target.call{value: value}(data);
@@ -208,13 +246,17 @@ contract FogaCellAccount {
 
     // ---------------------------------------------------------------------------- ERC-1271
 
-    /// @notice A 65-byte ECDSA signature by the operator (while in scope) or by the owner counts as the
-    ///         account's signature.
+    /// @notice A 65-byte ECDSA signature by the owner counts as the account's signature. One by the operator
+    ///         counts only when operator signing is enabled, the operator has not expired and the safety gate is
+    ///         satisfied now (a suspension that stops `execute` stops the relayed, signed path too).
     function isValidSignature(bytes32 hash, bytes calldata signature) external view returns (bytes4) {
         address signer = _recover(hash, signature);
         if (signer == address(0)) return bytes4(0);
         if (signer == owner) return 0x1626ba7e;
-        if (signer == operator && (operatorValidUntil == 0 || block.timestamp <= operatorValidUntil)) return 0x1626ba7e;
+        if (
+            signer == operator && operatorMaySign && (operatorValidUntil == 0 || block.timestamp <= operatorValidUntil)
+                && _satisfied()
+        ) return 0x1626ba7e;
         return bytes4(0);
     }
 
@@ -245,8 +287,39 @@ contract FogaCellAccount {
 
     // ---------------------------------------------------------------------------- internal
 
-    function _checkOperatorScope(uint256 value) private {
+    function _setOperatorAllowed(address target, bytes4 selector, bool allowed) private {
+        if (allowed && _isAssetSelector(selector)) revert OperatorAssetSelector(target, selector);
+        operatorAllowed[target][selector] = allowed;
+        emit OperatorAllowedSet(target, selector, allowed);
+    }
+
+    /// Selectors that move or encumber assets: ERC-20 / ERC-721 / ERC-1155 transfers and approvals. Closed to
+    /// the operator by construction; the owner moves assets (and may `sweep`).
+    function _isAssetSelector(bytes4 selector) private pure returns (bool) {
+        return selector == 0xa9059cbb // transfer(address,uint256)
+            || selector == 0x23b872dd // transferFrom(address,address,uint256)
+            || selector == 0x42842e0e // safeTransferFrom(address,address,uint256)
+            || selector == 0xb88d4fde // safeTransferFrom(address,address,uint256,bytes)
+            || selector == 0xf242432a // safeTransferFrom(address,address,uint256,uint256,bytes)
+            || selector == 0x2eb2c2d6 // safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)
+            || selector == 0x095ea7b3 // approve(address,uint256)
+            || selector == 0xa22cb465 // setApprovalForAll(address,bool)
+            || selector == 0x39509351 // increaseAllowance(address,uint256)
+            || selector == 0xd505accf; // permit(address,address,uint256,uint256,uint8,bytes32,bytes32)
+    }
+
+    /// The safety gate as a yes/no (for the signature path): bindings presented and the verdict Satisfied.
+    function _satisfied() private view returns (bool) {
+        ASFLike.RequirementSet memory req = abi.decode(_requirementEncoded, (ASFLike.RequirementSet));
+        if (_bindingIds.length != req.clauses.length) return false;
+        (ASFLike.Verdict verdict,,) = safety.check(req, _bindingIds);
+        return verdict == ASFLike.Verdict.Satisfied;
+    }
+
+    function _checkOperatorScope(address target, bytes4 selector, uint256 value) private {
         if (operatorValidUntil != 0 && block.timestamp > operatorValidUntil) revert OperatorExpired(operatorValidUntil);
+        if (_isAssetSelector(selector)) revert OperatorAssetSelector(target, selector);
+        if (!operatorAllowed[target][selector]) revert OperatorNotAllowed(target, selector);
         if (operatorDailyValueCap != 0 && value != 0) {
             uint64 day = uint64(block.timestamp / 1 days);
             if (day != _spentDay) {

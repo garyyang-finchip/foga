@@ -112,6 +112,15 @@ contract FogaCellAccountTest {
         vm.deal(address(acct), 10 ether);
         vm.prank(owner);
         acct.adoptBinding(_bindingInput(), 0);
+        // revision 2: the operator may call nothing until the owner opens target x selector pairs
+        _allow(acct, address(target), Target.poke.selector);
+        _allow(acct, address(target), Target.deliver.selector);
+        _allow(acct, address(target), Target.fail.selector);
+    }
+
+    function _allow(FogaCellAccount a, address t, bytes4 sel) internal {
+        vm.prank(owner);
+        a.setOperatorAllowed(t, sel, true);
     }
 
     function _bindingInput() internal pure returns (ASFLike.BindingInput memory input) {
@@ -148,6 +157,11 @@ contract FogaCellAccountTest {
 
     function testNothingExecutesBeforeBindingsArePresented() public {
         FogaCellAccount fresh = new FogaCellAccount(safety, owner, operator, guardian, address(0), _requirement());
+        // the operator's allow-list is checked first: a fresh account opens nothing to it
+        vm.prank(operator);
+        vm.expectRevert(abi.encodeWithSelector(FogaCellAccount.OperatorNotAllowed.selector, address(target), Target.deliver.selector));
+        fresh.execute(address(target), 0, abi.encodeWithSelector(Target.deliver.selector, 1));
+        _allow(fresh, address(target), Target.deliver.selector);
         vm.prank(operator);
         vm.expectRevert(abi.encodeWithSelector(FogaCellAccount.BindingsNotPresented.selector, uint256(0), uint256(1)));
         fresh.execute(address(target), 0, abi.encodeWithSelector(Target.deliver.selector, 1));
@@ -169,6 +183,7 @@ contract FogaCellAccountTest {
         bytes32 id = fresh.adoptBinding(_bindingInput(), 0);
         require(safety.lastAdopter() == address(fresh), "the account is the adopter");
         require(fresh.presentedBindings().length == 1 && fresh.presentedBindings()[0] == id, "presented in slot 0");
+        _allow(fresh, address(target), Target.deliver.selector);
         vm.prank(operator);
         fresh.execute(address(target), 0, abi.encodeWithSelector(Target.deliver.selector, 1));
         require(target.hits() == 1, "executes once bound");
@@ -282,14 +297,27 @@ contract FogaCellAccountTest {
         acct.execute(address(target), 0, abi.encodeWithSelector(Target.fail.selector));
     }
 
-    function testErc1271OperatorAndOwner() public {
+    function testErc1271OwnerAlwaysOperatorOnlyWhenEnabledInScopeAndSatisfied() public {
         bytes32 digest = keccak256("message");
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(OPERATOR_PK, digest);
-        require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0x1626ba7e), "operator signature valid");
-        (v, r, s) = vm.sign(OWNER_PK, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(OWNER_PK, digest);
         require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0x1626ba7e), "owner signature valid");
         (v, r, s) = vm.sign(STRANGER_PK, digest);
         require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0), "stranger invalid");
+        // the operator signs nothing for the account until the owner enables it
+        (v, r, s) = vm.sign(OPERATOR_PK, digest);
+        require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0), "operator signing off by default");
+        vm.prank(stranger);
+        vm.expectRevert(FogaCellAccount.NotOwner.selector);
+        acct.setOperatorMaySign(true);
+        vm.prank(owner);
+        acct.setOperatorMaySign(true);
+        require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0x1626ba7e), "operator signature valid once enabled");
+        // a suspension that stops execute stops the signed path too
+        safety.set(ASFLike.Verdict.NotSatisfied, ASFLike.Reason.Suspended, 2);
+        require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0), "suspended: operator signature invalid");
+        (v, r, s) = vm.sign(OWNER_PK, digest);
+        require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0x1626ba7e), "the owner still signs");
+        safety.set(ASFLike.Verdict.Satisfied, ASFLike.Reason.None, 0);
         // expired operator no longer signs for the account
         vm.warp(5000);
         vm.prank(owner);
@@ -297,6 +325,66 @@ contract FogaCellAccountTest {
         vm.warp(5011);
         (v, r, s) = vm.sign(OPERATOR_PK, digest);
         require(acct.isValidSignature(digest, abi.encodePacked(r, s, v)) == bytes4(0), "expired operator invalid");
+    }
+
+    function testOperatorAllowListIsTheOnlyDoor() public {
+        // a selector the owner never opened
+        vm.prank(operator);
+        vm.expectRevert(abi.encodeWithSelector(FogaCellAccount.OperatorNotAllowed.selector, address(target), bytes4(keccak256("other()"))));
+        acct.execute(address(target), 0, abi.encodeWithSelector(bytes4(keccak256("other()"))));
+        // a plain value transfer is selector 0 and needs its own entry
+        address payable sink = payable(address(0xD1));
+        vm.prank(operator);
+        vm.expectRevert(abi.encodeWithSelector(FogaCellAccount.OperatorNotAllowed.selector, sink, bytes4(0)));
+        acct.execute(sink, 1 ether, "");
+        _allow(acct, sink, bytes4(0));
+        vm.prank(operator);
+        acct.execute(sink, 1 ether, "");
+        require(sink.balance == 1 ether, "value transfer allowed explicitly");
+        // narrowing works, and the owner is never scoped
+        vm.prank(owner);
+        acct.setOperatorAllowed(address(target), Target.deliver.selector, false);
+        vm.prank(operator);
+        vm.expectRevert(abi.encodeWithSelector(FogaCellAccount.OperatorNotAllowed.selector, address(target), Target.deliver.selector));
+        acct.execute(address(target), 0, abi.encodeWithSelector(Target.deliver.selector, 1));
+        vm.prank(owner);
+        acct.execute(address(target), 0, abi.encodeWithSelector(Target.deliver.selector, 1));
+        require(target.hits() == 1, "owner executed");
+        // the batch setter
+        address[] memory ts = new address[](2);
+        bytes4[] memory sels = new bytes4[](2);
+        ts[0] = address(target);
+        ts[1] = address(target);
+        sels[0] = Target.deliver.selector;
+        sels[1] = bytes4(keccak256("other()"));
+        vm.prank(owner);
+        acct.setOperatorAllowedBatch(ts, sels, true);
+        require(acct.operatorAllowed(address(target), Target.deliver.selector) && acct.operatorAllowed(address(target), bytes4(keccak256("other()"))), "batch opened both");
+        bytes4[] memory wrong = new bytes4[](1);
+        vm.prank(owner);
+        vm.expectRevert(FogaCellAccount.LengthMismatch.selector);
+        acct.setOperatorAllowedBatch(ts, wrong, true);
+        vm.prank(stranger);
+        vm.expectRevert(FogaCellAccount.NotOwner.selector);
+        acct.setOperatorAllowed(address(target), Target.poke.selector, true);
+    }
+
+    function testAssetSelectorsAreClosedToTheOperator() public {
+        bytes4[4] memory assetSelectors = [bytes4(0xa9059cbb), bytes4(0x23b872dd), bytes4(0x42842e0e), bytes4(0xa22cb465)];
+        for (uint256 i = 0; i < assetSelectors.length; i++) {
+            // the owner cannot even open them
+            vm.prank(owner);
+            vm.expectRevert(abi.encodeWithSelector(FogaCellAccount.OperatorAssetSelector.selector, address(target), assetSelectors[i]));
+            acct.setOperatorAllowed(address(target), assetSelectors[i], true);
+            // and the operator cannot call them
+            vm.prank(operator);
+            vm.expectRevert(abi.encodeWithSelector(FogaCellAccount.OperatorAssetSelector.selector, address(target), assetSelectors[i]));
+            acct.execute(address(target), 0, abi.encodeWithSelector(assetSelectors[i], address(0xB0B), uint256(1)));
+        }
+        // the owner moves assets through execute as before (the target here just records the call)
+        vm.prank(owner);
+        acct.execute(address(target), 0, abi.encodeWithSelector(Target.deliver.selector, 1));
+        require(acct.ACCOUNT_VERSION() == 2, "revision 2");
     }
 
     function testSweepByOwnerOrRecoveryOnly() public {

@@ -4,7 +4,7 @@ import { TenderAdapterRef } from "../core/acdf.js";
 import { dataUri, keccakJcs, sha256Hex } from "../core/canonical.js";
 import { DecisionPoint, SwarmAccountRef, SwarmDecisionAdapterRef, SwarmTenderAdapterRef, packHashes } from "../core/swarm.js";
 import { nativeTerms } from "../core/tenders.js";
-import { extractVerifyFile } from "./extract.js";
+import { runExtractIsolated } from "./skill-runner.js";
 import type { Genesis } from "./scenario.js";
 
 /**
@@ -40,7 +40,7 @@ export async function t5(g: Genesis): Promise<void> {
   g.check("T5", "judges.independent", judges.every((j) => !parties.has(j.toLowerCase())), `J1-J3 are not the demander, a member, the swarm account or an operator`);
 
   // --- (1) the deliverable: the deterministic finch-extract-verify report over the pinned filing
-  const run = extractVerifyFile(join(g.cfg.fixturesDir, "sample-filing.txt"), join(g.cfg.skillsDir, "finch-extract-verify", "fields.json"), extractSkill.packageHash);
+  const run = await runExtractIsolated({ documentPath: join(g.cfg.fixturesDir, "sample-filing.txt"), fieldsPath: join(g.cfg.skillsDir, "finch-extract-verify", "fields.json"), packageHash: extractSkill.packageHash, inputDir: g.cfg.fixturesDir, skillsDir: g.cfg.skillsDir });
   const resultHash = run.resultHash;
   k.setFact("T5.report", { resultHash, documentDigest: run.report.documentDigest, rules: run.report.rules });
   const submitCall = account.encodeExecute(k.tenders.address, 0n, k.tenders.encodeSubmit(tokenId, resultHash, dataUri(run.report)));

@@ -93,6 +93,8 @@ export async function t4(g: Genesis): Promise<void> {
   const decision = await k.deploy("T4.deploy.decisionAdapter", W, "swarm-ai-framework:SwarmDecisionAdapter", [k.swarms.address, k.acdf.registryAddress, ROLE_WORKER, 2, 2, timing.governanceWindow, timing.margin]);
   k.setFact("T4.decisionAdapter", decision.address);
   g.world.attach("foga/SwarmDecisionAdapter", decision.address, "swarm-ai-framework:SwarmDecisionAdapter");
+  // the coordinator opens decisions on it (T5): B's owner widens the operator's scope to this one selector
+  await B.admin("T4.B.scope.decisionAdapter.open", "setOperatorAllowed", [decision.address, g.world.ifaceOf("swarm-ai-framework:SwarmDecisionAdapter").getFunction("open")!.selector, true]);
 
   // --- 4. the spec and the pack
   const phase = { name: "execution", payoff: "sai.payoff.shared", topology: "sai.topology.partitioned", coordination: "sai.coordination.collective", boundary: "OPEN", admission: "RECRUIT", inputWindow: 0, description: "The coordinator splits the extraction into field groups; each worker owns a group and records its contribution; the coordinator assembles the report and submits it from the swarm account." };
@@ -186,6 +188,7 @@ export async function t4(g: Genesis): Promise<void> {
   g.world.attach("foga/SwarmAccount", account.address, "swarm-ai-framework:SwarmAccount");
   await B.execute("T4.B.setAccount", k.swarms.address, k.swarms.encodeSetAccount(swarmId, account.address));
   const swarmAccount = new SwarmAccountRef(g.world, account.address);
+  await B.admin("T4.B.scope.swarmAccount.execute", "setOperatorAllowed", [account.address, swarmAccount.executeSelector, true]);
   await B.admin("T4.B.class.swarmAccount.execute", "setCommitmentClass", [account.address, swarmAccount.executeSelector, true]);
 
   // --- 7. the swarm's economic boundary: a unit containing the members' units at their pinned versions

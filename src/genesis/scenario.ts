@@ -15,6 +15,7 @@ import { Kernel } from "../kernel/kernel.js";
 import { EPOCH_GRACE, EPOCH_LENGTH, PREDICATE_VALIDITY, attestorKeyFrom, predicateAvailability, proverLibsAvailable, sourceKeyFrom, zk, zkAvailability } from "./zk.js";
 import { CELLS, operatorRole, ownerRole, roleKeys, type CellName, type Role } from "./roles.js";
 import { CELL_CAPITAL, fundRoles, operatorGasFloor } from "./funding.js";
+import { CELL_GROUPS, operatorScope } from "./operator-scope.js";
 import { runProbe, type ProbeInput } from "./probe.js";
 import { runProbeIsolated, verifiedPackage } from "./skill-runner.js";
 
@@ -22,7 +23,7 @@ export const STEPS = ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"
 export type StepName = (typeof STEPS)[number];
 
 /** Bumped whenever the operation keys or their inputs change; a store written by another version is refused. */
-export const SCENARIO_VERSION = "4";
+export const SCENARIO_VERSION = "5";
 
 export type ZkMode = "auto" | "require" | "skip";
 
@@ -119,6 +120,10 @@ export class Genesis {
       keys,
       crashBeforeBroadcast: cfg.crashBeforeBroadcast,
       crashAfterBroadcast: cfg.crashAfterBroadcast,
+      // The genesis is a script that resumes: an operation that failed on a transient condition (an estimate made
+      // against a lagging node, say) is sent anew when the run is resumed. That is the script's explicit choice;
+      // the kernel's default answers a failed key with its failure (docs/kernel.md).
+      retryFailed: true,
       log: cfg.log,
     });
     const have = kernel.store.getMeta("scenarioVersion");
@@ -381,6 +386,11 @@ export class Genesis {
 
     // 3. owner administration: operator scope, AID registry for the commitment gate, selector classes
     await cell.admin(`T1.${X}.setOperator`, "setOperator", [cell.operatorAddress, 0, parseEther("0.01")]);
+    // the operator's allow-list (account revision 2): the groups this cell plays, resolved to target x selector;
+    // what the genesis deploys later and opens to one cell (the swarm's account, the decision adapter) is added then
+    const scope = operatorScope(k, CELL_GROUPS[X]);
+    await cell.admin(`T1.${X}.scope`, "setOperatorAllowedBatch", [scope.targets, scope.selectors, true]);
+    k.setFact(`T1.${X}.scope`, { groups: CELL_GROUPS[X], entries: scope.names });
     await cell.admin(`T1.${X}.setAIDRegistry`, "setAIDRegistry", [k.aid.address]);
     const tasks = k.tenders.contract().interface;
     const swarms = this.world.iface("8447/SwarmRegistry");
@@ -402,7 +412,7 @@ export class Genesis {
     for (const [name, target, sel] of derisk) await cell.admin(`T1.${X}.derisk.${name}`, "setDeriskAllowed", [target, sel, true]);
 
     // 4. the safety binding: adopted by the account, presented for clause 0
-    const params = { profile: "foga-cell/1", cell: X, deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
+    const params = { profile: "foga-cell/1", cell: X, operatorScope: CELL_GROUPS[X], deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
     const authority = { kind: "owner", owner: accountRef(chainId, cell.ownerAddress), guardian: accountRef(chainId, G) };
     const input = k.asf.cellBindingInput({ chainId, cell: cell.address, specId: spec.specId, version: spec.version, contentHash: spec.contentHash, guardian: G, params, authority });
     const { bindingId } = await cell.adoptBinding(`T1.${X}.adopt`, input, 0);

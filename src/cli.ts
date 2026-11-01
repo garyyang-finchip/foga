@@ -24,6 +24,9 @@ usage:
   foga world attach --world <config.json> [--out <file>]   address book only, no transactions (every contract listed)
   foga keys new [--out <file>]                   write a fresh 12-word phrase (default ~/.foga/genesis.mnemonic) and print the role addresses
   foga keys show                                 print the role addresses the environment derives (FOGA_MNEMONIC[_FILE], FOGA_KEY_*)
+  foga keys export --role <role> [--out <file>]  write one role's key to a 0600 file for a node that holds that key alone
+                                                 (default ~/.foga/keys/<role>.key; the node reads it from FOGA_OPERATOR_KEY_FILE)
+  foga keys check                                check the current environment as a node would: its operator key alone, nothing that derives other roles
   foga doctor --world <world.json> [--rpc <url>] [--out <report.json>] [--genesis <evidence.json>]
   foga doctor --world <config.json> --attach [--rpc <url>] [--out <report.json>]
   foga doctor --world <...> --export-probe <probe.json>      write the JSON-RPC probe plan instead of calling an RPC
@@ -45,6 +48,8 @@ environment:
                   W = account 0 is also the world deployer); FOGA_MNEMONIC_FILE names a file holding it instead
   FOGA_KEY_<ROLE>   overrides one role's key (W, G, OWNER_A, OPERATOR_A, ..., E, J1, J2, J3); anvil derives all of them
   FOGA_DEPLOYER_PK  deployer key for world deploy when it is not W of the phrase (worlds/local.json falls back to anvil account #0)
+  FOGA_OPERATOR_KEY_FILE  a node's one key (its cell's operator), written by 'foga keys export'; FOGA_OPERATOR_KEY holds the key itself.
+                  A node refuses to start when its environment also carries FOGA_MNEMONIC[_FILE], FOGA_DEPLOYER_PK or any FOGA_KEY_<ROLE>
 `;
 
 interface Args {
@@ -172,6 +177,39 @@ async function main(): Promise<void> {
   if (group === "probe" && cmd === "relay-script") {
     const { RELAY_SCRIPT } = await import("./doctor/probe.js");
     process.stdout.write(RELAY_SCRIPT);
+    return;
+  }
+
+  if (group === "keys" && cmd === "export") {
+    const { ROLE_ORDER, envKeys, roleAddresses } = await import("./genesis/roles.js");
+    const role = str(flags, "role");
+    if (!role || !(ROLE_ORDER as readonly string[]).includes(role)) fail(`--role <role> is required: one of ${ROLE_ORDER.join(", ")}`);
+    const out = resolve(str(flags, "out") ?? join(homedir(), ".foga", "keys", `${role}.key`));
+    if (exists(out)) fail(`${out} exists; pass --out <file> for another file (an existing key file is never overwritten)`);
+    const keys = envKeys([role as (typeof ROLE_ORDER)[number]]);
+    mkdirSync(dirname(out), { recursive: true, mode: 0o700 });
+    writeFileSync(out, keys[role] + "\n", { mode: 0o600 });
+    const address = roleAddresses(keys)[role];
+    console.log(`${role} ${address}`);
+    console.log(`key written to ${out} (mode 0600). Move it to the node's user (chown) and keep the phrase out of that user's environment:`);
+    console.log(`  export FOGA_OPERATOR_KEY_FILE=${out}`);
+    return;
+  }
+
+  if (group === "keys" && cmd === "check") {
+    const { loadOperatorKey, KeyIsolationError } = await import("./node/keys.js");
+    try {
+      const key = loadOperatorKey();
+      console.log(`operator key: ${key.address} (from ${key.source.kind === "env" ? key.source.name : key.source.path})`);
+      console.log("the environment holds nothing that derives another role");
+    } catch (e) {
+      if (e instanceof KeyIsolationError) {
+        console.log(`not a node environment: ${e.message}`);
+        process.exitCode = 6;
+        return;
+      }
+      throw e;
+    }
     return;
   }
 

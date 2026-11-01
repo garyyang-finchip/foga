@@ -105,17 +105,24 @@ export class Kernel {
     // Seed the read pin with the chain's head (kernel/provider.ts). A replayed run sees only the receipts of its old
     // operations, whose blocks must not become the pin: reads are about the chain as it is now, not as it was then.
     await world.provider.getBlockNumber();
-    // A store belongs to one chain instance: the hash of block 0 tells a restarted local chain from a resumed one.
+    // A store belongs to one chain instance and one world: the hash of block 0 tells a restarted local chain from
+    // a resumed one; the world id and chain id tell a store opened against the wrong world file.
     const genesis = (await world.provider.getBlock(0))?.hash ?? "unknown";
     const known = store.getMeta("genesisBlockHash");
     if (known && known !== genesis) {
       throw new Error(`operation store ${opts.storePath} belongs to a chain whose block 0 is ${known}; this RPC's block 0 is ${genesis}. The chain was reset: delete the store (or pass a fresh --store) to start over.`);
     }
-    if (!known) {
-      store.setMeta("genesisBlockHash", genesis);
-      store.setMeta("chainId", String(world.chainId));
-      store.setMeta("worldId", world.file.worldId);
+    const knownWorld = store.getMeta("worldId");
+    if (knownWorld && knownWorld !== world.file.worldId) {
+      throw new Error(`operation store ${opts.storePath} belongs to world ${knownWorld}, not to ${world.file.worldId} (${opts.worldPath}). Point it at its own world file or start a fresh store.`);
     }
+    const knownChain = store.getMeta("chainId");
+    if (knownChain && knownChain !== String(world.chainId)) {
+      throw new Error(`operation store ${opts.storePath} belongs to chain ${knownChain}, not to chain ${world.chainId}.`);
+    }
+    if (!known) store.setMeta("genesisBlockHash", genesis);
+    if (!knownChain) store.setMeta("chainId", String(world.chainId));
+    if (!knownWorld) store.setMeta("worldId", world.file.worldId);
     const { worldPath: _w, rpc: _r, bundlePath: _b, storePath: _s, keys, ...txOptions } = opts;
     return new Kernel(world, store, keys, txOptions);
   }

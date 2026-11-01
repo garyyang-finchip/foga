@@ -1,3 +1,4 @@
+import { CELL_GROUPS, operatorScope } from "./operator-scope.js";
 import { getAddress } from "ethers";
 import { AID, type AIDDocument } from "../core/aid.js";
 import { agentDescriptor, kindId, recordIdOf } from "../core/ard.js";
@@ -59,6 +60,8 @@ export async function t9(g: Genesis): Promise<void> {
   g.log(`  A-prime: account ${prime.address} (same owner and operator keys as A)`);
   await k.transfer("T9.Aprime.fund", "W", prime.address, k.isLocalChain ? SUCCESSOR_CAPITAL.local : SUCCESSOR_CAPITAL.public);
   await prime.admin("T9.Aprime.setOperator", "setOperator", [prime.operatorAddress, 0, 10n ** 16n]);
+  const primeScope = operatorScope(k, CELL_GROUPS["A-prime"]);
+  await prime.admin("T9.Aprime.scope", "setOperatorAllowedBatch", [primeScope.targets, primeScope.selectors, true]);
   await prime.admin("T9.Aprime.setAIDRegistry", "setAIDRegistry", [k.aid.address]);
   const tasks = k.tenders.contract().interface;
   await prime.admin("T9.Aprime.class.8414.submitFulfillment", "setCommitmentClass", [k.tenders.address, g.selector(tasks, "submitFulfillment"), true]);
@@ -91,7 +94,8 @@ export async function t9(g: Genesis): Promise<void> {
   }
 
   // the identity moves through A's own account
-  const transfer = await A.execute("T9.A.8004.transfer", k.identity.address, k.identity.encodeTransfer(A.address, prime.address, agentId));
+  // moving the identity is the owner's act: the account refuses transfer selectors to the operator (revision 2)
+  const transfer = await A.execute("T9.A.8004.transfer", k.identity.address, k.identity.encodeTransfer(A.address, prime.address, agentId), { by: "owner" });
   const ownerNow = await k.identity.contract().ownerOf(agentId);
   const taken = k.store.get("T9.Aprime.aid.bind")?.status === "confirmed";
   if (!taken) {
@@ -147,7 +151,7 @@ export async function t9(g: Genesis): Promise<void> {
 
   // --- (9b) the skill moves; its record follows the token and is adopted again by recommitment
   const tokenId = BigInt(skill.tokenId);
-  await A.execute("T9.A.skill.transfer", k.skills.address, k.skills.encodeSafeTransfer(A.address, prime.address, tokenId));
+  await A.execute("T9.A.skill.transfer", k.skills.address, k.skills.encodeSafeTransfer(A.address, prime.address, tokenId), { by: "owner" });
   const skillOwner = await k.skills.ownerOf(tokenId);
   const controller = await k.ard.controllerOf(skill.recordId);
   const adoptedNow = await k.ard.isAdopted(skill.recordId);
