@@ -1,4 +1,5 @@
-import { Contract, ContractFactory, JsonRpcProvider, NonceManager, Wallet, getAddress, isAddress } from "ethers";
+import { Contract, ContractFactory, NonceManager, Wallet, getAddress, isAddress } from "ethers";
+import { PinnedProvider } from "../kernel/provider.js";
 import { join, relative } from "node:path";
 import { loadBundle, getContract } from "../bundle/load.js";
 import type { Bundle } from "../bundle/types.js";
@@ -105,7 +106,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   }
 
   const rpc = opts.rpc ?? resolveRpc(cfg.rpc);
-  const provider = new JsonRpcProvider(rpc, undefined, { staticNetwork: true, cacheTimeout: -1 });
+  const provider = new PinnedProvider(rpc, undefined, { staticNetwork: true, cacheTimeout: -1 });
   provider.pollingInterval = cfg.network === "anvil" ? 250 : 4_000;
   const net = await provider.getNetwork();
   if (Number(net.chainId) !== cfg.chainId) {

@@ -1,4 +1,5 @@
-import { Contract, Interface, JsonRpcProvider, type ContractRunner, type Provider, type Signer } from "ethers";
+import { Contract, Interface, type ContractRunner, type Provider, type Signer } from "ethers";
+import { PinnedProvider } from "../kernel/provider.js";
 import { loadBundle } from "../bundle/load.js";
 import type { Bundle, BundleContract } from "../bundle/types.js";
 import { readJson } from "../util/fs.js";
@@ -28,7 +29,9 @@ export class World {
     const bundle = loadBundle(bundlePath);
     const url = rpc ?? process.env.FOGA_RPC_URL ?? (file.network === "anvil" ? "http://127.0.0.1:8545" : undefined);
     if (!url) throw new Error("no RPC: pass --rpc or set FOGA_RPC_URL");
-    const provider = new JsonRpcProvider(url, undefined, { staticNetwork: true, cacheTimeout: -1 });
+    // Reads are pinned to the highest block the provider has seen (kernel/provider.ts): a public endpoint is a
+    // cluster whose nodes lag each other by a block, and the kernel reads what it has just written.
+    const provider = new PinnedProvider(url, undefined, { staticNetwork: true, cacheTimeout: -1 });
     // A local node answers in microseconds and mines on demand; a public endpoint is shared, rate-limited and
     // makes a block every 12 s, so it is asked a few times per block, not several times per second.
     provider.pollingInterval = file.network === "anvil" ? 250 : 4_000;

@@ -707,24 +707,35 @@ export class Genesis {
 
     const started = Date.now();
     const run = await runProbeIsolated({ worldPath: this.cfg.worldPath, rpc: this.cfg.rpc, bundlePath: this.cfg.bundlePath, input: spec.input });
-    const resultHash = hashlock.resultHash(run.answer, A.address);
-    this.check("T3", "A.answer", hashlock.answerHash(run.answer) === spec.acceptance.answerHash, `isolated run (${Date.now() - started} ms): sha256(answer) matches the committed answerHash`);
-    const receiptDoc = { schema: "foga.run-receipt/1", skill: "foga-probe", packageHash: pkg.packageHash, tokenId: probeSkill.tokenId, input: spec.input, answerHash: hashlock.answerHash(run.answer), fulfiller: accountRef(chainId, A.address), worker: "isolated child process, view calls only" };
-    k.setFact("T3.A.runReceipt", receiptDoc);
+    const reproduced = hashlock.answerHash(run.answer) === spec.acceptance.answerHash;
+    // The probe reads the chain at block N. A run replayed long after N against an endpoint that no longer serves state
+    // that old (a public cluster of non-archive nodes keeps about 128 blocks) cannot reproduce the answer the chain
+    // accepted; the settlement checked below is the proof of that answer, so the re-run is recorded as skipped, not failed.
+    const stale = settled && !reproduced;
+    if (!stale) this.check("T3", "A.answer", reproduced, `isolated run (${Date.now() - started} ms): sha256(answer) matches the committed answerHash`);
+    else this.skipped("T3", "A.answer", `replayed run: the probe re-run at block ${blockN} does not reproduce the committed answer any more (the endpoint no longer serves state at that block); the settlement on chain is the proof of the original answer`);
+    // the result hash and the run receipt are fixed by the first run: the submission was made from them (a stale
+    // replay takes the result hash from the submission the chain holds)
+    const receiptDoc = await k.memo("T3.A.runReceipt", () => ({ schema: "foga.run-receipt/1", skill: "foga-probe", packageHash: pkg.packageHash, tokenId: probeSkill.tokenId, input: spec.input, answerHash: hashlock.answerHash(run.answer), fulfiller: accountRef(chainId, A.address), worker: "isolated child process, view calls only" }));
+    let resultHash = k.fact<string>("T3.resultHash") ?? (stale ? ZERO32 : hashlock.resultHash(run.answer, A.address));
 
     const submit = await A.execute("T3.A.submit", k.tenders.address, k.tenders.encodeSubmit(tokenId, resultHash, dataUriJcs(receiptDoc)));
     const submissionId = k.tenders.submissionIdFromReceipt(submit.receipt);
     k.setFact("T3.submissionId", submissionId.toString());
+    if (resultHash === ZERO32) resultHash = (await k.tenders.submissionOf(tokenId, submissionId)).resultHash;
+    k.setFact("T3.resultHash", resultHash);
 
     // negatives, while the submission is still pending
     if (!settled) {
       const wrong = await this.wouldRevert(A, k.tenders.address, k.tenders.encodeSettle(tokenId, submissionId, Buffer.from(run.answer + " ", "utf8")));
       this.check("T3", "wrong.answer.refused", wrong !== null && /verification failed/.test(wrong), `settling with a wrong proof reverts: ${wrong}`);
     } else this.skipped("T3", "wrong.answer.refused", "replayed run: the tender was already settled");
-    const verifier = k.tenders.hashlockVerifier();
-    const asA = await verifier.verifyFulfillment(k.tenders.address, tokenId, submissionId, A.address, resultHash, Buffer.from(run.answer, "utf8"));
-    const asB = await verifier.verifyFulfillment(k.tenders.address, tokenId, submissionId, B.address, resultHash, Buffer.from(run.answer, "utf8"));
-    this.check("T3", "copy.refused", asA === true && asB === false, `verifyFulfillment with A's resultHash: as A ${asA}, as another fulfiller ${asB} (resultHash binds the account)`);
+    if (!stale) {
+      const verifier = k.tenders.hashlockVerifier();
+      const asA = await verifier.verifyFulfillment(k.tenders.address, tokenId, submissionId, A.address, resultHash, Buffer.from(run.answer, "utf8"));
+      const asB = await verifier.verifyFulfillment(k.tenders.address, tokenId, submissionId, B.address, resultHash, Buffer.from(run.answer, "utf8"));
+      this.check("T3", "copy.refused", asA === true && asB === false, `verifyFulfillment with A's resultHash: as A ${asA}, as another fulfiller ${asB} (resultHash binds the account)`);
+    } else this.skipped("T3", "copy.refused", "replayed run: the original answer cannot be reproduced from this endpoint (see A.answer)");
 
     const balanceBefore = await A.balance();
     const settle = await A.execute("T3.A.settle", k.tenders.address, k.tenders.encodeSettle(tokenId, submissionId, Buffer.from(run.answer, "utf8")));

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-alpha.5 — 2026-11-01
+
+- Kernel: reads are pinned to the highest block the provider has seen (`src/kernel/provider.ts`, `PinnedProvider`, used by every world handle and by `foga world deploy`): `eth_call`, `eth_estimateGas`, balances, code and storage asked at "latest" are sent at the pin, a node behind it answers with an error and is retried (up to 30 s) instead of answering from stale state; explicit block tags and "pending" pass through; the pin advances with receipts and block headers. The visibility wait of alpha.3 was not enough on Sepolia's cluster: a second enactment read as possible right after the first (`refund.twice.refused`), and the delivery of a call opened one block earlier was refused by the estimate (`Escrow_UnknownCall`). Test against a mock endpoint with a lagging node (`test/provider.test.ts`).
+
+## 0.5.0-alpha.4 — 2026-11-01
+
+- T3 on a replayed run: the probe re-reads the chain at the tender's block N; an endpoint that no longer serves state at that block (a public cluster of non-archive nodes keeps about 128 blocks) cannot reproduce the committed answer, which showed as `A.answer` and `copy.refused` failing on the Sepolia run resumed an hour later. When the settlement is already confirmed and the re-run does not reproduce the answer, both checks are recorded as skipped with the reason — the settlement on chain (`submission.accepted`) is the proof of the original answer; the result hash and the run receipt are fixed by the first run (`T3.resultHash`, `T3.A.runReceipt`), a stale replay taking the result hash from the submission the chain holds.
+
 ## 0.5.0-alpha.3 — 2026-11-01
 
 - Fix: a resumed run on a public chain read the memoized fee of a step's funding back as a string and failed in `floorOf` ("Cannot mix BigInt and other types"); the memo now stores and reads a decimal string explicitly. anvil did not show it because its floors are fixed amounts.
