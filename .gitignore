@@ -16,6 +16,8 @@ deployments/*.json
 !deployments/*.example.json
 deployments/*.sqlite
 deployments/*.sqlite-*
+# cells born locally (foga cell new / init): configs, stores and inline documents; the OG cell's published files live under deployments/og/
+deployments/cells/
 
 # foundry
 contracts/out/
