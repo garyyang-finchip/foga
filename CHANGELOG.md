@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0-alpha.5 — 2026-11-02 (the launcher on Windows)
+
+- `bin/foga.js` imported the compiled CLI by its absolute path; on Windows a drive-letter path is not a URL and Node refused it (`ERR_UNSUPPORTED_ESM_URL_SCHEME`), so `npx -y @finchip.ai/foga` failed on every Windows machine. The launcher now imports a `file://` URL (`pathToFileURL`). Nothing else changes; 0.6.0-alpha.4 on npm stays as published (a version cannot be replaced) and `latest` moves to alpha.5.
+
 ## 0.6.0-alpha.4 — 2026-11-02 (Phase 3c: Loop D)
 
 A model proposes, the catalog decides, and the acceptance reads the records: the runner, two model adapters, the independent demander, the orchestrated unscripted run with its recovery drill, and the doctor's Loop D verdicts beside layer 5. docs/loop-d.md.
