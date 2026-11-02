@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "@finchip/foga",
+      "identifier": "@finchip.ai/foga",
       "version": "0.6.0-alpha.4",
       "runtimeHint": "npx",
       "transport": {

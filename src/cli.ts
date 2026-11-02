@@ -112,7 +112,7 @@ async function main(): Promise<void> {
     return;
   }
   if (group === "mcp") {
-    // `npx -y @finchip/foga mcp --config <cell.config.json>`: the stdio MCP server
+    // `npx -y @finchip.ai/foga mcp --config <cell.config.json>`: the stdio MCP server
     const { nodeCommand } = await import("./cli-cell.js");
     await nodeCommand("mcp", [], flags);
     return;

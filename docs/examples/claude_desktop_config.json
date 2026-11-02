@@ -2,7 +2,7 @@
   "mcpServers": {
     "foga": {
       "command": "npx",
-      "args": ["-y", "@finchip/foga", "mcp", "--config", "/home/me/cells/D.json"],
+      "args": ["-y", "@finchip.ai/foga", "mcp", "--config", "/home/me/cells/D.json"],
       "env": {
         "FOGA_OPERATOR_KEY_FILE": "/home/me/.foga/keys/operator.key",
         "FOGA_RPC_URL": "http://127.0.0.1:8545"
