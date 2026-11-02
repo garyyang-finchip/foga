@@ -1,13 +1,16 @@
 {
-  "name": "foga",
+  "name": "@finchip/foga",
   "version": "0.6.0-alpha.4",
   "repository": {
     "type": "git",
-    "url": "https://github.com/garyyang-finchip/foga.git"
+    "url": "git+https://github.com/garyyang-finchip/foga.git"
   },
   "homepage": "https://github.com/garyyang-finchip/foga#readme",
   "description": "Finch OG Agent (FOGA): world builder, conformance doctor, cell kernel, genesis scenario and cell node (MCP server, HTTP API) for the ten-ERC agent stack (ERC-8338/8414/8419/8434/8436/8444/8447/8454/8468/8471)",
   "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "mcpName": "io.github.garyyang-finchip/foga",
   "keywords": [
     "mcp",
@@ -23,7 +26,7 @@
   ],
   "type": "module",
   "bin": {
-    "foga": "./bin/foga.js"
+    "foga": "bin/foga.js"
   },
   "engines": {
     "node": ">=22.13"
