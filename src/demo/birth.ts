@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { Wallet, getAddress, parseEther, type HDNodeWallet } from "ethers";
+import { Wallet, getAddress, parseEther, type BaseWallet } from "ethers";
 import { dataUriJcs, keccakJcs } from "../core/canonical.js";
 import { accountSubject, fogaAttestedSchemeDescriptor } from "../core/kya.js";
 import type { Kernel } from "../kernel/kernel.js";
@@ -27,13 +27,15 @@ export interface BirthOptions {
   description?: string;
   /** Adjust the configuration before the birth (policy, runtime, presence). */
   configure?: (cfg: CellConfig) => void;
+  /** The roles' private keys (a wallet's); fresh random keys when absent. */
+  keys?: { owner: string; operator: string; guardian: string };
   log?: (line: string) => void;
 }
 
 export interface BornCell {
-  owner: HDNodeWallet;
-  operator: HDNodeWallet;
-  guardian: HDNodeWallet;
+  owner: BaseWallet;
+  operator: BaseWallet;
+  guardian: BaseWallet;
   account: string;
   agentId: string | null;
   specId: string | null;
@@ -52,10 +54,10 @@ export async function birthCell(o: BirthOptions): Promise<BornCell> {
   const log = o.log ?? (() => {});
   const root = repoRoot();
   const W = k.address("W");
-  const owner = Wallet.createRandom();
-  const operator = Wallet.createRandom();
-  const guardian = Wallet.createRandom();
-  log(`cell ${o.name}: owner ${owner.address}, operator ${operator.address}, guardian ${guardian.address}`);
+  const owner: BaseWallet = o.keys ? new Wallet(o.keys.owner) : Wallet.createRandom();
+  const operator: BaseWallet = o.keys ? new Wallet(o.keys.operator) : Wallet.createRandom();
+  const guardian: BaseWallet = o.keys ? new Wallet(o.keys.guardian) : Wallet.createRandom();
+  log(`cell ${o.name}: owner ${owner.address}, operator ${operator.address}, guardian ${guardian.address}${o.keys ? " (the wallet's keys)" : " (fresh keys)"}`);
 
   // --- funding by W, the standing scheme registered by W
   const price = (await k.world.provider.getFeeData()).gasPrice ?? 1_000_000_000n;

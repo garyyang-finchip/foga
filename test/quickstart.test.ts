@@ -58,8 +58,15 @@ test("quickstart: anvil, world, cell, tenders, node; a client connects as the pr
   mkdirSync(dir);
   writeFileSync(join(dir, MARKER), "{}"); // an earlier quickstart's directory is reused
   const lines: string[] = [];
-  const q = await runQuickstart({ dir, port: PORT, listen: LISTEN, log: (l) => lines.push(l), out: (text) => lines.push(text) });
+  const walletPath = join(dir, "..", `${dir.split(/[\\/]/).pop()}-wallet`); // beside the quickstart directory, which every run clears
+  await assert.rejects(runQuickstart({ dir, wallet: join(dir, "wallet"), port: PORT, listen: null, log: () => {}, out: () => {} }), /must live outside the quickstart directory/);
+  const q = await runQuickstart({ dir, wallet: walletPath, port: PORT, listen: LISTEN, log: (l) => lines.push(l), out: (text) => lines.push(text) });
   try {
+    assert.equal(q.wallet.dir, walletPath);
+    assert.equal(q.wallet.created, true, "the wallet was made on the first run");
+    assert.equal(q.wallet.ephemeral, false);
+    assert.equal(q.keys.operator, join(walletPath, "operator.key"), "the configurations name the wallet's own key file");
+    assert.ok(lines.some((l) => /wallet: made .*owner 0x/.test(l)));
     assert.equal(q.rpc, `http://127.0.0.1:${PORT}`);
     assert.equal(q.nodeUrl, `http://${LISTEN}`);
     assert.equal(q.tenders.length, 2);
@@ -111,7 +118,40 @@ test("quickstart: anvil, world, cell, tenders, node; a client connects as the pr
     }
   } finally {
     await q.stop();
-    rmSync(dir, { recursive: true, force: true });
   }
   assert.ok(!(await portOpen(PORT)), "anvil is gone after stop");
+
+  // the next quickstart starts over in the same directory on a new chain, with the same wallet: the agent's identity is the one it made on day one
+  const again: string[] = [];
+  const q2 = await runQuickstart({ dir, wallet: walletPath, port: PORT, listen: null, tenders: false, log: (l) => again.push(l), out: () => {} });
+  try {
+    assert.equal(q2.wallet.created, false, "the wallet was reused");
+    assert.deepEqual(q2.wallet.addresses, q.wallet.addresses, "the same keys on the second run");
+    assert.equal(q2.nodeUrl, null, "no node with listen: null");
+    assert.ok(again.some((l) => /wallet: using/.test(l)) && again.some((l) => /replacing the previous quickstart/.test(l)));
+    assert.ok(!("http-mcp.json" in q2.clientConfigs));
+  } finally {
+    await q2.stop();
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(walletPath, { recursive: true, force: true });
+  }
+});
+
+test("quickstart: a wallet directory that cannot be written is no reason to stop (keys made in memory, written beside the cell)", async (t) => {
+  if (!anvilPath()) {
+    t.skip("anvil is not installed");
+    return;
+  }
+  const dir = mkdtempSync(join(tmpdir(), "foga-qs-ro-"));
+  writeFileSync(join(dir, "blocker"), "a file where a directory would have to be"); // mkdir under a file fails on every platform, for every user
+  const lines: string[] = [];
+  const q = await runQuickstart({ dir: join(dir, "qs"), wallet: join(dir, "blocker", "wallet"), port: PORT, listen: null, tenders: false, log: (l) => lines.push(l), out: () => {} });
+  try {
+    assert.equal(q.wallet.ephemeral, true);
+    assert.ok(existsSync(q.keys.operator), "the in-memory operator key was written beside the cell so the configurations work");
+    assert.ok(lines.some((l) => /not kept/.test(l)));
+  } finally {
+    await q.stop();
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

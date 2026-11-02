@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, homedir, loadavg } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { buildBundle } from "./build/bundle.js";
@@ -22,6 +22,16 @@ usage:
                                                  deploy-mode config: the whole stack; attach-mode config: attach what it
                                                  lists and deploy the reference contracts it does not (deployer = W)
   foga world attach --world <config.json> [--out <file>]   address book only, no transactions (every contract listed)
+  foga world verify --world <world.json> --sourcify [--dry-run] [--only <id,id>] [--server <url>] [--out <dir>] [--build-info <dir>]
+                                                 submit every contract the world deployed from the bundle to Sourcify, with the standard JSON input of its
+                                                 compiler run (.foga-build/out/<repo>/build-info, written by npm run bundle:verify); a local chain is a dry run
+  foga wallet new [--name <n> | --dir <dir>] [--single]   the first step: a wallet of your own — owner, operator and guardian keys in 0600 files
+                                                 (default ~/.foga/wallet; --name under ~/.foga/wallets/<n>; --single: one signer key). Never overwrites; prints the addresses
+  foga wallet show [--name <n> | --dir <dir>] [--rpc <url>]   the wallet's addresses (and balances with an RPC)
+  foga wallet sign (--config <cell.config.json> | --url <node url> | --cell <account> --chain-id <n>) [--name <n> | --dir <dir>]
+                   [--role signer|operator|owner|guardian] [--ttl <s>] [--agent-id <id>] [--method <METHOD> --path <path> [--body '<json>' | --body-file <f>]]
+                                                 an Authorization header (FOGA-EIP712) proving the wallet to that cell — named by its configuration, by its node's
+                                                 URL (/healthz says which account and chain) or by hand: a session envelope, or one bound to a request
   foga keys new [--out <file>]                   write a fresh 12-word phrase (default ~/.foga/genesis.mnemonic) and print the role addresses
   foga keys show                                 print the role addresses the environment derives (FOGA_MNEMONIC[_FILE], FOGA_KEY_*)
   foga keys export --role <role> [--out <file>]  write one role's key to a 0600 file for a node that holds that key alone
@@ -39,9 +49,10 @@ usage:
                    [--zk auto|require|skip] [--crash-after <opKey>] [--crash-before <opKey>]
                                                  run the genesis scenario (idempotent; re-run to resume)
   foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
-  foga quickstart [--dir <dir>] [--port <n>] [--listen <host:port> | --no-serve] [--name <cell>] [--no-tenders] [--exit]
-                                                 one command to a live cell: anvil, the local world, a cell born with fresh keys and its two skills, two tenders,
-                                                 the node serving HTTP and MCP, and the MCP client configurations printed with every path filled in (~/.foga/quickstart)
+  foga quickstart [--dir <dir>] [--wallet <dir>] [--port <n>] [--listen <host:port> | --no-serve] [--name <cell>] [--no-tenders] [--exit]
+                                                 one command to a live cell: the wallet (made on the first run, reused after), anvil, the local world, a cell born with
+                                                 the wallet's keys and its two skills, two tenders, the node serving HTTP and MCP, and the MCP client configurations
+                                                 printed with every path filled in (~/.foga/quickstart)
   foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga demo --loop-d [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery] [--port <n>] [--keep]
                                                  the above, then Loop D: a new cell born, a demander minting cases a-g, the node with a model (or served for an
@@ -157,6 +168,18 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (group === "world" && cmd === "verify") {
+    if (!flags.sourcify) fail("foga world verify --sourcify --world <world.json> (Sourcify is the one verifier wired so far)");
+    const worldPath = str(flags, "world") ?? fail("--world <world.json> is required (a deployed world)");
+    const { verifyWorld } = await import("./world/sourcify.js");
+    const { report, outDir } = await verifyWorld({ worldPath: resolve(worldPath), server: str(flags, "server"), dryRun: flags["dry-run"] ? true : undefined, only: str(flags, "only")?.split(","), outDir: str(flags, "out") ? resolve(str(flags, "out")!) : undefined, buildInfoRoot: str(flags, "build-info") ? resolve(str(flags, "build-info")!) : undefined, log: (line) => console.error(line) });
+    for (const r of report.results) console.log(`  ${r.outcome.padEnd(12)} ${r.id.padEnd(32)} ${r.address}  ${r.contractIdentifier} (${r.compilerVersion})${r.outcome === "dry-run" ? "" : `  ${r.detail}`}`);
+    for (const m of report.missing) console.log(`  missing      ${m.id.padEnd(32)} ${m.reason}`);
+    console.log(`sourcify: ${Object.entries(report.summary).map(([k, v]) => `${v} ${k}`).join(", ") || "nothing to do"}${report.missing.length ? `, ${report.missing.length} missing` : ""}; report ${relative(root, join(outDir, "report.json"))}`);
+    if (report.missing.length || report.results.some((r) => r.outcome === "failed" || r.outcome === "error")) process.exitCode = 3;
+    return;
+  }
+
   if (group === "world" && (cmd === "deploy" || cmd === "attach")) {
     const worldConfigPath = str(flags, "world");
     if (!worldConfigPath) fail("--world <config.json> is required");
@@ -220,6 +243,100 @@ async function main(): Promise<void> {
     const { RELAY_SCRIPT } = await import("./doctor/probe.js");
     process.stdout.write(RELAY_SCRIPT);
     return;
+  }
+
+  if (group === "wallet") {
+    const { createWallet, loadWallet, walletDir, walletFileProblems } = await import("./node/wallet.js");
+    const dir = resolve(str(flags, "dir") ?? walletDir(str(flags, "name")));
+    const printWallet = async (w: Awaited<ReturnType<typeof loadWallet>> & object, made: boolean) => {
+      console.log(`${made ? "wallet made at" : "wallet"} ${w.dir}${w.name !== "default" ? ` (${w.name})` : ""}, ${w.createdAt}`);
+      const rpc = str(flags, "rpc") ?? process.env.FOGA_RPC_URL;
+      const provider = rpc ? new (await import("ethers")).JsonRpcProvider(rpc) : null;
+      for (const role of w.roles) {
+        let balance = "";
+        if (provider) {
+          try {
+            balance = `   ${(await import("ethers")).formatEther(await provider.getBalance(w.addresses[role]))} ETH`;
+          } catch {
+            balance = "   (balance: RPC did not answer)";
+          }
+        }
+        console.log(`  ${role.padEnd(9)} ${w.addresses[role]}${balance}   ${w.files[role]}`);
+      }
+      provider?.destroy();
+      for (const p of walletFileProblems(w)) log.warn(p);
+      if (w.roles.includes("owner")) console.log(`fund the owner for a cell's birth (capital and gas) and the operator for its gas; then: foga cell new --wallet ${dir} … and foga cell init --config <cfg> --wallet ${dir}`);
+    };
+    if (cmd === "new") {
+      const existing = loadWallet(dir);
+      if (existing) {
+        await printWallet(existing, false);
+        console.log("(already there; a wallet is never overwritten — foga wallet new --name <n> makes another)");
+        return;
+      }
+      try {
+        await printWallet(createWallet(dir, { name: str(flags, "name") ?? "default", roles: flags.single ? ["signer"] : undefined }), true);
+      } catch (e) {
+        fail((e as Error).message);
+      }
+      return;
+    }
+    if (cmd === "show") {
+      const w = loadWallet(dir);
+      if (!w) fail(`no wallet at ${dir}; foga wallet new makes one`);
+      await printWallet(w, false);
+      return;
+    }
+    if (cmd === "sign") {
+      const w = loadWallet(dir);
+      if (!w) fail(`no wallet at ${dir}; foga wallet new makes one`);
+      const { walletKey } = await import("./node/wallet.js");
+      const { loadCellConfig, configPath } = await import("./node/config.js");
+      const { signAuthorization } = await import("./http/signed.js");
+      const { Wallet } = await import("ethers");
+      // the cell the signature is for: its own configuration (the operator's shell), its node's URL (anyone's: /healthz names the account and the chain), or both values by hand
+      let cellAddress: string;
+      let chainId: number;
+      let cellName: string;
+      if (str(flags, "config")) {
+        const loaded = loadCellConfig(str(flags, "config")!);
+        cellAddress = loaded.config.identity.account ?? fail("the config names no account yet (the cell is not born)");
+        chainId = readJson<{ chainId: number }>(configPath(loaded, loaded.config.world)).chainId;
+        cellName = loaded.config.name;
+      } else if (str(flags, "url")) {
+        const base = str(flags, "url")!.replace(/\/+$/, "");
+        let health: { ok?: boolean; cell?: string; account?: string | null; chainId?: number };
+        try {
+          health = (await (await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(10_000) })).json()) as typeof health;
+        } catch (e) {
+          fail(`${base}/healthz did not answer: ${(e as Error).message}`);
+        }
+        if (!health.account || !health.chainId) fail(`${base}/healthz names no account or chain (${JSON.stringify(health).slice(0, 200)}); the cell is not born or this is not a FOGA node`);
+        cellAddress = health.account;
+        chainId = health.chainId;
+        cellName = health.cell ?? base;
+      } else if (str(flags, "cell") && str(flags, "chain-id")) {
+        cellAddress = str(flags, "cell")!;
+        chainId = Number(str(flags, "chain-id"));
+        cellName = cellAddress;
+      } else fail("the signature is made for one cell: --config <cell.config.json>, or --url <its node's URL>, or --cell <account> --chain-id <n>");
+      const role = (str(flags, "role") ?? (w.roles.includes("signer") ? "signer" : "operator")) as "signer" | "operator" | "owner" | "guardian";
+      let key: string;
+      try {
+        key = walletKey(w, role);
+      } catch (e) {
+        fail((e as Error).message);
+      }
+      const method = str(flags, "method");
+      const path = str(flags, "path");
+      if ((method && !path) || (!method && path)) fail("--method and --path go together");
+      const bodyText = str(flags, "body") ?? (str(flags, "body-file") ? readFileSync(resolve(str(flags, "body-file")!), "utf8") : undefined);
+      const header = await signAuthorization(new Wallet(key), { chainId, cell: cellAddress, ttlSeconds: str(flags, "ttl") ? Number(str(flags, "ttl")) : undefined, agentId: str(flags, "agent-id"), request: method ? { method, path: path!, body: bodyText ?? null } : undefined });
+      console.error(`${role} ${new Wallet(key).address} signed ${method ? `a ${method} ${path} envelope` : "a session envelope"} for cell ${cellName} (${cellAddress}, chain ${chainId}); the header value follows (one line):`);
+      console.log(header);
+      return;
+    }
+    fail("foga wallet new | show | sign");
   }
 
   if (group === "keys" && cmd === "export") {
@@ -356,7 +473,7 @@ async function main(): Promise<void> {
     const { runQuickstart } = await import("./demo/quickstart.js");
     let result;
     try {
-      result = await runQuickstart({ dir: str(flags, "dir"), port: str(flags, "port") ? Number(str(flags, "port")) : undefined, listen: flags["no-serve"] ? null : str(flags, "listen"), name: str(flags, "name"), tenders: !flags["no-tenders"], exit: Boolean(flags.exit) });
+      result = await runQuickstart({ dir: str(flags, "dir"), wallet: str(flags, "wallet"), port: str(flags, "port") ? Number(str(flags, "port")) : undefined, listen: flags["no-serve"] ? null : str(flags, "listen"), name: str(flags, "name"), tenders: !flags["no-tenders"], exit: Boolean(flags.exit) });
     } catch (e) {
       fail((e as Error).message);
     }

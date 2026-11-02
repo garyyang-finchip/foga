@@ -6,6 +6,7 @@ import { cellInit } from "./node/init.js";
 import { KeyIsolationError, forbiddenVariables, loadOperatorKey, loadRoleKey } from "./node/keys.js";
 import { cellMigrate } from "./node/migrate.js";
 import { Node, type NodeKeys } from "./node/node.js";
+import { loadWallet, walletKey, type WalletInfo, type WalletRole } from "./node/wallet.js";
 import { Watchers } from "./node/watchers.js";
 import { defaultCatalog, OPERATOR_CALLER, PUBLIC_CALLER, type Caller, type Mode } from "./tools/index.js";
 import { exists, repoRoot } from "./util/fs.js";
@@ -21,23 +22,37 @@ import { fail } from "./util/log.js";
 export const CELL_USAGE = `
   foga cell list [--public] [--as-json]          the capabilities (action, visibility, principal, modes) as the operator or as the public sees them
   foga cell schema <capability>                  the input and output JSON Schema of a capability
-  foga cell new --name <cell> --world <world.json> --store <ops.sqlite> --owner <addr> --operator <addr> --guardian <addr> --out <cell.config.json> [--rpc <url>] [--skills <dir>] [--input-dir <dir>]
-  foga cell init --config <cell.config.json> [--rpc <url>] [--capital-wei <n>]
-                                                 the cell's birth (the owner's key: FOGA_OWNER_KEY[_FILE]); writes the account, agent id, binding, record and unit into the config
+  foga cell new --name <cell> --world <world.json> --store <ops.sqlite> --out <cell.config.json> (--wallet <dir> | --owner <addr> --operator <addr> --guardian <addr>) [--rpc <url>] [--skills <dir>] [--input-dir <dir>]
+  foga cell init --config <cell.config.json> [--wallet <dir>] [--rpc <url>] [--capital-wei <n>]
+                                                 the cell's birth (the owner's key: the wallet's, or FOGA_OWNER_KEY[_FILE]); writes the account, agent id, binding, record and unit into the config
   foga cell migrate --config <cell.config.json> --to <new.config.json> [--store <new ops.sqlite>] [--operator <addr>] [--capital-wei <n>] [--no-sweep]
                                                  move the cell to a new revision-2 account (the owner's key); the new config and store are written beside
   foga cell status --config <cell.config.json>   cell_status as the operator
-  foga cell <capability> --config <cell.config.json> [--mode simulate|build|act] [--json '<input json>' | --json-file <f>] [--<field> <value> ...]
-                                                 any capability; an act loads FOGA_OPERATOR_KEY[_FILE], an admin capability FOGA_OWNER_KEY[_FILE] or FOGA_GUARDIAN_KEY[_FILE]
+  foga cell docs build --config <cell.config.json> [--rpc <url>] [--out <dir>]
+                                                 the cell's documents from its configuration and the chain (registration, AID document, ARD descriptor, AUF unit,
+                                                 agent card, server.json, manifest) under runtime.http.documentsDir — what the node serves at /documents and /.well-known
+  foga cell docs publish --config <cell.config.json> [--wallet <dir>] [--rpc <url>]
+                                                 build, then commit on chain what differs (setAgentURI, setDocumentURI, updateDescriptor, publishVersion; the operator
+                                                 key, one keyed job), then read every commitment back
+  foga cell docs status --config <cell.config.json> [--rpc <url>]   what is built, what the chain holds, what a publish would commit
+  foga cell <capability> --config <cell.config.json> [--wallet <dir>] [--mode simulate|build|act] [--json '<input json>' | --json-file <f>] [--<field> <value> ...]
+                                                 any capability; an act loads the operator key, an admin capability the owner's or the guardian's — from --wallet, or from
+                                                 FOGA_OPERATOR_KEY[_FILE], FOGA_OWNER_KEY[_FILE], FOGA_GUARDIAN_KEY[_FILE]
                                                  [--caller <id> --level read|build|act] call as another caller (what the public or an API-key holder would get)
   foga cell owner <capability> … | foga cell guardian <capability> …   the same, said explicitly
+  foga node <command> … [--wallet <dir>]         every node command takes the operator key from the wallet's operator.key (= FOGA_OPERATOR_KEY_FILE)
+  foga node preflight --config <cell.config.json> [--wallet <dir>] [--rpc <url>] [--no-executors] [--no-network] [--out <report.json>] [--strict]
+                                                 the readiness reconciliation before the public is served: the account and its allow-list, the operator key and its
+                                                 gas, the standing, the skills' packages and executors, the documents against the chain, the public URL, the model;
+                                                 advisory (exit 5 on a Fail only with --strict)
   foga node tick --config <cell.config.json>     run the watchers once (heartbeat, discovery, settlement, safety) in a node environment (operator key alone)
   foga node watch --config <cell.config.json> [--interval <s>]   run the watchers on the poll interval until stopped
   foga node mcp --config <cell.config.json>      MCP over stdio for a local client (Claude Desktop, Claude Code, Cursor): the operator's full level with
                                                  FOGA_OPERATOR_KEY[_FILE] in the environment, read and build without it; logs go to stderr
   foga node serve --config <cell.config.json> [--listen <host:port>] [--no-watch]
-                                                 the HTTP server: POST /api/<capability>, /mcp (Streamable HTTP), /healthz, / — the public reads and builds,
-                                                 a Bearer key acts as its grant says; the watchers run beside it
+                                                 host mode: POST /api/<capability>, /mcp (Streamable HTTP), /a2a (A2A 1.0), /.well-known/agent-card.json, /documents/*,
+                                                 /healthz, / — the public reads and builds, a Bearer key or a wallet signature (FOGA-EIP712) acts as its grant says;
+                                                 the watchers run beside it; no model
   foga node key new --config <cell.config.json> --id <id> [--level read|build|act] [--visibility public|caller|operator] [--note <text>]
                                                  mint an API key for the HTTP entrance: printed once, kept only as its hash in the config
   foga node run --config <cell.config.json> [--model stub|anthropic] [--listen <host:port> | --no-http] [--interval <s>] [--once | --ticks <n>] [--transcripts <dir>]
@@ -48,7 +63,7 @@ export const CELL_USAGE = `
 type Flags = Record<string, string | boolean>;
 const str = (flags: Flags, key: string): string | undefined => (typeof flags[key] === "string" ? (flags[key] as string) : undefined);
 
-const RESERVED = new Set(["config", "mode", "json", "json-file", "caller", "level", "rpc", "public", "help"]);
+const RESERVED = new Set(["config", "mode", "json", "json-file", "caller", "level", "rpc", "public", "help", "wallet"]);
 
 function inputFromFlags(flags: Flags): Record<string, unknown> {
   let input: Record<string, unknown> = {};
@@ -79,7 +94,24 @@ function callerFromFlags(flags: Flags): Caller {
   return { id: id ?? "caller", entrance: "cli", level: lvl, visibility: lvl === "admin" ? "operator" : id ? "caller" : "public" };
 }
 
-function keysFor(role: "operator" | "owner" | "guardian", strict = false): string {
+/** The wallet `--wallet <dir>` names, or null without the flag. */
+function walletFromFlags(flags: Flags): WalletInfo | null {
+  const dir = str(flags, "wallet");
+  if (!dir) return null;
+  const w = loadWallet(resolve(dir));
+  if (!w) fail(`${resolve(dir)} holds no wallet (no wallet.json); foga wallet new --dir ${resolve(dir)} makes one`);
+  return w;
+}
+
+/** A role's key: from the wallet when --wallet is given, from the environment otherwise. */
+function keysFor(role: "operator" | "owner" | "guardian", strict = false, wallet: WalletInfo | null = null): string {
+  if (wallet) {
+    try {
+      return walletKey(wallet, role as WalletRole);
+    } catch (e) {
+      fail((e as Error).message);
+    }
+  }
   try {
     return (role === "operator" && strict ? loadOperatorKey() : loadRoleKey(role)).privateKey;
   } catch (e) {
@@ -115,7 +147,8 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     return print({ name: cap.name, title: cap.title, description: cap.description, action: cap.action, visibility: cap.visibility, principal: cap.principal, ercs: cap.ercs, input: z.toJSONSchema(cap.input, { target: "draft-2020-12", io: "input" }), output: z.toJSONSchema(cap.output, { target: "draft-2020-12", io: "output" }) });
   }
   if (cmd === "new") {
-    const need = (k: string) => str(flags, k) ?? fail(`--${k} is required`);
+    const wallet = walletFromFlags(flags);
+    const need = (k: string) => str(flags, k) ?? (wallet && wallet.addresses[k] ? wallet.addresses[k] : fail(`--${k} is required (or --wallet <dir> with a ${k} key)`));
     const out = resolve(need("out"));
     if (exists(out)) fail(`${out} exists; choose another --out (a config is never overwritten)`);
     // paths in a config resolve against the config's directory; the defaults point at the repository's skills and
@@ -132,9 +165,10 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
   const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
   const rpc = str(flags, "rpc");
   const log = (line: string) => console.error(line);
+  const wallet = walletFromFlags(flags);
 
   if (cmd === "init") {
-    const owner = keysFor("owner");
+    const owner = keysFor("owner", false, wallet);
     const node = await Node.open({ configPath, rpc, keys: { owner }, allowUnborn: true, log });
     try {
       const capital = str(flags, "capital-wei");
@@ -146,7 +180,7 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     return;
   }
   if (cmd === "migrate") {
-    const owner = keysFor("owner");
+    const owner = keysFor("owner", false, wallet);
     const to = resolve(str(flags, "to") ?? fail("--to <new.config.json> is required"));
     if (exists(to)) fail(`${to} exists; choose another --to`);
     const node = await Node.open({ configPath, rpc, keys: { owner }, log });
@@ -158,6 +192,66 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
       node.close();
     }
     return;
+  }
+
+  if (cmd === "docs") {
+    const sub = rest[0];
+    const { buildDocuments, readBack, documentsDir, onChainState, readBuilt, publishSteps } = await import("./node/documents.js");
+    const { version } = await import("./util/version.js");
+    if (sub === "build") {
+      const node = await Node.open({ configPath, rpc, keys: {}, log });
+      try {
+        const built = await buildDocuments(node, { version, dir: str(flags, "out") });
+        console.error(`documents v${built.manifest.version} written to ${built.dir}:`);
+        for (const [file, d] of Object.entries(built.manifest.documents)) console.error(`  ${file.padEnd(20)} ${d.standard.padEnd(40)} ${d.contentHash}`);
+        const { steps, unchanged } = await publishSteps(node, built);
+        console.error(steps.length ? `a publish would commit: ${steps.map((x) => x.label).join("; ")}` : "every commitment on chain matches what was built");
+        if (unchanged.length) console.error(`already as built: ${unchanged.join(", ")}`);
+        print(built.manifest);
+      } finally {
+        node.close();
+      }
+      return;
+    }
+    if (sub === "status") {
+      const node = await Node.open({ configPath, rpc, keys: {}, log });
+      try {
+        const dir = documentsDir(node);
+        const built = readBuilt(dir);
+        const rows = built ? await readBack(node, built) : [];
+        print({ dir, manifest: built?.manifest ?? null, onChain: await onChainState(node), readBack: rows, pending: built ? (await publishSteps(node, built)).steps.map((x) => x.label) : [] });
+        if (rows.some((r) => r.ok === false)) process.exitCode = 2;
+      } finally {
+        node.close();
+      }
+      return;
+    }
+    if (sub === "publish") {
+      const node = await Node.open({ configPath, rpc, keys: { operator: keysFor("operator", false, wallet) }, log });
+      try {
+        const result = await catalog.invoke(node, "docs_publish", {}, OPERATOR_CALLER, { mode: "act" });
+        if (!result.ok) {
+          print(result);
+          process.exitCode = 2;
+          return;
+        }
+        const out = result.output as { dir: string; version: number; committed: string[]; unchanged: string[]; readBack: { commitment: string; ok: boolean | null; detail: string }[]; jobId: string; operations: string[] };
+        console.error(`documents v${out.version} in ${out.dir}: ${out.committed.length ? `committed ${out.committed.join(", ")}` : "nothing to commit"}${out.unchanged.length ? `; already as built: ${out.unchanged.join(", ")}` : ""} (job ${out.jobId}, ${out.operations.length} operation(s))`);
+        // the read-back from here fetches the URLs too, when the node serves them
+        const built = readBuilt(out.dir)!;
+        const rows = await readBack(node, built, { fetchUrls: true });
+        for (const r of rows) console.error(`  ${r.ok === true ? "ok     " : r.ok === false ? "FAIL   " : "unread "} ${r.commitment.padEnd(26)} ${r.detail}`);
+        print({ ...out, readBack: rows });
+        if (rows.some((r) => r.ok === false)) {
+          console.error("a commitment read back from the chain does not match what was built: the publish is not complete");
+          process.exitCode = 2;
+        }
+      } finally {
+        node.close();
+      }
+      return;
+    }
+    fail("foga cell docs build | publish | status");
   }
 
   // a capability, possibly said as "owner <capability>" / "guardian <capability>"
@@ -177,8 +271,8 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
   if (cap.action !== "read" && mode === "act") {
     if (cap.action === "admin") {
       const role = cap.signer ?? explicitRole ?? "owner";
-      keys[role] = keysFor(role);
-    } else keys.operator = keysFor("operator");
+      keys[role] = keysFor(role, false, wallet);
+    } else keys.operator = keysFor("operator", false, wallet);
   }
   const node = await Node.open({ configPath, rpc, keys, log });
   try {
@@ -216,6 +310,28 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
   }
   const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
   const log = (line: string) => console.error(line);
+  // --wallet <dir>: the operator key file of the wallet, as FOGA_OPERATOR_KEY_FILE would name it; never beside another key source
+  const wallet = walletFromFlags(flags);
+  if (wallet) {
+    if (process.env.FOGA_OPERATOR_KEY || process.env.FOGA_OPERATOR_KEY_FILE) fail("--wallet and FOGA_OPERATOR_KEY[_FILE] are both set; a node takes its operator key from one place");
+    if (!wallet.files.operator) fail(`wallet ${wallet.dir} has no operator key`);
+    process.env.FOGA_OPERATOR_KEY_FILE = wallet.files.operator;
+  }
+
+  if (cmd === "preflight") {
+    const { preflight, printPreflight } = await import("./node/preflight.js");
+    const { writeJson } = await import("./util/fs.js");
+    const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys: {}, log });
+    try {
+      const report = await preflight(node, { executors: !flags["no-executors"], network: !flags["no-network"] });
+      printPreflight(report, (line) => console.log(line));
+      if (str(flags, "out")) writeJson(resolve(str(flags, "out")!), report);
+      if (flags.strict && report.summary.Fail > 0) process.exitCode = 5;
+    } finally {
+      node.close();
+    }
+    return;
+  }
 
   if (cmd === "key") {
     if (rest[0] !== "new") fail("foga node key new --config <cfg> --id <id> [--level act] [--visibility caller]");
@@ -266,7 +382,10 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
     const { version } = await import("./util/version.js");
     const listen = str(flags, "listen") ?? node.config.runtime.http.listen;
     const running = await createHttpServer({ node, catalog, version, log }).listen(listen);
-    log(`foga ${version}: serving cell ${node.config.name}${node.cell ? ` (${node.cell.address})` : ""} at ${running.url} — /mcp, /api/<capability>, /healthz; ${keys.operator ? "acting with the operator key" : "no operator key: reads and builds only"}; ${node.config.access.keys.length} API key(s) configured`);
+    const { documentsDir, readBuilt } = await import("./node/documents.js");
+    const built = readBuilt(documentsDir(node));
+    const signers = node.config.access.signers;
+    log(`foga ${version}: serving cell ${node.config.name}${node.cell ? ` (${node.cell.address})` : ""} at ${running.url} — /mcp, /api/<capability>, /a2a, /.well-known/agent-card.json, /documents/*, /healthz; ${keys.operator ? "acting with the operator key" : "no operator key: reads and builds only"}; ${node.config.access.keys.length} API key(s) configured; signatures: ${signers.default} by default, ${signers.allow.length} allowed${signers.standing ? `, standing level ${signers.standing.minLevel}+ granted ${signers.standing.level}` : ""}; documents ${built ? `v${built.manifest.version}` : "not built (foga cell docs build)"}`);
     const stopWatch = !flags["no-watch"] && keys.operator && node.cell ? startWatchLoop(new Watchers(node, catalog), node.config.runtime.pollSeconds * 1000, log) : () => {};
     const stop = () => {
       stopWatch();
@@ -340,7 +459,7 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
     return;
   }
 
-  if (cmd !== "tick" && cmd !== "watch") fail(`unknown node command ${cmd}; tick, watch, mcp, serve, run or key`);
+  if (cmd !== "tick" && cmd !== "watch") fail(`unknown node command ${cmd}; tick, watch, mcp, serve, run, preflight or key`);
   // a node environment: the operator key alone, nothing that derives another role
   const operator = keysFor("operator", true);
   const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys: { operator }, log });

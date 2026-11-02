@@ -8,7 +8,8 @@ import { ensureDir } from "../util/fs.js";
  * Six blocks: identity (the world, the account and its roles, what `foga cell init` writes back), presence (how the
  * cell describes itself to the world), skills (what it holds and offers), policy (the business authorization the
  * policy engine applies to every act), runtime (how the node runs, the HTTP server among it) and access (the API
- * keys the HTTP entrance accepts, as their hashes). Amounts in wei are decimal strings so the file stays plain JSON.
+ * keys the HTTP entrance accepts, as their hashes, and what a signer proving itself with its wallet is granted).
+ * Amounts in wei are decimal strings so the file stays plain JSON.
  */
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "an address (0x + 40 hex digits)");
 const bytes32 = z.string().regex(/^0x[0-9a-fA-F]{64}$/, "a 32-byte hex value");
@@ -50,6 +51,9 @@ export const PresenceSchema = z.object({
   description: z.string().max(2000).default(""),
   image: z.string().url().optional(),
   homepage: z.string().url().optional(),
+  /** The organization behind the cell, for the A2A agent card. */
+  provider: z.object({ organization: z.string().min(1).max(120), url: z.string().url() }).optional(),
+  /** The public endpoints; when absent they are derived from runtime.http.publicUrl (/mcp, /a2a, the URL itself). */
   endpoints: z
     .object({
       mcp: z.string().url().optional(),
@@ -115,6 +119,8 @@ export const HttpSchema = z.object({
   allowedHosts: z.array(z.string()).default([]),
   /** The URL the public reaches the node at (for its documents and card). */
   publicUrl: z.string().url().optional(),
+  /** Where `foga cell docs build` writes and the node serves the documents from (relative to the config's directory). */
+  documentsDir: z.string().default("documents"),
   rateLimitPerMinute: z.number().int().min(1).default(60),
   maxBodyBytes: z.number().int().min(1024).default(256 * 1024),
 });
@@ -147,8 +153,37 @@ export const AccessKeySchema = z.object({
   note: z.string().max(200).optional(),
 });
 
+/** What a signer (an address proving itself with an EIP-712 envelope) is granted: by address, or by the ERC-8004 agent id it acts for. */
+export const SignerGrantSchema = z
+  .object({
+    address: address.optional(),
+    agentId: uint.optional(),
+    level: z.enum(["read", "build", "act"]).default("act"),
+    visibility: z.enum(["public", "caller", "operator"]).default("caller"),
+    note: z.string().max(200).optional(),
+  })
+  .refine((g) => g.address || g.agentId, { message: "a signer grant names an address or an agentId" });
+
+export const SignersSchema = z.object({
+  /** What any valid signature is granted without a grant of its own: the public's level (build) by default; none refuses signatures outright. */
+  default: z.enum(["none", "read", "build"]).default("build"),
+  allow: z.array(SignerGrantSchema).default([]),
+  /** A signer whose KYA standing under the cell's scheme reaches minLevel is granted this level. */
+  standing: z
+    .object({
+      minLevel: z.number().int().min(1),
+      level: z.enum(["read", "build", "act"]).default("act"),
+      visibility: z.enum(["public", "caller", "operator"]).default("caller"),
+    })
+    .optional(),
+  /** An act by signature needs an envelope bound to its request (a session envelope reaches build at most). */
+  actsNeedRequestBinding: z.boolean().default(true),
+});
+
 export const AccessSchema = z.object({
   keys: z.array(AccessKeySchema).default([]),
+  /** Signed calls (FOGA-EIP712): what an address proving itself with its wallet is granted. */
+  signers: SignersSchema.prefault({}),
 });
 
 export const CellConfigSchema = z.object({

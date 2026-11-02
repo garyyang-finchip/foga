@@ -19,7 +19,9 @@ ERC-8004 (Trustless Agents) is a required dependency: ERC-8419, ERC-8434 and ERC
 
 The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository has completed **Phase 2c: the genesis on a public chain**, on top of the Phase 2 genesis (T0–T9) and the Phase 1 world layer.
 
-## Status: Phase 3d in progress — 3d-1 done (quickstart, an outside agent's Loop D); Phase 3c done — Loop D, the unscripted run; Phase 3b done — the node served over MCP and HTTP; Phase 3a done — the kernel hardened and turned into a node with a capability catalog; Phase 2c done
+## Status: Phase 3d in progress — 3d-2 done (the wallet, signed callers, the documents on chain, preflight, A2A, Sourcify), 3d-1 done (quickstart, an outside agent's Loop D); Phase 3c done — Loop D, the unscripted run; Phase 3b done — the node served over MCP and HTTP; Phase 3a done — the kernel hardened and turned into a node with a capability catalog; Phase 2c done
+
+**3d-2 (0.6.0-alpha.7, 2026-11-03).** The second slice of 3d is what a cell needs to stand on its own among other agents, under one principle (docs/design-memo.md, section 10): the wallet is the first step, made by default and never a reason to stop; identity is one's own; only the genome replicates. `foga wallet new` (`src/node/wallet.ts`, docs/wallet.md) makes an agent's keys on its own machine — owner, operator, guardian in 0600 files under `~/.foga/wallet`, never overwritten, no network — and `foga quickstart` makes the default wallet on its first run and births every later cell with the same keys; `--wallet <dir>` on every `foga cell` and `foga node` command takes a role's key from there. A wallet is also a credential: `Authorization: FOGA-EIP712 <envelope>` (`src/http/signed.ts`, `src/http/access.ts`) is an EIP-712 signature in the cell's own domain — bound to one request and good once, or a session for a client with static headers — and the caller is the signing address at the level `access.signers` grants it (the cell's own operator or owner, an allow-list by address or ERC-8004 agent id, a KYA standing threshold, a default); `/api`, `/mcp` and `/a2a` take it, `foga wallet sign` prints it, and every cell's MCP server carries the prompt `become-a-cell` and the resource `foga://docs/quickstart` for an agent that meets it. `foga cell docs build | publish | status` (`src/node/documents.ts`, docs/documents.md) generates the cell's documents from one configuration — the ERC-8004 registration, the ERC-8434 AID document, the ERC-8444 descriptor, the ERC-8454 unit, the A2A agent card, `server.json`, a manifest with content hashes — serves them at `/documents/*` and `/.well-known/*`, and commits them on chain as the operator's keyed job (`setAgentURI`, `setDocumentURI`, `updateDescriptor`, `publishVersion`; only what differs is sent), read back and cross-checked; `docs_status` and `docs_publish` are the catalog's 30th and 31st capabilities. `foga node preflight` (`src/node/preflight.ts`) is the readiness reconciliation — the world, the account and its allow-list, the budget, the keys, the standing, the skills run in the worker, the documents against the chain, the public URL, the model — advisory, `--strict` for CI. `POST /a2a` (`src/a2a/`, docs/a2a.md) is the A2A 1.0 JSON-RPC binding with the card at `/.well-known/agent-card.json`: a quote for anyone, a tender taken for an act-level caller as one task over the catalog's jobs, `GetTask`, `ListTasks`, `CancelTask`, errors by the specification. `foga world verify --sourcify` (`src/world/sourcify.ts`, docs/world.md) submits every FOGA-deployed contract of a world with the standard JSON input of its own compiler run (`forge build` now leaves the build-info beside the artifacts), matched by runtime code; a local chain is a dry run, which CI runs over all 47. The OG instance's default is host mode (`foga node serve`: every entrance, the watchers, no model) with embedded mode (`foga node run`, the runner with a model) on demand. Seven new tests on anvil and offline (`wallet`, `signed`, `documents`, `a2a`, `preflight`, `sourcify`, and `quickstart` extended) are the gate; `foga quickstart` now ends with a cell whose documents are on chain, whose card answers, and whose A2A entrance quotes. Next, 3d-3: the OG deployment runbook, `foga.finchip.ai`, the registry listing, the Sepolia Sourcify run, the OG cell's migration to revision 2 and an outside agent's Loop D on Sepolia.
 
 **3d-1 (0.6.0-alpha.6, 2026-11-02).** The package is on npm as `@finchip.ai/foga` (0.6.0-alpha.4 and alpha.5, the latter with the launcher fixed for Windows), so the first slice of 3d is the two things that make it usable from nothing. `foga quickstart` (`src/demo/quickstart.ts`, docs/quickstart.md) is one command to a live cell: anvil, the local world, a cell born with keys nobody held and its two skills, two tenders minted for it, the node served (watchers, HTTP API, MCP over Streamable HTTP), both entrances checked (the handshake and tool list over HTTP with an act-level key, and over stdio with the operator key), and the MCP client configurations — Claude Desktop, Claude Code, Cursor, and the HTTP form with URL and Bearer key — printed and written with every path filled in, under `~/.foga/quickstart`. Loop D gains `--model external` (docs/loop-d.md): the node is served instead of run, an act-level key is minted for whoever proposes, the orchestrator prints a brief (the entrance, the five steps of a tender, what the run does around the agent — nothing about the cases) and waits for the agent — any model, any runtime, a person with `curl` — with the same recovery drill, the same entrance checks and the same acceptance; the evidence names the agent and carries no runner ticks, the doctor marks a case the agent left alone `NotTested` rather than `Fail`, and `--compare` skips what one run did not reach. `test/loop-d-external.test.ts` drives it with a scripted agent through the MCP entrance and every verdict passes, the model-agnostic row included against the kept stub run. Smaller: `.gitattributes` keeps every text file LF (the launcher's shebang included), a `prepare` script compiles a checkout installed straight from git, the shared cell birth (`src/demo/birth.ts`) and anvil helpers (`src/demo/anvil.ts`) serve the demos, and the docs carry the PowerShell and Windows notes. Next in 3d: `foga node preflight`, `docs build/publish` with `setAgentURI`, the A2A card and inbound mapping, Sourcify, then the OG deployment runbook, the documentation site and the registry listing.
 
@@ -72,14 +74,24 @@ From Phase 1, unchanged in substance:
 - **The doctor.** `foga doctor` reports five layers per contract — chain and code, interfaces, version match, configuration and permissions, semantic validation — with the verdicts Pass / Fail / Unknown / Not tested / Not applicable. Layers 1–4 probe the chain; layer 5 reads the genesis evidence. A doctor run can be exported as a JSON-RPC probe plan and replayed from results collected elsewhere, so a report never depends on which machine can reach which RPC.
 - **Sepolia address book.** `worlds/sepolia.json` records every upstream reference deployment at its deployed revision, including the three seams the inventory found (docs/version-lock.md); the completed world and the doctor's report on it are the 2c files above.
 
-What is next: the rest of 3d closes Phase 3 — the readiness check, the documents on chain, A2A, Sourcify, the OG instance's move to a revision-2 account with public endpoints, the registry listing and an outside agent's Loop D run on Sepolia; Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
+What is next: 3d-3 closes Phase 3 — the OG instance's move to a revision-2 account with public endpoints (`foga.finchip.ai`), its documents and sources verified on Sepolia, the registry listing and an outside agent's Loop D run on Sepolia; Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
 
 ## Quick start
 
-With Node 22.13+ and Foundry's `anvil` installed, one command births a cell on a local chain and prints the MCP client configuration to connect to it (docs/quickstart.md; in PowerShell quote the name: `npx -y '@finchip.ai/foga' quickstart`):
+With Node 22.13+ and Foundry's `anvil` installed, one command makes your wallet (on the first run; `~/.foga/wallet`, reused after), births a cell with it on a local chain, publishes the cell's documents and prints the MCP client configuration to connect to it (docs/quickstart.md; in PowerShell quote the name: `npx -y '@finchip.ai/foga' quickstart`):
 
 ```bash
 npx -y @finchip.ai/foga quickstart
+```
+
+The wallet alone, for an agent that will only call cells (docs/wallet.md), and a cell on a public chain born with it:
+
+```bash
+npx -y @finchip.ai/foga wallet new                       # ~/.foga/wallet: owner, operator, guardian keys; prints the addresses to fund
+foga cell new --wallet ~/.foga/wallet --name mine --world deployments/sepolia.json --store mine.sqlite --out mine.json
+foga cell init --config mine.json --wallet ~/.foga/wallet
+foga node preflight --config mine.json --wallet ~/.foga/wallet
+foga node serve --config mine.json --wallet ~/.foga/wallet
 ```
 
 From a checkout, three ways in, from most to least demanding:
@@ -164,18 +176,18 @@ deployments/         world files, doctor reports, genesis evidence (local output
 prover/              the ZK proving sub-package: run.cjs bridge (credential and predicate proofs), build-predicate.mjs (the development ceremony), its own dependencies
 zk/                  circuits/ (kya_predicate_count_v1.circom) and build/ (verification_key.json committed; the proving key is rebuilt locally)
 docker/, docker-compose.yml
-docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node, mcp, loop-d; examples/ (client configurations)
+docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node, mcp, loop-d, quickstart, wallet, documents, a2a; examples/ (client configurations)
 scenarios/skills/    the two ERC-8338 skill packages of the genesis: foga-probe, finch-extract-verify
 scenarios/fixtures/  the pinned document finch-extract-verify works on in T5 and T7
 scripts/             install-solc.sh, install-foundry.sh, relay.mjs, pack-smoke.mjs (the npm tarball run from a clean install)
 src/                 TypeScript: build/ (vendor + bundle), world/ (plan + deploy), doctor/ (probe + evaluate),
                      core/ (foga-core: one module per ERC incl. acdf, adrf and swarm, measure, canonicalization, DAG-CBOR packager),
                      kernel/ (store, transaction manager, cell, kernel), genesis/ (roles, operator scope, probe, extract, skill worker, zk, scenario T0-T3, t3-zk, t4..t9, runner),
-                     tools/ (the capability catalog: types, catalog, read, tenders, identity, admin), node/ (config, keys, node, policy, init, migrate, watchers),
-                     mcp/ (the MCP server built from the catalog), http/ (the HTTP API, MCP over Streamable HTTP, API keys),
-                     node/runner.ts and node/model/ (the runner, the stub and anthropic adapters), demo/ (the Loop D demander, orchestration and evidence),
+                     tools/ (the capability catalog: types, catalog, read, tenders, identity, documents, admin), node/ (config, keys, wallet, node, policy, init, migrate, watchers, documents, preflight),
+                     mcp/ (the MCP server built from the catalog), http/ (the HTTP API, MCP over Streamable HTTP, API keys, signed callers), a2a/ (the A2A 1.0 binding and card),
+                     node/runner.ts and node/model/ (the runner, the stub and anthropic adapters), demo/ (the Loop D demander, orchestration and evidence, quickstart), world/sourcify.ts,
                      cli.ts, cli-cell.ts (foga cell / foga node)
-test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, transaction semantics against an in-process chain (mock-chain.ts), keys, policy gates, catalog, cell config, swarm/ACDF vectors, extractor, measurement resolver, doctor layer 5; node-cli.test.ts (the Loop D cases through the CLI on anvil), mcp.test.ts (the entrances over MCP and HTTP on anvil; helpers/anvil-cell.ts births the cell), model.test.ts (the stub's table, the Anthropic adapter against a stand-in API, the Loop D verdicts), loop-d.test.ts (the unscripted run with the stub on anvil)
+test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, transaction semantics against an in-process chain (mock-chain.ts), keys, policy gates, catalog, cell config, swarm/ACDF vectors, extractor, measurement resolver, doctor layer 5, sourcify; node-cli.test.ts (the Loop D cases through the CLI on anvil), mcp.test.ts (the entrances over MCP and HTTP on anvil; helpers/anvil-cell.ts births the cell), model.test.ts (the stub's table, the Anthropic adapter against a stand-in API, the Loop D verdicts), loop-d.test.ts (the unscripted run with the stub on anvil), loop-d-external.test.ts, quickstart.test.ts, wallet.test.ts, signed.test.ts, documents.test.ts, a2a.test.ts, preflight.test.ts (3d, on anvil)
 vendor/              LOCK.json (sources are materialized here and gitignored)
 worlds/              world configs: local.json (deploy), sepolia.json (attach)
 ```
@@ -188,27 +200,32 @@ foga build [--verify] [--solc-dir <dir>] [--only <repo,repo>]
 foga bundle info
 foga world deploy --world <config> [--rpc <url>] [--out <file>] [--resume] [--gas-multiplier <x>] [--allow-chain-mismatch]
 foga world attach --world <config> [--out <file>]
+foga world verify --world <world.json> --sourcify [--dry-run] [--only <id,id>] [--server <url>] [--out <dir>] [--build-info <dir>]   source verification from the bundle's own compiler runs
 foga doctor --world <world|config> [--attach] [--rpc <url>] [--out <report>] [--export-probe <file>] [--import-results <file>] [--genesis <evidence>]
 foga probe relay-script
 foga genesis run --world <world> [--rpc <url>] [--until T0..T9] [--store <file>] [--out <evidence>] [--zk auto|require|skip] [--crash-after <key>] [--crash-before <key>]
 foga genesis status --world <world> [--store <file>]
 foga keys new [--out <file>] | show | export --role <role> [--out <file>] | check
+foga wallet new [--name <n> | --dir <dir>] [--single] | show [--rpc <url>] | sign --config <cell.config.json> [--role] [--ttl <s>] [--agent-id <id>] [--method --path [--body]]
+                                                                          an agent's own keys (the first step), and a signed Authorization header for a cell
 foga demo [--port <n>] [--keep] [--genesis <T0..T9>]
 foga cell list [--public] | schema <capability>
-foga cell new --name <cell> --world <world.json> --store <ops.sqlite> --owner <addr> --operator <addr> --guardian <addr> --out <cell.config.json>
-foga cell init --config <cell.config.json> [--capital-wei <n>]          (owner key)
+foga cell new --name <cell> --world <world.json> --store <ops.sqlite> --out <cell.config.json> (--wallet <dir> | --owner <addr> --operator <addr> --guardian <addr>)
+foga cell init --config <cell.config.json> [--wallet <dir>] [--capital-wei <n>]          (owner key)
 foga cell migrate --config <cell.config.json> --to <new.config.json> [--operator <addr>]   (owner key)
-foga cell <capability> --config <cell.config.json> [--mode simulate|build|act] [--<field> <value> ...] [--json '<input>']
+foga cell docs build | publish | status --config <cell.config.json> [--wallet <dir>]     the cell's documents, served and committed on chain (publish: operator key)
+foga cell <capability> --config <cell.config.json> [--wallet <dir>] [--mode simulate|build|act] [--<field> <value> ...] [--json '<input>']
+foga node preflight --config <cell.config.json> [--wallet <dir>] [--no-executors] [--no-network] [--out <report.json>] [--strict]   the readiness reconciliation; sends nothing
 foga node tick | watch --config <cell.config.json> [--interval <s>]      (operator key alone)
-foga node mcp --config <cell.config.json>                                 MCP over stdio (= foga mcp; the operator with FOGA_OPERATOR_KEY[_FILE], reads and builds without)
-foga node serve --config <cell.config.json> [--listen <host:port>] [--no-watch]   the HTTP API, /mcp over Streamable HTTP, /healthz, the watchers
+foga node mcp --config <cell.config.json>                                 MCP over stdio (= foga mcp; the operator with FOGA_OPERATOR_KEY[_FILE] or --wallet, reads and builds without)
+foga node serve --config <cell.config.json> [--listen <host:port>] [--no-watch]   host mode: the HTTP API, /mcp, /a2a, the documents, /healthz, the watchers; no model
 foga node key new --config <cell.config.json> --id <id> [--level read|build|act] [--visibility public|caller|operator] [--note <text>]
 foga node run --config <cell.config.json> [--model stub|anthropic] [--listen <host:port> | --no-http] [--interval <s>] [--once | --ticks <n>] [--transcripts <dir>]
                                                                           the embedded node: server, watchers and the runner (operator key alone)
 foga demo --loop-d [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery]   anvil, the world, then Loop D judged by the doctor
 foga loop-d run --world <world.json> --rpc <url> [--dir <dir>] [--out <evidence.json>] [--model] [--model-name] [--seed] [--no-recovery] [--listen] [--wait <s>] [--idle <s>]
 foga doctor [--world <world.json>] --loop-d <evidence.json> [--compare <evidence2.json>] [--out <report.json>]
-foga quickstart [--dir <dir>] [--port <n>] [--listen <host:port> | --no-serve] [--name <cell>] [--no-tenders] [--exit]   one command to a live cell and its client configuration
+foga quickstart [--dir <dir>] [--wallet <dir>] [--port <n>] [--listen <host:port> | --no-serve] [--name <cell>] [--no-tenders] [--exit]   one command to a live cell (the wallet first) and its client configuration
 ```
 
 During development the CLI runs from source with `npm run foga -- <args>`; `npm run build` compiles it to `dist/` for the `foga` binary.

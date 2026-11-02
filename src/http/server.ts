@@ -1,11 +1,18 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { createMcpHandler, type AuthInfo, type McpHttpHandler } from "@modelcontextprotocol/server";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, join } from "node:path";
+import { A2AServer } from "../a2a/server.js";
+import { A2A_ERRORS, A2A_WELL_KNOWN } from "../a2a/types.js";
 import { buildMcpServer } from "../mcp/server.js";
-import type { CellConfig } from "../node/config.js";
+import { DOCUMENT_FILES, documentsDir, readManifest } from "../node/documents.js";
 import type { Node } from "../node/node.js";
 import type { Watchers } from "../node/watchers.js";
 import { PUBLIC_CALLER, type Caller, type Catalog, type Mode } from "../tools/index.js";
+import { resolveCaller } from "./access.js";
+import { NonceCache } from "./signed.js";
+
+export { callerFromAuthorization, newApiKey } from "./access.js";
 
 /**
  * The HTTP entrance (design memo, Phase 3, section 5): a `node:http` server with the JSON API (`POST /api/<capability>`),
@@ -14,6 +21,8 @@ import { PUBLIC_CALLER, type Caller, type Catalog, type Mode } from "../tools/in
  * the holder of an API key (what the key's grant says) — and the catalog decides. Boundaries at the edge: a request
  * body is capped, a browser's Origin must be allowed, the Host header must be one this server answers for, each
  * address has a request budget per minute, no CORS headers, no cookies, and nothing of a key ever reaches a log.
+ * A third way in beside no credential and a Bearer key: `Authorization: FOGA-EIP712 <envelope>`, an address proving
+ * itself with its wallet (src/http/signed.ts, src/http/access.ts); what it is granted is the configuration's.
  */
 export interface HttpServerOptions {
   node: Node;
@@ -27,30 +36,6 @@ export interface RunningHttpServer {
   server: Server;
   url: string;
   close(): Promise<void>;
-}
-
-const KEY_PREFIX = "foga";
-
-/** Make an API key for a grant: shown once, stored only as its hash. */
-export function newApiKey(id: string): { key: string; sha256: string } {
-  const key = `${KEY_PREFIX}.${id}.${randomBytes(24).toString("base64url")}`;
-  return { key, sha256: "0x" + createHash("sha256").update(key).digest("hex") };
-}
-
-/** The caller an Authorization header establishes: the public without one, the grant of a valid key, or null for an invalid key. */
-export function callerFromAuthorization(cfg: CellConfig, header: string | undefined): Caller | null {
-  if (!header) return { ...PUBLIC_CALLER, entrance: "http" };
-  const m = /^Bearer\s+(\S+)$/i.exec(header.trim());
-  if (!m) return null;
-  const key = m[1];
-  const parts = key.split(".");
-  if (parts.length !== 3 || parts[0] !== KEY_PREFIX) return null;
-  const grant = cfg.access.keys.find((k) => k.id === parts[1]);
-  if (!grant) return null;
-  const given = Buffer.from(createHash("sha256").update(key).digest("hex"), "hex");
-  const stored = Buffer.from(grant.sha256.slice(2), "hex");
-  if (given.length !== stored.length || !timingSafeEqual(given, stored)) return null;
-  return { id: grant.id, entrance: "http", level: grant.level, visibility: grant.visibility };
 }
 
 /** A token bucket per client address: `limit` requests per minute, refilled continuously. */
@@ -118,6 +103,8 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
   const http = cfg.runtime.http;
   const log = o.log ?? node.log;
   const limiter = new RateLimiter(http.rateLimitPerMinute);
+  const nonces = new NonceCache();
+  const a2a = new A2AServer(node, catalog, log);
   let loopback = false;
 
   const mcp: McpHttpHandler = createMcpHandler(
@@ -144,16 +131,18 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
       if (!originHost || !allowedOrigins.includes(originHost)) return json(res, 403, { ok: false, gate: "origin", reason: "Origin not allowed" });
     }
 
-    // who is calling
-    const caller = callerFromAuthorization(cfg, req.headers.authorization);
-    if (!caller) return json(res, 401, { ok: false, gate: "permission", reason: "the Authorization header carries no key this node knows" });
+    // the body first (a signature may be bound to it), then who is calling
+    const bodyless = method === "GET" || method === "HEAD" || method === "DELETE";
+    const body = bodyless ? null : await readBody(req, http.maxBodyBytes);
+    if (body === null && !bodyless) return json(res, 413, { ok: false, gate: "input", reason: `request body over ${http.maxBodyBytes} bytes` });
+    const resolved = await resolveCaller({ node, authorization: req.headers.authorization, method, path: url.pathname + url.search, body: body ? new Uint8Array(body) : null, nonces });
+    if (!resolved.caller) return json(res, resolved.status, { ok: false, gate: "permission", reason: resolved.reason });
+    const caller = resolved.caller;
 
     if (url.pathname === "/mcp") {
-      // the SDK reads and bounds the body itself; headers pass through, the caller rides in authInfo
+      // headers pass through, the caller rides in authInfo
       const headers = new Headers();
       for (const [k, v] of Object.entries(req.headers)) if (v !== undefined && k !== "authorization") headers.set(k, Array.isArray(v) ? v.join(", ") : v);
-      const body = method === "GET" || method === "HEAD" || method === "DELETE" ? undefined : await readBody(req, http.maxBodyBytes);
-      if (body === null) return json(res, 413, { ok: false, gate: "input", reason: `request body over ${http.maxBodyBytes} bytes` });
       const request = new Request(url, { method, headers, body: body ? new Uint8Array(body) : undefined });
       const authInfo: AuthInfo = { token: caller.id, clientId: caller.id, scopes: [caller.level], extra: { caller } };
       const response = await mcp.fetch(request, { authInfo });
@@ -164,6 +153,22 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
       if (response.body) for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) res.write(chunk);
       res.end();
       return;
+    }
+
+    // A2A 1.0, the JSON-RPC binding: the version as a header (or the A2A-Version query parameter), JSON in and out
+    if (url.pathname === "/a2a") {
+      if (method !== "POST") return json(res, 405, { jsonrpc: "2.0", id: null, error: { code: A2A_ERRORS.InvalidRequestError, message: "POST a JSON-RPC 2.0 request" } });
+      if (!/^application\/json\b/i.test(req.headers["content-type"] ?? "")) return json(res, 415, { jsonrpc: "2.0", id: null, error: { code: A2A_ERRORS.InvalidRequestError, message: "Content-Type must be application/json" } });
+      let rpc: unknown;
+      try {
+        rpc = body && body.length ? JSON.parse(body.toString("utf8")) : null;
+      } catch {
+        return json(res, 200, { jsonrpc: "2.0", id: null, error: { code: A2A_ERRORS.JSONParseError, message: "Invalid JSON payload" } });
+      }
+      const versionHeader = req.headers["a2a-version"];
+      const version = (Array.isArray(versionHeader) ? versionHeader[0] : versionHeader) ?? url.searchParams.get("A2A-Version") ?? undefined;
+      // A2A-Extensions a client declares are ignored: this agent requires none and offers none
+      return json(res, 200, await a2a.handle(rpc, caller, version));
     }
 
     if (method === "GET" && url.pathname === "/healthz") {
@@ -178,9 +183,9 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
     if (method === "GET" && url.pathname === "/") {
       const r = await catalog.invoke(node, "cell_status", {}, caller);
       const decisions = node.store.summary().decisions;
-      return json(res, 200, { foga: o.version, cell: cfg.name, status: r.ok ? r.output : null, decisions, endpoints: { mcp: "/mcp", api: "/api/<capability>", health: "/healthz" } });
+      return json(res, 200, { foga: o.version, cell: cfg.name, status: r.ok ? r.output : null, decisions, endpoints: { mcp: "/mcp", api: "/api/<capability>", a2a: "/a2a", agentCard: A2A_WELL_KNOWN, documents: "/documents/<file>", health: "/healthz" } });
     }
-    if (method === "GET" && url.pathname === "/api/capabilities") return json(res, 200, { caller: { id: caller.id, level: caller.level, visibility: caller.visibility }, capabilities: catalog.list(caller) });
+    if (method === "GET" && url.pathname === "/api/capabilities") return json(res, 200, { caller: { id: caller.id, level: caller.level, visibility: caller.visibility, via: resolved.via }, capabilities: catalog.list(caller) });
     const jobMatch = /^\/api\/jobs\/([^/]+)$/.exec(url.pathname);
     if (method === "GET" && jobMatch) return answer(res, await catalog.invoke(node, "job_status", { jobId: decodeURIComponent(jobMatch[1]) }, caller));
     const opMatch = /^\/api\/operations\/([^/]+)$/.exec(url.pathname);
@@ -195,10 +200,8 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
       let input: unknown = {};
       if (method === "POST") {
         if (!/^application\/json\b/i.test(req.headers["content-type"] ?? "")) return json(res, 415, { ok: false, gate: "input", reason: "Content-Type must be application/json" });
-        const body = await readBody(req, http.maxBodyBytes);
-        if (body === null) return json(res, 413, { ok: false, gate: "input", reason: `request body over ${http.maxBodyBytes} bytes` });
         try {
-          input = body.length ? JSON.parse(body.toString("utf8")) : {};
+          input = body && body.length ? JSON.parse(body.toString("utf8")) : {};
         } catch {
           return json(res, 400, { ok: false, gate: "input", reason: "the body is not JSON" });
         }
@@ -207,7 +210,25 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
       if (!["simulate", "build", "act"].includes(mode)) return json(res, 400, { ok: false, gate: "input", reason: "mode must be simulate, build or act" });
       return answer(res, await catalog.invoke(node, name, input, caller, { mode }));
     }
-    if (url.pathname.startsWith("/.well-known/") || url.pathname.startsWith("/documents/")) return json(res, 404, { ok: false, reason: "not published yet" });
+    // the published documents (foga cell docs build): served as built, by their file names, and at the well-known paths
+    if (method === "GET" && (url.pathname.startsWith("/.well-known/") || url.pathname.startsWith("/documents/"))) {
+      const dir = documentsDir(node);
+      const manifest = readManifest(dir);
+      if (!manifest) return json(res, 404, { ok: false, reason: "not published yet" });
+      let file: string | null = null;
+      if (url.pathname === A2A_WELL_KNOWN) file = DOCUMENT_FILES.agentCard;
+      else if (url.pathname === "/.well-known/agent-registration.json") file = DOCUMENT_FILES.registration;
+      else if (url.pathname.startsWith("/documents/")) {
+        const name = basename(decodeURIComponent(url.pathname.slice("/documents/".length)));
+        if (name === "manifest.json" || Object.values(DOCUMENT_FILES).includes(name as (typeof DOCUMENT_FILES)[keyof typeof DOCUMENT_FILES])) file = name;
+      }
+      const path = file ? join(dir, file) : null;
+      if (!path || !existsSync(path)) return json(res, 404, { ok: false, reason: "no such document" });
+      const text = readFileSync(path);
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
+      res.end(text);
+      return;
+    }
     json(res, 404, { ok: false, reason: "no such path" });
   }
 

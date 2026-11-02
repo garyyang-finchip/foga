@@ -48,3 +48,15 @@ It is tested with Foundry (`contracts/test/Identity8004Stub.t.sol`, no external 
 ## Public chains
 
 Sepolia runs are read-only in Phase 1 (doctor). Phase 2c deploys FOGA-owned components on Sepolia — eligibility modules, FOGA's own ACDF adapter and revision-4 escrow, per-cell accounts — with the same orchestrator, a gas multiplier (`--gas-multiplier 1.5`) and `--resume`, following the lessons of the upstream runs: take every gas limit from the live `eth_estimateGas`, never from a local chain.
+
+## Verifying the sources (Sourcify)
+
+```
+npm run bundle:verify                                                     # rebuilds the bundle; leaves .foga-build/out/<repo>/build-info/
+foga world verify --world deployments/sepolia.json --sourcify             # submits every FOGA-deployed contract of the world
+foga world verify --world deployments/local.json --sourcify --dry-run     # writes what would be sent (a local chain is always a dry run)
+```
+
+A contract a world deployed from the bundle is verified on Sourcify (`src/world/sourcify.ts`, the 2c leftover the memo's section 9 lists) with the very compiler run that produced it: `forge build` leaves a build-info file per run beside the artifacts — the standard JSON input (sources at the locked commits, settings, remappings) and the output — and `npm run bundle:verify` (or `foga build`) writes them under `.foga-build/out/<repo>/build-info/`. For each `deployed` step of the world file, the request is the build-info of the step's repository whose output holds a contract of the bundle key's name with the bundle's runtime code, the identifier `<path solc saw>:<Name>`, the compiler's long version from the contract's own metadata (`0.8.28+commit.7893614a`), and the creation transaction the world file recorded. Nothing is recompiled, flattened or rewritten for the verifier: what Sourcify checks is what the bundle was built from, and a contract the build-info does not hold is reported `missing` with the reason (an upstream contract attached rather than deployed, a bundle rebuilt without `--build-info`).
+
+The live path is Sourcify's v2 API: `GET /v2/contract/{chainId}/{address}` first (a contract already verified is `already`), then `POST /v2/verify/{chainId}/{address}` with `{stdJsonInput, compilerVersion, contractIdentifier, creationTransactionHash}`, and the ticket's `GET /v2/verify/{verificationId}` polled until `isJobCompleted` — `exact_match` or `match` (creation and runtime match named), `failed` with Sourcify's error, `error` when the request was refused or timed out. `--only <id,id>` narrows to some steps, `--server` another instance (`https://sourcify.dev/server` by default), `--out` where the requests and the report go (`.foga-build/sourcify/<world name>/`: one `<step>.json` per request and `report.json`, schema `foga.sourcify/1`, with a summary by outcome). Exit 3 when anything is `missing`, `failed` or `error`. `test/sourcify.test.ts` runs the matching, a dry run and the v2 exchange against a stand-in; CI dry-runs the whole local world (47 requests, 0 missing) after each bundle verification.

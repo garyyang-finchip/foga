@@ -74,7 +74,8 @@ function solcBinary(profiles: Profiles, version: string, solcDir?: string): stri
 function forgeBuild(projectDir: string, outDir: string, skip: string[], solcPath?: string, extraArgs: string[] = []): void {
   rmrf(outDir);
   ensureDir(outDir);
-  const args = ["build", "--ast", "--no-cache", "--out", outDir, ...extraArgs];
+  // the build-info files (the standard JSON input and output of each compiler run) stay beside the artifacts: `foga world verify --sourcify` submits them
+  const args = ["build", "--ast", "--no-cache", "--out", outDir, "--build-info", "--build-info-path", join(outDir, "build-info"), ...extraArgs];
   for (const s of skip) args.push("--skip", s);
   if (solcPath) args.push("--use", solcPath);
   try {

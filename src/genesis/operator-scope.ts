@@ -37,6 +37,7 @@ export const SCOPE_GROUPS: Record<ScopeGroup, ScopeEntry[]> = {
     { contract: "8444/ARDOnchainRegistry", fn: "register(bytes32,address,uint256,bytes32,string,string)" },
     { contract: "8444/ARDOnchainRegistry", fn: "updateDescriptor(bytes32,bytes32,string,string)" },
     { contract: "8454/AUFUnitRegistry", fn: "registerUnit(address,bytes32,string,(uint256,uint32)[])" },
+    { contract: "8454/AUFUnitRegistry", fn: "publishVersion(uint256,bytes32,string,(uint256,uint32)[])" },
     { contract: "8447/ERC8004Eligibility", fn: "declareAgent(uint256)" },
   ],
   standing: [{ contract: "8419/KYARegistry", fn: "attestWithProof((bytes32,bytes),bytes32,bytes,bytes,string)" }],

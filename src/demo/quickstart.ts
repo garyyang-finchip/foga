@@ -1,12 +1,15 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { formatEther, parseEther } from "ethers";
 import { anvilKeys } from "../genesis/roles.js";
 import { Kernel } from "../kernel/kernel.js";
 import { newApiKey } from "../http/server.js";
 import { loadCellConfig, saveCellConfig } from "../node/config.js";
+import { Node } from "../node/node.js";
+import { defaultCatalog, OPERATOR_CALLER } from "../tools/index.js";
+import { ensureWallet, ensuredKey, walletDir, type EnsuredWallet } from "../node/wallet.js";
 import { repoRoot } from "../util/fs.js";
 import { deployWorld } from "../world/deploy.js";
 import { ANVIL_INSTALL_HINT, anvilBinary, anvilVersion, launchAnvil, portInUse, portProblem, stopChild } from "./anvil.js";
@@ -17,15 +20,18 @@ import { cleanEnv, ownCli, waitForHttp } from "./loop-d.js";
 /**
  * `foga quickstart`: one command from nothing to a cell an MCP client can connect to (design memo, Phase 3, section 4,
  * "a standard MCP download link"; 3d). It starts anvil, deploys the local world, births a cell with keys nobody held
- * before, gives it standing and its two skills, mints two tenders for it to find, serves the node (watchers, HTTP,
+ * before — the default wallet's, made on the first run and kept (the wallet is the first step) — gives it standing and
+ * its two skills, mints two tenders for it to find, serves the node (watchers, HTTP,
  * MCP over Streamable HTTP), checks the entrance answers, and prints — and writes — the client configurations with
  * every path filled in: the stdio form (`npx -y @finchip.ai/foga mcp --config …`) for Claude Desktop, Claude Code and
  * Cursor, and the HTTP form (URL and Bearer key) for a client or agent runtime anywhere. The chain lives as long as
  * this process: Ctrl-C ends it, and the next quickstart starts over in the same directory.
  */
 export interface QuickstartOptions {
-  /** Where the world, the cell, its keys and the client configurations are written (default ~/.foga/quickstart). */
+  /** Where the world, the cell and the client configurations are written (default ~/.foga/quickstart). */
   dir?: string;
+  /** The wallet whose keys the cell is born with (default ~/.foga/wallet; made when there is none, reused when there is). */
+  wallet?: string;
   /** anvil's port (default 8545). */
   port?: number;
   /** host:port the node listens on (default 127.0.0.1:8787); null runs no node — the stdio server alone serves the clients. */
@@ -51,6 +57,8 @@ export interface QuickstartResult {
   configPath: string;
   account: string;
   agentId: string | null;
+  /** The wallet the cell's roles came from. */
+  wallet: { dir: string; created: boolean; ephemeral: boolean; addresses: Record<string, string> };
   keys: { owner: string; operator: string; guardian: string; agentApiKey: string };
   apiKey: string;
   nodeUrl: string | null;
@@ -101,6 +109,12 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
   const listen = o.listen === undefined ? "127.0.0.1:8787" : o.listen;
   const name = o.name ?? "quick";
   const rpc = `http://127.0.0.1:${port}`;
+  const walletPath = resolve(o.wallet ?? walletDir());
+  const nodeUrlPlanned = listen ? (() => {
+    const i = listen.lastIndexOf(":");
+    const host = listen.slice(0, i) || "127.0.0.1";
+    return `http://${host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host}:${listen.slice(i + 1)}`;
+  })() : null;
 
   // --- say what is wrong before touching anything
   const anvilBin = anvilBinary();
@@ -112,6 +126,7 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
     const lp = Number(listen.slice(listen.lastIndexOf(":") + 1));
     if (await portInUse(lp)) throw new Error(`port ${lp} is in use; pass --listen <host:port> for the node (or --no-serve to run no node)`);
   }
+  if (walletPath === dir || walletPath.startsWith(dir + sep)) throw new Error(`the wallet (${walletPath}) must live outside the quickstart directory (${dir}), which is cleared on every run`);
   if (existsSync(dir)) {
     const entries = readdirSync(dir);
     if (entries.length && !entries.includes(MARKER)) throw new Error(`${dir} exists and is not a quickstart directory (no ${MARKER}); choose another --dir`);
@@ -123,6 +138,11 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
   mkdirSync(dir, { recursive: true });
   const keysDir = join(dir, "keys");
   mkdirSync(keysDir, { recursive: true, mode: 0o700 });
+
+  // --- the wallet: the first step; made now when there is none, reused when there is; never a reason to stop
+  const wallet: EnsuredWallet = ensureWallet(walletPath, { name: "default" });
+  if (wallet.ephemeral) log(`quickstart: wallet: could not write ${walletPath} (${wallet.reason}); using keys made in memory for this run — they are not kept`);
+  else log(`quickstart: wallet: ${wallet.created ? "made" : "using"} ${wallet.wallet.dir} — owner ${wallet.wallet.addresses.owner}, operator ${wallet.wallet.addresses.operator}, guardian ${wallet.wallet.addresses.guardian}`);
 
   // --- the chain and the world
   log(`quickstart: starting ${version} on ${rpc} (log ${join(dir, "anvil.log")})`);
@@ -156,6 +176,7 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
         configPath: join(dir, "cell.config.json"),
         storePath: join(dir, "cell.ops.sqlite"),
         description: `Cell ${name}: born by foga quickstart on a local anvil chain`,
+        keys: { owner: ensuredKey(wallet, "owner"), operator: ensuredKey(wallet, "operator"), guardian: ensuredKey(wallet, "guardian") },
         log: (line) => log(`quickstart: ${line}`),
         configure: (cfg) => {
           cfg.policy.budget = { dailyValueWei: parseEther("0.002").toString(), perOperationValueWei: parseEther("0.001").toString(), dailyGasWei: parseEther("0.05").toString(), maxConcurrentCommitments: 2 };
@@ -163,6 +184,7 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
           cfg.runtime.pollSeconds = 2;
           cfg.runtime.http.listen = listen ?? "127.0.0.1:8787";
           cfg.runtime.http.rateLimitPerMinute = 600;
+          if (nodeUrlPlanned) cfg.runtime.http.publicUrl = nodeUrlPlanned;
         },
       });
     } finally {
@@ -171,13 +193,16 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
     }
     const configPath = cell.configPath;
 
-    // --- the keys, each in its own 0600 file (anvil money; nothing of value), and an act-level API key for the HTTP entrance
+    // --- the key files the configurations name: the wallet's own; an in-memory wallet is written beside the cell so the run still works
     const keyFile = (file: string, value: string) => {
       const path = join(keysDir, file);
       writeFileSync(path, value + "\n", { mode: 0o600 });
       return path;
     };
-    const keyPaths = { owner: keyFile("owner.key", cell.owner.privateKey), operator: keyFile("operator.key", cell.operator.privateKey), guardian: keyFile("guardian.key", cell.guardian.privateKey) };
+    const keyPaths = wallet.ephemeral
+      ? { owner: keyFile("owner.key", cell.owner.privateKey), operator: keyFile("operator.key", cell.operator.privateKey), guardian: keyFile("guardian.key", cell.guardian.privateKey) }
+      : { owner: wallet.wallet.files.owner, operator: wallet.wallet.files.operator, guardian: wallet.wallet.files.guardian };
+    // an act-level API key for the HTTP entrance
     const api = newApiKey("agent");
     {
       const loaded = loadCellConfig(configPath);
@@ -185,6 +210,22 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
       saveCellConfig(configPath, loaded.config);
     }
     const agentKeyPath = keyFile("agent.api-key", api.key);
+
+    // --- the cell says what it is: both skills offered, the documents built and committed on chain (the operator's act, in this process)
+    {
+      const loaded = loadCellConfig(configPath);
+      loaded.config.skills.offered = Object.keys(loaded.config.skills.held);
+      saveCellConfig(configPath, loaded.config);
+      const publisher = await Node.open({ configPath, rpc, keys: { operator: ensuredKey(wallet, "operator") }, log: () => {} });
+      try {
+        const r = await defaultCatalog().invoke(publisher, "docs_publish", {}, OPERATOR_CALLER, { mode: "act" });
+        if (!r.ok) throw new Error(`docs_publish: ${r.gate}: ${r.reason}`);
+        const out = r.output as { version: number; committed: string[]; dir: string };
+        log(`quickstart: documents v${out.version} built in ${out.dir} and committed on chain (${out.committed.join(", ")})`);
+      } finally {
+        publisher.close();
+      }
+    }
 
     // --- two tenders for the cell to find: a probe of the cell itself and an extraction over the fixture
     let minted: DemandCase[] = [];
@@ -223,7 +264,13 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
       const toolsText = await tools.text();
       const toolCount = (toolsText.match(/"name":"/g) ?? []).length;
       if (toolCount < 20) throw new Error(`the MCP entrance listed ${toolCount} tool(s) for the agent key; expected the act-level set`);
-      log(`quickstart: the entrance answers — /healthz ok, cell_status names ${cell.account}, tender ${minted[0]?.tokenId ?? "-"} eligible for the agent key, MCP initialize ok, ${toolCount} tools`);
+      const cardRes = await fetch(`${nodeUrl}/.well-known/agent-card.json`);
+      const cardDoc = (await cardRes.json()) as { supportedInterfaces?: { url: string }[]; skills?: unknown[] };
+      if (!cardRes.ok || cardDoc.supportedInterfaces?.[0]?.url !== `${nodeUrl}/a2a`) throw new Error(`the agent card at /.well-known/agent-card.json does not name ${nodeUrl}/a2a`);
+      const quoteRes = await fetch(`${nodeUrl}/a2a`, { method: "POST", headers: { "content-type": "application/json", "a2a-version": "1.0" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "SendMessage", params: { message: { messageId: "quickstart-quote", role: "ROLE_USER", parts: [{ text: "What can you do?" }] } } }) });
+      const quoteBody = (await quoteRes.json()) as { result?: { task?: { status?: { state?: string } } } };
+      if (quoteBody.result?.task?.status?.state !== "TASK_STATE_COMPLETED") throw new Error(`the A2A entrance did not answer a quote: ${JSON.stringify(quoteBody).slice(0, 200)}`);
+      log(`quickstart: the entrance answers — /healthz ok, cell_status names ${cell.account}, tender ${minted[0]?.tokenId ?? "-"} eligible for the agent key, MCP initialize ok, ${toolCount} tools; the agent card names ${nodeUrl}/a2a and a quote came back`);
     }
 
     // --- the stdio server the client configurations name, started as a client would start it: the operator's tool set over stdio
@@ -243,10 +290,12 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
     lines.push(`foga quickstart: a FOGA cell is live on a local chain`);
     lines.push("");
     lines.push(`  chain     anvil on ${rpc} (chain ${world.chainId}), world ${world.worldId} — the chain lives as long as this process`);
-    lines.push(`  cell      ${name} = ${cell.account}${cell.agentId ? ` (ERC-8004 agent ${cell.agentId})` : ""}; owner, operator and guardian keys in ${keysDir} (anvil money, no value)`);
+    lines.push(`  cell      ${name} = ${cell.account}${cell.agentId ? ` (ERC-8004 agent ${cell.agentId})` : ""}`);
+    lines.push(`  wallet    ${wallet.ephemeral ? `keys made in memory for this run, written to ${keysDir} (${walletPath} was not writable)` : `${wallet.wallet.dir} (${wallet.created ? "made now" : "reused"}) — owner ${cell.owner.address}, operator ${cell.operator.address}, guardian ${cell.guardian.address}; the same wallet on every run`}`);
     lines.push(`  skills    ${Object.keys(cell.held).join(", ")} (held and offered)`);
     if (minted.length) lines.push(`  tenders   ${minted.map((c) => `#${c.tokenId} ${c.skill} (${formatEther(c.rewardWei)} ETH)`).join(", ")} — open, waiting for the cell to take them`);
-    if (nodeUrl) lines.push(`  node      ${nodeUrl} — /mcp (Streamable HTTP), /api/<capability>, /healthz; its watchers settle and withdraw what the cell commits to`);
+    if (nodeUrl) lines.push(`  node      ${nodeUrl} — /mcp (Streamable HTTP), /api/<capability>, /a2a (A2A 1.0, JSON-RPC), /.well-known/agent-card.json, /documents/*, /healthz; its watchers settle and withdraw`);
+    lines.push(`  documents ${join(dir, "documents")} — registration, AID document, ARD descriptor, AUF unit, agent card, server.json; committed on chain${nodeUrl ? ` as URLs under ${nodeUrl}` : ""}`);
     lines.push(`  files     ${configPath} (the cell), ${join(dir, "connect.md")} (this text), ${mcpDir}${process.platform === "win32" ? "\\" : "/"}*.json (the client configurations)`);
     lines.push("");
     lines.push("Connect an MCP client over stdio (the client starts the server on this machine; with the operator key it acts for the cell):");
@@ -261,6 +310,8 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
       lines.push("Or over HTTP (a client on another machine, or any agent runtime that speaks HTTP):");
       lines.push(`  MCP      ${nodeUrl}/mcp   with the header   Authorization: Bearer ${api.key}   (${join(mcpDir, "http-mcp.json")})`);
       lines.push(`  API      ${nodeUrl}/api/<capability>, POST a JSON body (reads also GET); the same header for acts. GET ${nodeUrl}/api/capabilities lists them.`);
+      lines.push(`  A2A      POST ${nodeUrl}/a2a with A2A-Version: 1.0 — SendMessage for a quote (anyone) or a tender ({"foga":{"mode":"tender","tokenId":"…"}}, the header above); the card is at ${nodeUrl}/.well-known/agent-card.json`);
+      lines.push(`  wallet   a credential of your own instead of the key: Authorization: FOGA-EIP712 <envelope> signed by any wallet (foga wallet sign --url ${nodeUrl} prints one; docs/wallet.md)`);
       lines.push(`           curl -s ${nodeUrl}/api/cell_status`);
       if (minted.length) lines.push(`           curl -s -X POST ${nodeUrl}/api/tender_precheck -H "content-type: application/json" -H "authorization: Bearer ${api.key}" -d "{\\"tokenId\\":\\"${minted[0].tokenId}\\"}"`);
     }
@@ -273,7 +324,7 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
     lines.push(o.exit ? "Started with --exit: stopping the node and the chain." : "Ctrl-C stops the node and the chain; the next quickstart starts over in the same directory.");
     const summary = lines.join("\n");
     writeFileSync(join(dir, "connect.md"), `# foga quickstart\n\n\`\`\`\n${summary}\n\`\`\`\n`);
-    writeFileSync(join(dir, MARKER), JSON.stringify({ schema: "foga.quickstart/1", createdAt: new Date().toISOString(), rpc, chainId: world.chainId, worldId: world.worldId, cell: name, account: cell.account, agentId: cell.agentId, nodeUrl, tenders: minted.map((c) => c.tokenId), anvil: version }, null, 2) + "\n");
+    writeFileSync(join(dir, MARKER), JSON.stringify({ schema: "foga.quickstart/1", createdAt: new Date().toISOString(), rpc, chainId: world.chainId, worldId: world.worldId, cell: name, account: cell.account, agentId: cell.agentId, wallet: wallet.ephemeral ? null : wallet.wallet.dir, nodeUrl, tenders: minted.map((c) => c.tokenId), anvil: version }, null, 2) + "\n");
     out(summary);
 
     return {
@@ -285,6 +336,7 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
       configPath,
       account: cell.account,
       agentId: cell.agentId,
+      wallet: { dir: wallet.wallet.dir, created: wallet.created, ephemeral: wallet.ephemeral, addresses: wallet.wallet.addresses },
       keys: { ...keyPaths, agentApiKey: agentKeyPath },
       apiKey: api.key,
       nodeUrl,

@@ -74,6 +74,29 @@ export function foga(rpc: string, args: string[], env: Record<string, string> = 
   return { code: child.status ?? -1, stdout, stderr: String(child.stderr ?? ""), json };
 }
 
+/** The same, without blocking the event loop: for a CLI call that must reach a server running in this process. */
+export function fogaAsync(rpc: string, args: string[], env: Record<string, string> = {}): Promise<CliResult> {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ["--import", "tsx", "src/cli.ts", ...args], { cwd: ROOT, env: cleanEnv(rpc, env), stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => (stdout += String(d)));
+    child.stderr.on("data", (d) => (stderr += String(d)));
+    child.on("close", (code) => {
+      let json: any = null;
+      const at = stdout.indexOf("{");
+      if (at >= 0) {
+        try {
+          json = JSON.parse(stdout.slice(at));
+        } catch {
+          json = null;
+        }
+      }
+      resolve({ code: code ?? -1, stdout, stderr, json });
+    });
+  });
+}
+
 export function ok(r: CliResult, what: string): any {
   assert.equal(r.code, 0, `${what} failed (exit ${r.code}):\n${r.stderr.slice(-3000)}\n${r.stdout.slice(-1500)}`);
   assert.ok(r.json, `${what} printed no JSON: ${r.stdout.slice(0, 500)}`);
