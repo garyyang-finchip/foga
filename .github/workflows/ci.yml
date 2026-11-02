@@ -149,6 +149,9 @@ jobs:
       - name: Compile the CLI
         run: npm run build && node bin/foga.js --help
 
+      - name: Pack the npm tarball and run the packaged CLI from a clean install (help, catalog, a cell born on the local world, MCP over stdio)
+        run: node scripts/pack-smoke.mjs http://127.0.0.1:8545 deployments/ci-local.json "$RUNNER_TEMP/foga-pack"
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:
