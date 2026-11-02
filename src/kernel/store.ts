@@ -67,6 +67,8 @@ export interface JobRecord {
   result: unknown;
   error: string | null;
   operations: string[];
+  /** The native value the job's plan moves (reserved against the budget from the decision until its operations carry it). */
+  valueWei: bigint;
   createdAt: string;
   updatedAt: string;
 }
@@ -233,10 +235,14 @@ export class OperationStore {
     if (path !== ":memory:") ensureDir(dirname(path));
     const { DatabaseSync } = loadSqlite();
     const db = new DatabaseSync(path);
-    if (path !== ":memory:") db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL;");
+    // WAL so a one-shot command (a guardian's suspension, a key minted) can write while the node runs; a busy timeout so
+    // the two writers wait for each other instead of failing on SQLITE_BUSY
+    if (path !== ":memory:") db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;");
     db.exec(SCHEMA);
     const have = new Set(db.prepare("PRAGMA table_info(ops)").all().map((r: any) => String(r.name)));
     for (const [name, decl] of OPS_COLUMNS) if (!have.has(name)) db.exec(`ALTER TABLE ops ADD COLUMN ${name} ${decl}`);
+    const jobColumns = new Set(db.prepare("PRAGMA table_info(jobs)").all().map((r: any) => String(r.name)));
+    if (!jobColumns.has("value_wei")) db.exec("ALTER TABLE jobs ADD COLUMN value_wei TEXT NOT NULL DEFAULT '0'");
     return new OperationStore(db, path);
   }
 
@@ -390,6 +396,13 @@ export class OperationStore {
       reservedValueWei += BigInt(r.value_wei ?? "0");
       reservedFeeWei += BigInt(r.fee_cap_wei ?? "0");
     }
+    // a job that was allowed but whose operations are not prepared yet reserves what its plan moves (less what its operations already carry)
+    for (const j of this.db.prepare("SELECT id, value_wei FROM jobs WHERE status IN ('accepted', 'running') AND value_wei <> '0'").all()) {
+      let carried = 0n;
+      for (const o of this.db.prepare("SELECT value_wei FROM ops WHERE key LIKE ? AND signer = ?").all(`job:${j.id}:%`, signer)) carried += BigInt(o.value_wei ?? "0");
+      const planned = BigInt(j.value_wei ?? "0");
+      if (planned > carried) reservedValueWei += planned - carried;
+    }
     return { valueWei, gasWei, reservedValueWei, reservedFeeWei };
   }
 
@@ -403,7 +416,7 @@ export class OperationStore {
   // ---------------------------------------------------------------------------- jobs
 
   /** Create a job, or return the existing one for the id; the same id with another input is a conflict. */
-  createJob(p: { id: string; kind: string; caller?: string; cell?: string; inputHash: string; input: unknown }): JobRecord {
+  createJob(p: { id: string; kind: string; caller?: string; cell?: string; inputHash: string; input: unknown; valueWei?: bigint }): JobRecord {
     return this.transaction(() => {
       const existing = this.getJob(p.id);
       if (existing) {
@@ -412,8 +425,8 @@ export class OperationStore {
       }
       const t = now();
       this.db
-        .prepare("INSERT INTO jobs (id, kind, status, caller, cell, input_hash, input, operations, created_at, updated_at) VALUES (?, ?, 'accepted', ?, ?, ?, ?, '[]', ?, ?)")
-        .run(p.id, p.kind, p.caller ?? null, p.cell ?? null, p.inputHash, toJson(p.input), t, t);
+        .prepare("INSERT INTO jobs (id, kind, status, caller, cell, input_hash, input, operations, value_wei, created_at, updated_at) VALUES (?, ?, 'accepted', ?, ?, ?, ?, '[]', ?, ?, ?)")
+        .run(p.id, p.kind, p.caller ?? null, p.cell ?? null, p.inputHash, toJson(p.input), (p.valueWei ?? 0n).toString(), t, t);
       return this.getJob(p.id)!;
     });
   }
@@ -564,6 +577,7 @@ function rowToJob(row: any): JobRecord {
     result: row.result ? JSON.parse(row.result) : null,
     error: row.error ?? null,
     operations: row.operations ? JSON.parse(row.operations) : [],
+    valueWei: BigInt(row.value_wei ?? "0"),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

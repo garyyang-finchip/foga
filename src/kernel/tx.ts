@@ -169,7 +169,8 @@ export class TxManager {
     }
     const signed = await wallet.signTransaction(populated);
     const txHash = keccak256(signed);
-    this.store.markSent(req.key, txHash, nonce, BigInt(populated.value ?? 0));
+    // the value the operation moves: what the binding says the cell moves (an execute carries it inside), else the transaction's own
+    this.store.markSent(req.key, txHash, nonce, req.binding?.valueWei ?? BigInt(populated.value ?? 0));
     this.store.journal("sent", { txHash, nonce, to: populated.to ?? null, value: (populated.value ?? 0n).toString(), kind: req.kind ?? "tx" }, req.key);
     if (this.options.crashBeforeBroadcast === req.key) this.crash(req.key, "before-broadcast");
 

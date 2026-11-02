@@ -123,11 +123,17 @@ export const RuntimeSchema = z.object({
   heartbeatEverySeconds: z.number().int().positive().default(3600),
   pollSeconds: z.number().int().positive().default(12),
   http: HttpSchema.prefault({}),
+  /** The runner's model (3c): the provider, the model name (required for anthropic), and the limits the runner holds it to. */
   model: z
     .object({
       provider: z.enum(["stub", "anthropic"]).default("stub"),
       model: z.string().optional(),
+      /** Model calls per UTC day; a tick that would exceed it is skipped and journaled. */
       dailyCalls: z.number().int().min(0).default(20),
+      /** Tool calls the runner carries out in one tick. */
+      maxToolCallsPerTick: z.number().int().min(1).max(100).default(12),
+      /** Acts (pre-checks not counted) the runner carries out in one tick. */
+      maxActsPerTick: z.number().int().min(0).max(20).default(2),
     })
     .prefault({}),
 });

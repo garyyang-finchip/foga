@@ -117,6 +117,15 @@ export class Node {
     this.kernel.world.provider.destroy();
   }
 
+  private decisions: Promise<unknown> = Promise.resolve();
+
+  /** Run `fn` after every earlier decision section of this node has finished: the catalog judges one act at a time, so a budget cap is read with what the act before it reserved. */
+  serialize<T>(fn: () => Promise<T>): Promise<T> {
+    const turn = this.decisions.catch(() => undefined).then(fn);
+    this.decisions = turn;
+    return turn;
+  }
+
   get config(): CellConfig {
     return this.loaded.config;
   }

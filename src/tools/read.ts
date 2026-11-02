@@ -5,6 +5,7 @@ import { z } from "zod";
 import { accountRef } from "../core/canonical.js";
 import { accountSubject } from "../core/kya.js";
 import type { Node } from "../node/node.js";
+import { modelCallsKey } from "../node/runner.js";
 import { TenderOutputSchema, readTender, tenderOutput, zAddress, zBool, zBytes32, zUint } from "./common.js";
 import type { ReadCapability } from "./types.js";
 
@@ -251,7 +252,7 @@ export const cell_status: ReadCapability = {
     safety: z.object({ verdict: z.string(), reasons: z.array(z.string()), restrictions: z.array(z.number()) }),
     skills: z.object({ held: z.array(z.string()), offered: z.array(z.string()) }),
     policy: z.object({ dailyValueWei: zUint, perOperationValueWei: zUint, dailyGasWei: zUint, maxConcurrentCommitments: z.number(), minRewardWei: zUint, acceptance: z.array(z.string()) }),
-    budget: z.object({ valueWei: zUint, gasWei: zUint, reservedValueWei: zUint, reservedFeeWei: zUint, runningCommitments: z.number(), operatorBalanceWei: zUint, accountBalanceWei: zUint }).nullable(),
+    budget: z.object({ valueWei: zUint, gasWei: zUint, reservedValueWei: zUint, reservedFeeWei: zUint, runningCommitments: z.number(), operatorBalanceWei: zUint, accountBalanceWei: zUint, modelCallsToday: z.number(), modelDailyCalls: z.number() }).nullable(),
     open: z.object({ operations: z.array(z.string()), jobs: z.array(z.string()) }).nullable(),
   }),
   async handler({ node, caller }) {
@@ -282,7 +283,7 @@ export const cell_status: ReadCapability = {
       safety: { verdict: status.verdictName, reasons: status.reasonNames, restrictions: status.restrictions },
       skills: { held: Object.keys(cfg.skills.held), offered: cfg.skills.offered },
       policy: { ...cfg.policy.budget, minRewardWei: cfg.policy.tenders.minRewardWei, acceptance: cfg.policy.tenders.acceptance },
-      budget: use ? { valueWei: use.valueWei.toString(), gasWei: use.gasWei.toString(), reservedValueWei: use.reservedValueWei.toString(), reservedFeeWei: use.reservedFeeWei.toString(), runningCommitments: use.runningCommitments, operatorBalanceWei: opBal.toString(), accountBalanceWei: accBal.toString() } : null,
+      budget: use ? { valueWei: use.valueWei.toString(), gasWei: use.gasWei.toString(), reservedValueWei: use.reservedValueWei.toString(), reservedFeeWei: use.reservedFeeWei.toString(), runningCommitments: use.runningCommitments, operatorBalanceWei: opBal.toString(), accountBalanceWei: accBal.toString(), modelCallsToday: node.store.getFact<number>(modelCallsKey()) ?? 0, modelDailyCalls: cfg.runtime.model.dailyCalls } : null,
       open: operator ? { operations: node.store.openOps("operator").map((o) => o.key), jobs: node.store.jobs(null, 200).filter((j) => j.status === "accepted" || j.status === "running").map((j) => j.id) } : null,
     };
   },

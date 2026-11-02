@@ -4,6 +4,8 @@ import { loadBundle } from "../bundle/load.js";
 import type { Bundle, BundleContract } from "../bundle/types.js";
 import { runtimeIdentity } from "../util/bytecode.js";
 import { loadGenesisEvidence, semanticVerdicts, type GenesisEvidenceFile } from "./semantic.js";
+import { loadLoopDEvidence, loopDVerdicts, type LoopDRow } from "./loop-d.js";
+import type { LoopDEvidence } from "../demo/evidence.js";
 import { readJson, repoRoot, writeJson } from "../util/fs.js";
 import { log } from "../util/log.js";
 import type { WorldFile } from "../world/types.js";
@@ -13,7 +15,7 @@ import { buildProbePlan, executeProbeLive, type ProbePlan, type ProbeResults } f
 export type Verdict = "Pass" | "Fail" | "Unknown" | "NotTested" | "NotApplicable";
 
 export interface CheckResult {
-  layer: 1 | 2 | 3 | 4 | 5;
+  layer: 1 | 2 | 3 | 4 | 5 | "D";
   subject: string;
   check: string;
   verdict: Verdict;
@@ -49,6 +51,10 @@ export interface DoctorOptions {
   genesisPath?: string;
   /** Print only the layer-5 table and the summary (a second pass after the genesis). */
   quiet?: boolean;
+  /** A loop D evidence file (`foga demo --loop-d`, `foga loop-d run`): the Loop D verdicts are added beside layer 5. */
+  loopDPath?: string;
+  /** A second loop D evidence file (another model): the model-agnostic verdict compares the two. */
+  loopDComparePath?: string;
 }
 
 const LAYERS: Record<string, string> = {
@@ -57,6 +63,7 @@ const LAYERS: Record<string, string> = {
   "3": "version match: runtime code (metadata stripped, library/immutable slots masked) equals the locked build",
   "4": "configuration and permissions: dependency addresses and authority slots match the world",
   "5": "semantic validation: success, rejection, signature, proof and recovery cases, from the genesis evidence (foga genesis run; pass it with --genesis)",
+  D: "Loop D: an unscripted run judged by its records — every operation under an allowed decision, refusals that broadcast nothing, the budget books, the operator key's transactions, the demander's cases, recovery, the entrances (foga demo --loop-d; pass the evidence with --loop-d)",
 };
 
 function worst(a: Verdict, b: Verdict): Verdict {
@@ -85,7 +92,7 @@ export function loadWorldFile(path: string): WorldFile {
   return world;
 }
 
-export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, probe: ProbeResults, mode: "live" | "replay", genesis?: GenesisEvidenceFile): DoctorReport {
+export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, probe: ProbeResults, mode: "live" | "replay", genesis?: GenesisEvidenceFile, loopD?: { evidence: LoopDEvidence; compare?: LoopDEvidence }): DoctorReport {
   const results: CheckResult[] = [];
   const readouts: DoctorReport["readouts"] = [];
   const perContract: DoctorReport["perContract"] = {};
@@ -295,6 +302,12 @@ export function evaluate(world: WorldFile, bundle: Bundle, plan: ProbePlan, prob
     }
   }
 
+  if (loopD) {
+    const sameWorld = loopD.evidence.worldId === world.worldId && loopD.evidence.chainId === world.chainId;
+    results.push({ layer: "D", subject: "loop D", check: "evidence", verdict: sameWorld ? "Pass" : "Fail", expected: `${world.worldId} (chain ${world.chainId})`, actual: `${loopD.evidence.worldId} (chain ${loopD.evidence.chainId}), model ${loopD.evidence.model.provider}/${loopD.evidence.model.model}, ${loopD.evidence.cases.length} cases, ran ${loopD.evidence.ranAt}`, detail: sameWorld ? undefined : "the evidence was produced on another world; the Loop D verdicts below are not about this world" });
+    for (const r of loopDVerdicts(loopD.evidence, loopD.compare)) results.push({ layer: "D", subject: "loop D", check: r.check, verdict: sameWorld ? r.verdict : "Unknown", expected: r.expected, actual: r.actual, detail: r.detail });
+  }
+
   const summary: Record<Verdict, number> = { Pass: 0, Fail: 0, Unknown: 0, NotTested: 0, NotApplicable: 0 };
   for (const x of results) summary[x.verdict]++;
 
@@ -338,7 +351,8 @@ export async function runDoctor(opts: DoctorOptions): Promise<{ report: DoctorRe
     mode = "live";
   }
   const genesis = opts.genesisPath ? loadGenesisEvidence(opts.genesisPath) : undefined;
-  const report = evaluate(world, bundle, plan, probe, mode, genesis);
+  const loopD = opts.loopDPath ? { evidence: loadLoopDEvidence(opts.loopDPath), compare: opts.loopDComparePath ? loadLoopDEvidence(opts.loopDComparePath) : undefined } : undefined;
+  const report = evaluate(world, bundle, plan, probe, mode, genesis, loopD);
   printReport(report, opts.quiet);
   let outPath: string | null = null;
   if (opts.outPath) {
@@ -378,5 +392,40 @@ function printReport(r: DoctorReport, quiet = false): void {
     console.log("\nlayer 5 (semantic, from the genesis evidence):");
     for (const x of l5) console.log(`  ${pad(x.subject, 10)} ${pad(x.verdict, 10)} ${x.detail ?? ""}`);
   }
+  const loopD = r.results.filter((x) => x.layer === "D" && x.check !== "evidence");
+  if (loopD.length) printLoopDRows(loopD.map((x) => ({ check: x.check, verdict: x.verdict, expected: x.expected ?? "", actual: x.actual ?? "", detail: x.detail })));
   console.log(`\nsummary: ${Object.entries(r.summary).map(([k, v]) => `${k} ${v}`).join(", ")}${l5.every((x) => x.verdict === "NotTested") ? "; layer 5 (semantic) needs the genesis evidence: foga genesis run, then foga doctor --genesis <evidence.json>" : ""}\n`);
+}
+
+export interface LoopDReport {
+  schema: "foga.loop-d-report/1";
+  at: string;
+  evidence: { path: string; worldId: string; chainId: number; model: { provider: string; model: string }; ranAt: string };
+  compare: { path: string; model: { provider: string; model: string } } | null;
+  results: LoopDRow[];
+  summary: Record<Verdict, number>;
+}
+
+/** `foga doctor --loop-d <evidence> [--compare <evidence>] [--out <report>]` without a world: the Loop D table alone. */
+export function runLoopDDoctor(opts: { evidencePath: string; comparePath?: string; outPath?: string }): LoopDReport {
+  const evidence = loadLoopDEvidence(opts.evidencePath);
+  const compare = opts.comparePath ? loadLoopDEvidence(opts.comparePath) : undefined;
+  const results = loopDVerdicts(evidence, compare);
+  const summary: Record<Verdict, number> = { Pass: 0, Fail: 0, Unknown: 0, NotTested: 0, NotApplicable: 0 };
+  for (const x of results) summary[x.verdict]++;
+  console.log(`\nfoga doctor — loop D evidence ${relative(repoRoot(), opts.evidencePath)} (world ${evidence.worldId}, chain ${evidence.chainId}, model ${evidence.model.provider}/${evidence.model.model}, ran ${evidence.ranAt})`);
+  printLoopDRows(results);
+  console.log(`\nsummary: ${Object.entries(summary).map(([k, v]) => `${k} ${v}`).join(", ")}\n`);
+  const report: LoopDReport = { schema: "foga.loop-d-report/1", at: new Date().toISOString(), evidence: { path: opts.evidencePath, worldId: evidence.worldId, chainId: evidence.chainId, model: evidence.model, ranAt: evidence.ranAt }, compare: compare ? { path: opts.comparePath!, model: compare.model } : null, results, summary };
+  if (opts.outPath) {
+    writeJson(opts.outPath, report);
+    log.info(`loop D report written to ${relative(repoRoot(), opts.outPath)}`);
+  }
+  return report;
+}
+
+function printLoopDRows(rows: LoopDRow[]): void {
+  const pad = (s: string, n: number) => (s.length >= n ? s + " " : s + " ".repeat(n - s.length));
+  console.log("\nloop D (from the run's records):");
+  for (const x of rows) console.log(`  ${pad(x.verdict, 10)} ${x.check}\n             ${x.actual}${x.detail ? ` — ${x.detail}` : ""}`);
 }

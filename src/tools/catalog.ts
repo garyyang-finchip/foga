@@ -144,43 +144,53 @@ export class Catalog {
       }
     }
 
-    // business authorization: the capability's gates, then the budget (a cell's act only; an admin step is the owner's own transaction)
-    const gates: Gate[] = [...plan.gates];
-    if (cap.action === "act" && (plan.steps.length || plan.valueWei > 0n || plan.job.commitment)) {
-      const fee = await feeReserve(node, plan.steps.length);
-      gates.push(budgetGate(node.config, node.budgetUse(), { valueWei: plan.valueWei, feeReserveWei: fee, commitment: Boolean(plan.job.commitment) && !job }));
-    }
-    const refusal = firstRefusal(gates);
-    if (refusal) return this.refuse(node, cap, caller, mode, inputHash, refusal.gate, refusal.reason, jobId);
+    // the decision section runs one act at a time per node: the budget gate reads what earlier decisions reserved (a job's
+    // planned value counts from its creation, before its operations exist), so concurrent callers cannot each pass a cap
+    // that only one of them fits under
+    const decided = await node.serialize(async (): Promise<ToolResult | { allowed: DecisionRecord; gates: Gate[]; job: JobRecord | null }> => {
+      // business authorization: the capability's gates, then the budget (a cell's act only; an admin step is the owner's own transaction)
+      const gates: Gate[] = [...plan.gates];
+      if (cap.action === "act" && (plan.steps.length || plan.valueWei > 0n || plan.job.commitment)) {
+        const fee = await feeReserve(node, plan.steps.length);
+        gates.push(budgetGate(node.config, node.budgetUse(), { valueWei: plan.valueWei, feeReserveWei: fee, commitment: Boolean(plan.job.commitment) && !job }));
+      }
+      const refusal = firstRefusal(gates);
+      if (refusal) return this.refuse(node, cap, caller, mode, inputHash, refusal.gate, refusal.reason, jobId);
 
-    // wallet permission: the first step is simulated from its signer (the account's allow-list, gate and daily cap decide on chain as well)
-    const confirmed: Confirmed[] = [];
-    if (plan.steps.length) {
-      const first = plan.steps[0];
-      const intent = await first.build(confirmed);
-      const route = routeOf(first);
-      const from = node.config.identity[route.signer];
-      const to = route.route === "execute" ? node.body.address : intent.target;
-      const data = route.route === "execute" ? node.body.encodeExecute(intent.target, intent.value, intent.data) : intent.data;
-      const value = route.route === "execute" ? 0n : intent.value;
-      const revert = await node.wouldRevert(from, to, data, value);
-      if (revert !== null) return this.refuse(node, cap, caller, mode, inputHash, "wallet", `${first.name} would revert: ${revert}`, jobId);
-    }
+      // wallet permission: the first step is simulated from its signer (the account's allow-list, gate and daily cap decide on chain as well)
+      if (plan.steps.length) {
+        const first = plan.steps[0];
+        const intent = await first.build([]);
+        const route = routeOf(first);
+        const from = node.config.identity[route.signer];
+        const to = route.route === "execute" ? node.body.address : intent.target;
+        const data = route.route === "execute" ? node.body.encodeExecute(intent.target, intent.value, intent.data) : intent.data;
+        const value = route.route === "execute" ? 0n : intent.value;
+        const revert = await node.wouldRevert(from, to, data, value);
+        if (revert !== null) return this.refuse(node, cap, caller, mode, inputHash, "wallet", `${first.name} would revert: ${revert}`, jobId);
+      }
 
-    if (mode === "simulate") {
-      const decision = node.store.decide({ entrance: caller.entrance, caller: caller.id, capability: cap.name, mode, inputHash, verdict: "allowed", gate: "all", reason: summarize(gates, plan.steps.length), jobId, operationId: null, model: opts.model ?? null });
-      const output = await plan.output([], undefined);
-      return { ok: true, output: cap.output.parse(output), decisionId: decision.id, jobId };
-    }
+      if (mode === "simulate") {
+        const decision = node.store.decide({ entrance: caller.entrance, caller: caller.id, capability: cap.name, mode, inputHash, verdict: "allowed", gate: "all", reason: summarize(gates, plan.steps.length), jobId, operationId: null, model: opts.model ?? null });
+        const output = await plan.output([], undefined);
+        return { ok: true, output: cap.output.parse(output), decisionId: decision.id, jobId };
+      }
 
-    // the act: recorded as allowed before anything is sent, then each step as a keyed, bound operation
-    const allowed = node.store.decide({ entrance: caller.entrance, caller: caller.id, capability: cap.name, mode, inputHash, verdict: "allowed", gate: "all", reason: summarize(gates, plan.steps.length), jobId, operationId: plan.steps.length ? `job:${jobId}:${plan.steps[0].name}` : null, model: opts.model ?? null });
+      // the act: recorded as allowed before anything is sent; the job (with the value it will move) exists from here on
+      const allowed = node.store.decide({ entrance: caller.entrance, caller: caller.id, capability: cap.name, mode, inputHash, verdict: "allowed", gate: "all", reason: summarize(gates, plan.steps.length), jobId, operationId: plan.steps.length ? `job:${jobId}:${plan.steps[0].name}` : null, model: opts.model ?? null });
+      if (plan.job.ephemeral) return { allowed, gates, job: null };
+      const created = job ?? node.store.createJob({ id: jobId, kind: plan.job.kind, caller: caller.id, cell: node.cell?.address, inputHash, input: plan.job.input, valueWei: plan.valueWei });
+      node.store.updateJob(jobId, { status: "running" });
+      return { allowed, gates, job: created };
+    });
+    if ("ok" in decided) return decided;
+    const { allowed } = decided;
     if (plan.job.ephemeral) {
       const output = cap.output.parse(await plan.output([], plan.work ? await plan.work() : undefined));
       return { ok: true, output, decisionId: allowed.id, jobId };
     }
-    if (!job) job = node.store.createJob({ id: jobId, kind: plan.job.kind, caller: caller.id, cell: node.cell?.address, inputHash, input: plan.job.input });
-    node.store.updateJob(jobId, { status: "running" });
+    job = decided.job!;
+    const confirmed: Confirmed[] = [];
     const operations: string[] = [...job.operations];
     try {
       const work = plan.work ? await plan.work() : undefined;

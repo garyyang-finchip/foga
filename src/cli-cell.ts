@@ -40,6 +40,9 @@ export const CELL_USAGE = `
                                                  a Bearer key acts as its grant says; the watchers run beside it
   foga node key new --config <cell.config.json> --id <id> [--level read|build|act] [--visibility public|caller|operator] [--note <text>]
                                                  mint an API key for the HTTP entrance: printed once, kept only as its hash in the config
+  foga node run --config <cell.config.json> [--model stub|anthropic] [--listen <host:port> | --no-http] [--interval <s>] [--once | --ticks <n>] [--transcripts <dir>]
+                                                 the embedded node: the HTTP server, the watchers and the runner (a model proposing acts the catalog
+                                                 judges) on the poll interval; the operator key alone; anthropic needs ANTHROPIC_API_KEY and runtime.model.model
 `;
 
 type Flags = Record<string, string | boolean>;
@@ -277,7 +280,67 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
     return;
   }
 
-  if (cmd !== "tick" && cmd !== "watch") fail(`unknown node command ${cmd}; tick, watch, mcp, serve or key`);
+  if (cmd === "run") {
+    const keys = nodeKeys();
+    if (!keys.operator) fail("foga node run acts for the cell and needs its operator key (FOGA_OPERATOR_KEY or FOGA_OPERATOR_KEY_FILE); without a key, foga node serve offers reads and builds");
+    const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys, log });
+    const catalog = defaultCatalog();
+    const { Runner } = await import("./node/runner.js");
+    const { StubAdapter } = await import("./node/model/stub.js");
+    const { AnthropicAdapter } = await import("./node/model/anthropic.js");
+    const { version } = await import("./util/version.js");
+    const providerName = str(flags, "model") ?? node.config.runtime.model.provider;
+    if (providerName !== "stub" && providerName !== "anthropic") fail("--model must be stub or anthropic");
+    let adapter;
+    try {
+      adapter = providerName === "stub" ? new StubAdapter() : new AnthropicAdapter(node.config.runtime.model.model ?? "");
+    } catch (e) {
+      node.close();
+      fail((e as Error).message);
+    }
+    const runner = new Runner(node, catalog, adapter, { transcriptsDir: str(flags, "transcripts"), log });
+    const watchers = new Watchers(node, catalog);
+    let running: { url: string; close(): Promise<void> } | null = null;
+    if (!flags["no-http"]) {
+      const { createHttpServer } = await import("./http/server.js");
+      running = await createHttpServer({ node, catalog, version, log }).listen(str(flags, "listen") ?? node.config.runtime.http.listen);
+    }
+    log(`foga ${version}: running cell ${node.config.name} (${node.body.address}) with model ${adapter.provider}/${adapter.model}${running ? ` at ${running.url}` : ", no HTTP"}; ${node.config.runtime.model.dailyCalls} model calls a day, ${node.config.runtime.model.maxActsPerTick} act(s) and ${node.config.runtime.model.maxToolCallsPerTick} tool call(s) a tick`);
+    const interval = Number(str(flags, "interval") ?? node.config.runtime.pollSeconds) * 1000;
+    const ticks = flags.once ? 1 : str(flags, "ticks") ? Number(str(flags, "ticks")) : Infinity;
+    let stop = false;
+    const shutdown = () => {
+      stop = true;
+    };
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+    let done = 0;
+    try {
+      while (!stop && done < ticks) {
+        try {
+          const w = await watchers.tick();
+          log(`${w.at} block ${w.block}: anchor ${w.anchor}, heartbeat ${w.heartbeat.sent ? "sent" : "not sent"} (${w.heartbeat.reason}); ${w.discovered.length} new tender(s); ${w.settled.length} settled, ${w.withdrawn.length} withdrawn; safety ${w.safety.verdict}${w.safety.changed ? " (changed)" : ""}`);
+        } catch (e) {
+          log(`watch: ${(e as Error).message}`);
+        }
+        try {
+          const r = await runner.tick();
+          if (r.skipped) log(`runner: ${r.skipped}`);
+        } catch (e) {
+          log(`runner: ${(e as Error).message}`);
+        }
+        done++;
+        if (stop || done >= ticks) break;
+        await new Promise((r) => setTimeout(r, interval));
+      }
+    } finally {
+      if (running) await running.close();
+      node.close();
+    }
+    return;
+  }
+
+  if (cmd !== "tick" && cmd !== "watch") fail(`unknown node command ${cmd}; tick, watch, mcp, serve, run or key`);
   // a node environment: the operator key alone, nothing that derives another role
   const operator = keysFor("operator", true);
   const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys: { operator }, log });

@@ -12,7 +12,7 @@ import { defaultCatalog, OPERATOR_CALLER, PUBLIC_CALLER, hashInput, type Caller 
  */
 function fakeNode(store: OperationStore, keys: Record<string, boolean> = {}): Node {
   const config = newCellConfig({ name: "T", world: "w.json", store: ":memory:", owner: "0x" + "11".repeat(20), operator: "0x" + "22".repeat(20), guardian: "0x" + "33".repeat(20) });
-  return { store, config, cell: null, hasKey: (role: string) => Boolean(keys[role]), log: () => {} } as unknown as Node;
+  return { store, config, cell: null, hasKey: (role: string) => Boolean(keys[role]), log: () => {}, serialize: (fn: () => Promise<unknown>) => fn() } as unknown as Node;
 }
 
 const apiKeyCaller: Caller = { id: "k1", entrance: "http", level: "act", visibility: "caller" };

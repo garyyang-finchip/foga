@@ -1,0 +1,3202 @@
+{
+  "schema": "foga.loop-d-evidence/1",
+  "worldId": "anvil-31337-20261102T060938Z",
+  "chainId": 31337,
+  "network": "anvil",
+  "ranAt": "2026-11-02T06:09:45.224Z",
+  "finishedAt": "2026-11-02T06:10:21.761Z",
+  "seed": 7,
+  "model": {
+    "provider": "stub",
+    "model": "foga-stub/1"
+  },
+  "cell": {
+    "name": "D",
+    "account": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+    "agentId": "1",
+    "owner": "0x51de6f314C145cb3d2163Ca952072419Cd960928",
+    "operator": "0x948970659560f4DCec2A1896e65D94797D7C0C41",
+    "guardian": "0x1B34c853b891b7B3F95A9196AF8B25F57F554Ec2",
+    "bornAtBlock": 55,
+    "specId": "0xb0370cb26d94be63678cdcfa3aff51af366d7ddd675044e5f54f5f2979083c77"
+  },
+  "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "cases": [
+    {
+      "id": "d",
+      "tokenId": "1",
+      "skill": "foga-probe",
+      "rewardWei": "100000000000000",
+      "submitBy": 1793686189,
+      "settleBy": 1794204589,
+      "expect": {
+        "outcome": "refused",
+        "gate": "policy"
+      },
+      "note": "a reward below the policy floor",
+      "answer": "{\"checks\":{\"erc8004\":{\"agentId\":\"1\",\"agentURI\":\"data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ==\",\"bound\":true,\"owner\":\"0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\"},\"erc8338\":{\"held\":\"2\",\"tokens\":[{\"packageHash\":\"0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed\",\"tokenId\":\"1\",\"version\":\"1\"},{\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\",\"tokenId\":\"2\",\"version\":\"1\"}]},\"erc8414\":{\"accepted\":\"0\",\"held\":\"0\",\"submissions\":\"0\"},\"erc8419\":{\"assertionId\":\"0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5\",\"expiresAt\":\"1825135788\",\"issuers\":[\"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\"],\"level\":\"2\",\"schemeId\":\"0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b\"},\"erc8434\":{\"agentId\":\"1\",\"boundAt\":\"1793599787\",\"documentDigest\":\"0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85\",\"lastSeen\":\"1793599787\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\",\"state\":\"ACTIVE\"},\"erc8436\":{\"issuesFiled\":\"0\"},\"erc8444\":{\"agentRecord\":{\"backed\":true,\"descriptorHash\":\"0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019\",\"recordId\":\"0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861\",\"status\":\"1\",\"urn\":\"urn:air:foga.local:agents:cell-d\"}},\"erc8447\":{\"memberships\":[]},\"erc8454\":{\"unitsControlled\":[\"1\",\"2\",\"3\"]},\"erc8468\":{\"bindingsAsSubject\":\"1\",\"status\":{\"reasons\":[\"None\"],\"restrictions\":[\"0\"],\"verdict\":\"Satisfied\"}},\"erc8471\":{\"casesAsParty\":\"0\"}},\"schema\":\"foga.probe/1\",\"skill\":\"foga-probe\",\"subject\":\"eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"world\":{\"block\":84,\"blockHash\":\"0xdd95025622560103b87b791a6f4e54addd4afa4f0864a5454d97b07997293447\",\"chainId\":31337,\"worldId\":\"anvil-31337-20261102T060938Z\"}}",
+      "mintTx": "0x997a24751635c7bbd88ab76acab52409751b88de36c96cbfd6f28989df63b13d",
+      "outcome": {
+        "status": "refused",
+        "gates": [
+          "policy"
+        ],
+        "decisions": [
+          4
+        ],
+        "submissions": [],
+        "settled": false,
+        "paidWei": "0",
+        "creditWei": "0",
+        "withdrawnWei": "0"
+      }
+    },
+    {
+      "id": "e",
+      "tokenId": "2",
+      "skill": "foga-probe",
+      "rewardWei": "1000000000000000",
+      "submitBy": 1793686190,
+      "settleBy": 1794204590,
+      "expect": {
+        "outcome": "refused",
+        "gate": "verifier"
+      },
+      "note": "a judged tender with the demander as its authority",
+      "answer": null,
+      "mintTx": "0x36be88439239f683d282510cf2eb40f0980d5f3f399a238a1d9ed5fcc1a31cb0",
+      "outcome": {
+        "status": "refused",
+        "gates": [
+          "verifier"
+        ],
+        "decisions": [
+          5
+        ],
+        "submissions": [],
+        "settled": false,
+        "paidWei": "0",
+        "creditWei": "0",
+        "withdrawnWei": "0"
+      }
+    },
+    {
+      "id": "b",
+      "tokenId": "3",
+      "skill": "finch-extract-verify",
+      "rewardWei": "1000000000000000",
+      "submitBy": 1793686190,
+      "settleBy": 1794204590,
+      "expect": {
+        "outcome": "taken"
+      },
+      "note": "finch-extract-verify over the fixture named by file name",
+      "answer": "{\"documentDigest\":\"0x0a674dd99bd491b59ddab8d6124839a3379551ef2f7418b7388ca64b43d12342\",\"fields\":{\"documentDate\":{\"evidence\":[{\"line\":4,\"quote\":\"Document date: 2026-08-15\"}],\"value\":\"2026-08-15\"},\"issuer\":{\"evidence\":[{\"line\":5,\"quote\":\"Issuer: Example Holdings Ltd\"}],\"value\":\"Example Holdings Ltd\"},\"periodEnd\":{\"evidence\":[{\"line\":6,\"quote\":\"Period end: 2026-06-30\"}],\"value\":\"2026-06-30\"},\"totalAssets\":{\"evidence\":[{\"line\":10,\"quote\":\"Total assets: 1,250\"}],\"value\":\"1250\"},\"totalEquity\":{\"evidence\":[{\"line\":12,\"quote\":\"Total equity: 450\"}],\"value\":\"450\"},\"totalLiabilities\":{\"evidence\":[{\"line\":11,\"quote\":\"Total liabilities: 800\"}],\"value\":\"800\"}},\"rules\":[{\"id\":\"balance\",\"note\":\"1250 vs 800 + 450 (difference 0, tolerance 1)\",\"verdict\":\"pass\"},{\"id\":\"period\",\"note\":\"period end 2026-06-30, document date 2026-08-15\",\"verdict\":\"pass\"}],\"schema\":\"finch.extract-verify/1\",\"skill\":{\"name\":\"finch-extract-verify\",\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\"}}",
+      "mintTx": "0xdd8b4cd95223ebee832591b1bfb36cfb384c050801c7d6e1135813e1f448355c",
+      "outcome": {
+        "status": "taken",
+        "gates": [
+          "allowed"
+        ],
+        "decisions": [
+          6,
+          8
+        ],
+        "submissions": [
+          {
+            "id": "1",
+            "fulfiller": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+            "status": 1,
+            "byCell": true
+          }
+        ],
+        "settled": true,
+        "paidWei": "1000000000000000",
+        "creditWei": "0",
+        "withdrawnWei": "0"
+      }
+    },
+    {
+      "id": "c",
+      "tokenId": "4",
+      "skill": "foga-oracle",
+      "rewardWei": "1000000000000000",
+      "submitBy": 1793686190,
+      "settleBy": 1794204590,
+      "expect": {
+        "outcome": "refused",
+        "gate": "skill"
+      },
+      "note": "a skill the cell does not have",
+      "answer": "unknown",
+      "mintTx": "0x76723bdc82c7671b6e51b92936065f2bf68a217a77ec9dc09c8e1b97dc672784",
+      "outcome": {
+        "status": "refused",
+        "gates": [
+          "skill"
+        ],
+        "decisions": [
+          15
+        ],
+        "submissions": [],
+        "settled": false,
+        "paidWei": "0",
+        "creditWei": "0",
+        "withdrawnWei": "0"
+      }
+    },
+    {
+      "id": "d2",
+      "tokenId": "5",
+      "skill": "foga-probe",
+      "rewardWei": "1000000000000000",
+      "submitBy": 1793599911,
+      "settleBy": 1794204591,
+      "expect": {
+        "outcome": "refused",
+        "gate": "policy"
+      },
+      "note": "a submit deadline too close",
+      "answer": "{\"checks\":{\"erc8004\":{\"agentId\":\"1\",\"agentURI\":\"data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ==\",\"bound\":true,\"owner\":\"0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\"},\"erc8338\":{\"held\":\"2\",\"tokens\":[{\"packageHash\":\"0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed\",\"tokenId\":\"1\",\"version\":\"1\"},{\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\",\"tokenId\":\"2\",\"version\":\"1\"}]},\"erc8414\":{\"accepted\":\"0\",\"held\":\"0\",\"submissions\":\"0\"},\"erc8419\":{\"assertionId\":\"0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5\",\"expiresAt\":\"1825135788\",\"issuers\":[\"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\"],\"level\":\"2\",\"schemeId\":\"0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b\"},\"erc8434\":{\"agentId\":\"1\",\"boundAt\":\"1793599787\",\"documentDigest\":\"0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85\",\"lastSeen\":\"1793599787\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\",\"state\":\"ACTIVE\"},\"erc8436\":{\"issuesFiled\":\"0\"},\"erc8444\":{\"agentRecord\":{\"backed\":true,\"descriptorHash\":\"0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019\",\"recordId\":\"0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861\",\"status\":\"1\",\"urn\":\"urn:air:foga.local:agents:cell-d\"}},\"erc8447\":{\"memberships\":[]},\"erc8454\":{\"unitsControlled\":[\"1\",\"2\",\"3\"]},\"erc8468\":{\"bindingsAsSubject\":\"1\",\"status\":{\"reasons\":[\"None\"],\"restrictions\":[\"0\"],\"verdict\":\"Satisfied\"}},\"erc8471\":{\"casesAsParty\":\"0\"}},\"schema\":\"foga.probe/1\",\"skill\":\"foga-probe\",\"subject\":\"eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"world\":{\"block\":84,\"blockHash\":\"0xdd95025622560103b87b791a6f4e54addd4afa4f0864a5454d97b07997293447\",\"chainId\":31337,\"worldId\":\"anvil-31337-20261102T060938Z\"}}",
+      "mintTx": "0x59c5c95d289e45f05f5978f576e9b9f09dc4ba27f9b3e2c71062f7537e7d365a",
+      "outcome": {
+        "status": "refused",
+        "gates": [
+          "policy"
+        ],
+        "decisions": [
+          16
+        ],
+        "submissions": [],
+        "settled": false,
+        "paidWei": "0",
+        "creditWei": "0",
+        "withdrawnWei": "0"
+      }
+    },
+    {
+      "id": "a",
+      "tokenId": "6",
+      "skill": "foga-probe",
+      "rewardWei": "1000000000000000",
+      "submitBy": 1793686191,
+      "settleBy": 1794204591,
+      "expect": {
+        "outcome": "taken"
+      },
+      "note": "foga-probe of the cell at block 84",
+      "answer": "{\"checks\":{\"erc8004\":{\"agentId\":\"1\",\"agentURI\":\"data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ==\",\"bound\":true,\"owner\":\"0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\"},\"erc8338\":{\"held\":\"2\",\"tokens\":[{\"packageHash\":\"0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed\",\"tokenId\":\"1\",\"version\":\"1\"},{\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\",\"tokenId\":\"2\",\"version\":\"1\"}]},\"erc8414\":{\"accepted\":\"0\",\"held\":\"0\",\"submissions\":\"0\"},\"erc8419\":{\"assertionId\":\"0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5\",\"expiresAt\":\"1825135788\",\"issuers\":[\"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\"],\"level\":\"2\",\"schemeId\":\"0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b\"},\"erc8434\":{\"agentId\":\"1\",\"boundAt\":\"1793599787\",\"documentDigest\":\"0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85\",\"lastSeen\":\"1793599787\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\",\"state\":\"ACTIVE\"},\"erc8436\":{\"issuesFiled\":\"0\"},\"erc8444\":{\"agentRecord\":{\"backed\":true,\"descriptorHash\":\"0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019\",\"recordId\":\"0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861\",\"status\":\"1\",\"urn\":\"urn:air:foga.local:agents:cell-d\"}},\"erc8447\":{\"memberships\":[]},\"erc8454\":{\"unitsControlled\":[\"1\",\"2\",\"3\"]},\"erc8468\":{\"bindingsAsSubject\":\"1\",\"status\":{\"reasons\":[\"None\"],\"restrictions\":[\"0\"],\"verdict\":\"Satisfied\"}},\"erc8471\":{\"casesAsParty\":\"0\"}},\"schema\":\"foga.probe/1\",\"skill\":\"foga-probe\",\"subject\":\"eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"world\":{\"block\":84,\"blockHash\":\"0xdd95025622560103b87b791a6f4e54addd4afa4f0864a5454d97b07997293447\",\"chainId\":31337,\"worldId\":\"anvil-31337-20261102T060938Z\"}}",
+      "mintTx": "0xcea79432bd5ed1f7cff2efe405c50fb0ab7b12fffdd9b6ba310248ed16760955",
+      "outcome": {
+        "status": "taken",
+        "gates": [
+          "allowed"
+        ],
+        "decisions": [
+          17,
+          19
+        ],
+        "submissions": [
+          {
+            "id": "1",
+            "fulfiller": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+            "status": 1,
+            "byCell": true
+          }
+        ],
+        "settled": true,
+        "paidWei": "1000000000000000",
+        "creditWei": "0",
+        "withdrawnWei": "0"
+      }
+    },
+    {
+      "id": "f",
+      "tokenId": "9",
+      "skill": "foga-probe",
+      "rewardWei": "1000000000000000",
+      "submitBy": 1793686211,
+      "settleBy": 1794204611,
+      "expect": {
+        "outcome": "refused-then-taken",
+        "gate": "safety"
+      },
+      "note": "a tender like a, met during the guardian's suspension",
+      "answer": "{\"checks\":{\"erc8004\":{\"agentId\":\"1\",\"agentURI\":\"data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ==\",\"bound\":true,\"owner\":\"0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\"},\"erc8338\":{\"held\":\"2\",\"tokens\":[{\"packageHash\":\"0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed\",\"tokenId\":\"1\",\"version\":\"1\"},{\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\",\"tokenId\":\"2\",\"version\":\"1\"}]},\"erc8414\":{\"accepted\":\"2\",\"held\":\"2\",\"submissions\":\"2\"},\"erc8419\":{\"assertionId\":\"0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5\",\"expiresAt\":\"1825135788\",\"issuers\":[\"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\"],\"level\":\"2\",\"schemeId\":\"0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b\"},\"erc8434\":{\"agentId\":\"1\",\"boundAt\":\"1793599787\",\"documentDigest\":\"0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85\",\"lastSeen\":\"1793599787\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\",\"state\":\"ACTIVE\"},\"erc8436\":{\"issuesFiled\":\"0\"},\"erc8444\":{\"agentRecord\":{\"backed\":true,\"descriptorHash\":\"0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019\",\"recordId\":\"0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861\",\"status\":\"1\",\"urn\":\"urn:air:foga.local:agents:cell-d\"}},\"erc8447\":{\"memberships\":[]},\"erc8454\":{\"unitsControlled\":[\"1\",\"2\",\"3\"]},\"erc8468\":{\"bindingsAsSubject\":\"1\",\"status\":{\"reasons\":[\"Suspended\"],\"restrictions\":[\"9\"],\"verdict\":\"NotSatisfied\"}},\"erc8471\":{\"casesAsParty\":\"0\"}},\"schema\":\"foga.probe/1\",\"skill\":\"foga-probe\",\"subject\":\"eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"world\":{\"block\":112,\"blockHash\":\"0x1185eed984c437957c37d480f471ec7bed7f9eba0c81695af22f4389be1fbc78\",\"chainId\":31337,\"worldId\":\"anvil-31337-20261102T060938Z\"}}",
+      "mintTx": "0xb4fbf1f2b4c13bc1d08c297c52e2e351b5be62f2d486b96cafe314143943a989",
+      "outcome": {
+        "status": "refused-then-taken",
+        "gates": [
+          "safety",
+          "allowed"
+        ],
+        "decisions": [
+          22,
+          24,
+          26
+        ],
+        "submissions": [
+          {
+            "id": "1",
+            "fulfiller": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+            "status": 1,
+            "byCell": true
+          }
+        ],
+        "settled": true,
+        "paidWei": "1000000000000000",
+        "creditWei": "0",
+        "withdrawnWei": "0"
+      }
+    }
+  ],
+  "budgetProbe": {
+    "attempted": true,
+    "decisionId": 3,
+    "gate": "budget",
+    "capability": "tender_mint"
+  },
+  "runner": {
+    "ticks": 8,
+    "skipped": 0,
+    "errors": 0,
+    "modelCalls": 31,
+    "toolCalls": 23,
+    "acts": 7,
+    "trajectoryHashes": [
+      "0xe0af4d008f843701797b5b5c224f61d1f74bf9e89c3f0c495c847e5e1c46257e",
+      "0x33ad16ba0c23f0b790610cb3373f97a44562a659819e86077f7c4314439e3887",
+      "0x282d289836f4353ad91fd99ebbcebfed99133e1657bc641f9ff9ab1b7be893f0",
+      "0x316dd61b012f51bfe4c5a3795f1ee7618061381dd50c4b7e4b5cf9ac0c049f2b",
+      "0xa832b6a72a74fdf95504e2a8d5107826a1897f2e55f90e8d324eea071e011acc",
+      "0xd1821816407c5a16eebdaa3f849f4455718ccd3f4e82b8e6aac1dfa54b593478",
+      "0x071576bd148bac22e8bc628b3f54fa3f07bb359186cbd2edcdbc85cbacd19e6c",
+      "0x4d4bd16f1b80d4a58211e9f64f2952f0caee653c563a5b299c8c48cddcd1dd94"
+    ]
+  },
+  "recovery": {
+    "performed": true,
+    "killedAfterOperation": "job:tender:3:c0:submit",
+    "killedAt": "2026-11-02T06:10:00.218Z",
+    "restartedAt": "2026-11-02T06:10:00.724Z",
+    "tokenId": "3"
+  },
+  "entrances": {
+    "idempotent": {
+      "decisionId": 9,
+      "gate": "idempotent",
+      "sameTxHash": true
+    },
+    "conflict": {
+      "decisionId": 11,
+      "gate": "conflict"
+    },
+    "concurrent": {
+      "requested": 3,
+      "allowed": 2,
+      "refused": [
+        {
+          "gate": "budget",
+          "reason": "value moved and reserved in the last 24 h would reach 2400000000000000 wei; the daily cap is 2000000000000000 wei"
+        }
+      ]
+    }
+  },
+  "budget": {
+    "dailyValueWei": "2000000000000000",
+    "perOperationValueWei": "1000000000000000",
+    "dailyGasWei": "50000000000000000",
+    "maxConcurrentCommitments": 2,
+    "dailyModelCalls": 400,
+    "used": {
+      "valueWei": "1600000000000000",
+      "gasWei": "12383763904652718",
+      "modelCalls": 31,
+      "skillRuns": 3,
+      "commitmentsMade": 3
+    }
+  },
+  "chain": {
+    "fromBlock": 55,
+    "toBlock": 118,
+    "account": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+    "operator": "0x948970659560f4DCec2A1896e65D94797D7C0C41",
+    "operatorTxs": [
+      {
+        "hash": "0x5a15b4edc88c3478a8603bdf332efc41cdd0be436dd5392e52a9cd2beb771d2b",
+        "block": 79,
+        "nonce": 0,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+          "selector": "0xcf23c9df",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x9e2747eefc80a4e8378dba8819f5a1226dff6117bdc2a8f24c348b8d5d43b728",
+        "block": 80,
+        "nonce": 1,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9A676e781A523b5d0C0e43731313A708CB607508",
+          "selector": "0xea2a81bb",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0xb5c72d623f566f8daa4e8d9c3d49adfb66369275687602669884a3caf82e4bd0",
+        "block": 81,
+        "nonce": 2,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
+          "selector": "0xe250cacf",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x28d45084372ce37ca54ffd68ffaae5826fe657d51ebbaeb68f3228d452d6c5a4",
+        "block": 82,
+        "nonce": 3,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+          "selector": "0xcf23c9df",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x57b427acf0252f387610ebff6ecc51da4d84ce968623705152d7b265f01f09f5",
+        "block": 83,
+        "nonce": 4,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9A676e781A523b5d0C0e43731313A708CB607508",
+          "selector": "0xea2a81bb",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x2cad228129c61c41ede6c071434e5d2ae61a7d2e9dd98a10603ac2ef93db3b59",
+        "block": 84,
+        "nonce": 5,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
+          "selector": "0xe250cacf",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x9d0345515273f0b38be31fa94235dd7fd841268f27e73295693a3b5583b2d0d3",
+        "block": 102,
+        "nonce": 6,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0xb19a3cbf",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0xb7838623126ebf8e3050dc4fe45fc40ca0e22235fe68653bff7a38e84e7c4530",
+        "block": 103,
+        "nonce": 7,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0xf7091206",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0xaab5933a637ae91444de2c3fa40b2ea642f9dbe9e675bf6263971d5381a7dad2",
+        "block": 104,
+        "nonce": 8,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0x0af9e38b",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x3486ab288973375eedc5806029c81258181dcbb761a7a4d8bef8a3019a68729a",
+        "block": 105,
+        "nonce": 9,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0x0af9e38b",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x7d0e3a6fa5ce45df28405a70b64932d1bbdee6d77d253b129c1309144da3203d",
+        "block": 106,
+        "nonce": 10,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0x4d4780d8",
+          "valueWei": "800000000000000",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x431cb02e586e8e8af6cbce5af98caec193735d62cd8ea69c4c564f72783cb417",
+        "block": 107,
+        "nonce": 11,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0x4d4780d8",
+          "valueWei": "800000000000000",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x7e15569d9c1fbf5e2adaf25d735b2628538597c4bb462dd339fe4129baec529e",
+        "block": 108,
+        "nonce": 12,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+          "selector": "0xb953e308",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0xe42fba1d7e35814d4c3b723259af9f3f81383e6ec3eb04cc9228a10831431942",
+        "block": 109,
+        "nonce": 13,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+          "selector": "0xb953e308",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0xc02c698e0e0acc4e220a68ba2c2cded82239fa2755634cf82136200aedea9ecd",
+        "block": 110,
+        "nonce": 14,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0xb19a3cbf",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x6e945f89794c442f838aefe723b960afe9709e521779517ec9282ffde49070fd",
+        "block": 111,
+        "nonce": 15,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0xf7091206",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x29340ed1a765d30ba3689ac66c5b1216e57acde71668e3b6e346e00f26a0d36a",
+        "block": 117,
+        "nonce": 16,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0xb19a3cbf",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      },
+      {
+        "hash": "0x577e78e7bbee37d1c18dcce9e3c7b846e3add6c9cabcf66ba52576c498938c61",
+        "block": 118,
+        "nonce": 17,
+        "to": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+        "toIsAccount": true,
+        "valueWei": "0",
+        "inner": {
+          "target": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "selector": "0xf7091206",
+          "valueWei": "0",
+          "allowed": true
+        },
+        "status": 1
+      }
+    ],
+    "ownerTxs": 22,
+    "guardianTxs": 2,
+    "accountBalanceWei": {
+      "start": "0",
+      "end": "51400000000000000"
+    }
+  },
+  "decisions": [
+    {
+      "id": 1,
+      "at": "2026-11-02T06:09:48.385Z",
+      "entrance": "cli",
+      "caller": "operator",
+      "capability": "skill_mint",
+      "mode": "act",
+      "inputHash": "0x76fe11b7a09a7984eac5d0a3b39c80d99c17c31cfe6967764dd94a1848ef81d9",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, policy, budget); 3 step(s)",
+      "jobId": "skill-mint:foga-probe:da63365acd7dc540",
+      "operationId": "job:skill-mint:foga-probe:da63365acd7dc540:mint",
+      "model": null
+    },
+    {
+      "id": 2,
+      "at": "2026-11-02T06:09:48.721Z",
+      "entrance": "cli",
+      "caller": "operator",
+      "capability": "skill_mint",
+      "mode": "act",
+      "inputHash": "0x8ffa7a3abda56eb5cd21795df4df36a27dfc0817be0a191bf62d8655bef3753c",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, policy, budget); 3 step(s)",
+      "jobId": "skill-mint:finch-extract-verify:dd2d2a398107a5ec",
+      "operationId": "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:mint",
+      "model": null
+    },
+    {
+      "id": 3,
+      "at": "2026-11-02T06:09:54.271Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_mint",
+      "mode": "act",
+      "inputHash": "0x6f6c7b4079a4c5a5787c421678bce4609e6ffd4c224a9a8a98a579a4ca026959",
+      "verdict": "refused",
+      "gate": "budget",
+      "reason": "the operation would move 5000000000000000 wei; the per-operation cap is 1000000000000000 wei",
+      "jobId": "tender-mint:64a23a369bc17cf6",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 4,
+      "at": "2026-11-02T06:09:54.444Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0x2a129747bc4a1e1d1d3f1166fffb1b19251c96b1128f3c731878207b739cb148",
+      "verdict": "refused",
+      "gate": "policy",
+      "reason": "reward 100000000000000 wei is below the policy floor 500000000000000 wei",
+      "jobId": "precheck:1",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 5,
+      "at": "2026-11-02T06:09:56.467Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0x4c2bf51e66859ea73b4e382052cfdcc4bee64fcd2a6e2350aa864d0cbf411391",
+      "verdict": "refused",
+      "gate": "verifier",
+      "reason": "acceptance authority 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 is not one the cell works under (hashlock)",
+      "jobId": "precheck:2",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 6,
+      "at": "2026-11-02T06:09:58.446Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0x50b8e23cd3be03b7a1ee46bbc4b8e393d9ba13bdbde883b00746a6b237f6538a",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, skill, policy, verifier, budget); 0 step(s)",
+      "jobId": "precheck:3",
+      "operationId": null,
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x14517e3a3e889c80056b1a695f43147b974848b284ba8dcfd083889cc59ce1c8",
+        "responseHash": "0x5b2d12d7fc1544467a37f4c8636c82c6862eccb137ab33e2b8c31eec0ab53b67"
+      }
+    },
+    {
+      "id": 7,
+      "at": "2026-11-02T06:09:58.479Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "skill_run",
+      "mode": "act",
+      "inputHash": "0x839a45a912ed94aba044c33a49db228369d84081026b756c629819e6497d1c02",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (skill); 0 step(s)",
+      "jobId": "skill-run:finch-extract-verify:dab7f91e1cbabfc8",
+      "operationId": null,
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x40843149da380d587f231b4b51937cda4e4c18b699acba93afae67d597db66d2",
+        "responseHash": "0xe024782c07313ba6e7f1a345fb7392b5b18c39df007559cd1dfc312b38c2ea60"
+      }
+    },
+    {
+      "id": 8,
+      "at": "2026-11-02T06:09:59.287Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_submit",
+      "mode": "act",
+      "inputHash": "0xe3a693ee54ce7c5f1460dedb4ba01a89c8bac60ba79d2f81d5dc3406145e7fb3",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, skill, policy, verifier, budget); 1 step(s)",
+      "jobId": "tender:3:c0",
+      "operationId": "job:tender:3:c0:submit",
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x3e98c56a39722da7da72bc07068d1e29ff850e291030c71bf8e34f6641984df9",
+        "responseHash": "0xbfa02376c63e4041b528e8fc0ecdc2971460e2ca500b157c85beb98e85f867e6"
+      }
+    },
+    {
+      "id": 9,
+      "at": "2026-11-02T06:10:02.308Z",
+      "entrance": "http",
+      "caller": "orchestrator",
+      "capability": "tender_submit",
+      "mode": "act",
+      "inputHash": "0xe3a693ee54ce7c5f1460dedb4ba01a89c8bac60ba79d2f81d5dc3406145e7fb3",
+      "verdict": "allowed",
+      "gate": "idempotent",
+      "reason": "job tender:3:c0 is done; its result is returned, nothing is sent again",
+      "jobId": "tender:3:c0",
+      "operationId": "job:tender:3:c0:submit",
+      "model": null
+    },
+    {
+      "id": 10,
+      "at": "2026-11-02T06:10:02.372Z",
+      "entrance": "runner",
+      "caller": "watcher",
+      "capability": "tender_settle",
+      "mode": "act",
+      "inputHash": "0xecc3219fa696ca707326a2e4c6ea0976377a663ceb8857c0ee2f7417048ef24c",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, policy, budget); 1 step(s)",
+      "jobId": "tender:3:c0:settle",
+      "operationId": "job:tender:3:c0:settle:settle",
+      "model": null
+    },
+    {
+      "id": 11,
+      "at": "2026-11-02T06:10:02.526Z",
+      "entrance": "http",
+      "caller": "orchestrator",
+      "capability": "tender_submit",
+      "mode": "act",
+      "inputHash": "0xb2491c1adf0ef218575ef689c427792e3c4a9f895b61ef317d18470ac23c99bc",
+      "verdict": "refused",
+      "gate": "conflict",
+      "reason": "job tender:3:c0 exists for another request (0xe3a693ee54ce7c5f1460dedb4ba01a89c8bac60ba79d2f81d5dc3406145e7fb3); the same job id must carry the same request",
+      "jobId": "tender:3:c0",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 12,
+      "at": "2026-11-02T06:10:02.651Z",
+      "entrance": "http",
+      "caller": "orchestrator",
+      "capability": "tender_mint",
+      "mode": "act",
+      "inputHash": "0xcb3b4f6993227cdc25f723a3b26e27d3e985bd9dcac4d6aa9f22a0f5f8fab3a4",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, budget); 3 step(s)",
+      "jobId": "tender-mint:b06ff29396bd83b5",
+      "operationId": "job:tender-mint:b06ff29396bd83b5:mint",
+      "model": null
+    },
+    {
+      "id": 13,
+      "at": "2026-11-02T06:10:02.725Z",
+      "entrance": "http",
+      "caller": "orchestrator",
+      "capability": "tender_mint",
+      "mode": "act",
+      "inputHash": "0x92bdd5d36f36d0234a3de755977b1af47166c88776197c46ef5e6fb2fed9e166",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, budget); 3 step(s)",
+      "jobId": "tender-mint:ca5b34fb8eb89bcc",
+      "operationId": "job:tender-mint:ca5b34fb8eb89bcc:mint",
+      "model": null
+    },
+    {
+      "id": 14,
+      "at": "2026-11-02T06:10:02.761Z",
+      "entrance": "http",
+      "caller": "orchestrator",
+      "capability": "tender_mint",
+      "mode": "act",
+      "inputHash": "0x041fc42206cb71293d08b0ab7f0841c9e9c02705c01ee358feb35adeec516a65",
+      "verdict": "refused",
+      "gate": "budget",
+      "reason": "value moved and reserved in the last 24 h would reach 2400000000000000 wei; the daily cap is 2000000000000000 wei",
+      "jobId": "tender-mint:9663d4827224a77a",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 15,
+      "at": "2026-11-02T06:10:03.390Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0x4c3f8b8ce64b1073e305ecc9864f34e853c49a0e8285e7deaf4e85415c9ae985",
+      "verdict": "refused",
+      "gate": "skill",
+      "reason": "the cell holds no skill named foga-oracle (held: foga-probe, finch-extract-verify)",
+      "jobId": "precheck:4",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 16,
+      "at": "2026-11-02T06:10:05.606Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0x2988eebdc57d9144df43e3869da2613cc2680f6f4a02ab5359d7c3630336d33b",
+      "verdict": "refused",
+      "gate": "policy",
+      "reason": "only 108 s left to submit; the policy wants 600 s",
+      "jobId": "precheck:5",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 17,
+      "at": "2026-11-02T06:10:07.759Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0xe267fb55b3c4e6a66fb2034718afb19d1d080568854ccc7153bf30810cb4f550",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, skill, policy, verifier, budget); 0 step(s)",
+      "jobId": "precheck:6",
+      "operationId": null,
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x993eac5ec7b3a7760d78d63b4ab039a2be131a1724145b2653b6aade03dc69e9",
+        "responseHash": "0x2493e95336e8b0dc062d3974378f1b0b2e38410809b58b2f6565c202fa9fd9c6"
+      }
+    },
+    {
+      "id": 18,
+      "at": "2026-11-02T06:10:07.794Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "skill_run",
+      "mode": "act",
+      "inputHash": "0xdc37b8b6cff5f9382ddfd0e622237296630ddfa8742ae2758378d95b493533d0",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (skill); 0 step(s)",
+      "jobId": "skill-run:foga-probe:f691732ed1c437a5",
+      "operationId": null,
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x1819815fa785c3a576ebf9c9a21f898fc03afa2a992b974da4c4d6edc1bec484",
+        "responseHash": "0xc747154c7b5e63023c8b325a8fd0903f71563dc8709e892d561d307f8f297f60"
+      }
+    },
+    {
+      "id": 19,
+      "at": "2026-11-02T06:10:08.989Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_submit",
+      "mode": "act",
+      "inputHash": "0x85ba404104f0cec082c9599b348741669ed37dec26ba22b3f3a136988cee6ae4",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, skill, policy, verifier, budget); 1 step(s)",
+      "jobId": "tender:6:c0",
+      "operationId": "job:tender:6:c0:submit",
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0xcad5511db2971b5bd9a6d5be2022db3b6dcb1087620539729de83ded2e3de45a",
+        "responseHash": "0xbc19068834009e7ac5a274121c94f77fa87290976164ad43f580fac140b78b11"
+      }
+    },
+    {
+      "id": 20,
+      "at": "2026-11-02T06:10:10.622Z",
+      "entrance": "runner",
+      "caller": "watcher",
+      "capability": "tender_settle",
+      "mode": "act",
+      "inputHash": "0x6a6b03b5be7b725b1b8dab0673d5973e02f6f5ad704da8721b828343af05aee3",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, policy, budget); 1 step(s)",
+      "jobId": "tender:6:c0:settle",
+      "operationId": "job:tender:6:c0:settle:settle",
+      "model": null
+    },
+    {
+      "id": 21,
+      "at": "2026-11-02T06:10:11.265Z",
+      "entrance": "cli",
+      "caller": "operator",
+      "capability": "guardian_suspend",
+      "mode": "act",
+      "inputHash": "0xc3e5ccdcf9932794714a4d36fd4090764190920c16812b46bc33a486e811c0dc",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (policy); 1 step(s)",
+      "jobId": "guardian-suspend:56868142ae833196",
+      "operationId": "job:guardian-suspend:56868142ae833196:suspend",
+      "model": null
+    },
+    {
+      "id": 22,
+      "at": "2026-11-02T06:10:13.783Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0x8fdf5a51ab06eee433c0f840ab30503d70db8155a27e4e3fc8d6d069ed3e292e",
+      "verdict": "refused",
+      "gate": "safety",
+      "reason": "binding NotSatisfied [Suspended], restrictions 9",
+      "jobId": "precheck:9",
+      "operationId": null,
+      "model": null
+    },
+    {
+      "id": 23,
+      "at": "2026-11-02T06:10:14.125Z",
+      "entrance": "cli",
+      "caller": "operator",
+      "capability": "guardian_resume",
+      "mode": "act",
+      "inputHash": "0xc730ead951bdd6c51c8c12b5add182a970c3ba0490ff22f3c6c32dea69053a31",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (policy); 1 step(s)",
+      "jobId": "guardian-resume:980969ae65258bdf",
+      "operationId": "job:guardian-resume:980969ae65258bdf:resume",
+      "model": null
+    },
+    {
+      "id": 24,
+      "at": "2026-11-02T06:10:16.000Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_precheck",
+      "mode": "act",
+      "inputHash": "0x8fdf5a51ab06eee433c0f840ab30503d70db8155a27e4e3fc8d6d069ed3e292e",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, skill, policy, verifier, budget); 0 step(s)",
+      "jobId": "precheck:9",
+      "operationId": null,
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x7f3b1f635e38c5e6f06a2e8ad09f66eaec7c321d11a167bde4dfdac7c55ed853",
+        "responseHash": "0x3926e03f02b5498eec7b6513d79269ca93bb61dfec9f119e1661b94e618ca82e"
+      }
+    },
+    {
+      "id": 25,
+      "at": "2026-11-02T06:10:16.036Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "skill_run",
+      "mode": "act",
+      "inputHash": "0xeb7978fe0617e0b88b475462ee23c46dc1111cd01d0cb4578d654b3449f3f2df",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (skill); 0 step(s)",
+      "jobId": "skill-run:foga-probe:dc577f8c22b8b24e",
+      "operationId": null,
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x29f228577f6cc82b9eb4739161b4c63b2215636c1e739ff18b47fc7389d73d00",
+        "responseHash": "0x04787b5fff2f89f3a6547e7c42d8a2f4aebbf3aac95c2194427f33482564d2b0"
+      }
+    },
+    {
+      "id": 26,
+      "at": "2026-11-02T06:10:17.270Z",
+      "entrance": "runner",
+      "caller": "runner",
+      "capability": "tender_submit",
+      "mode": "act",
+      "inputHash": "0xa8bada6c2dbeb03d53d8a94411c9de13f3f136b04279f32d2d2a4ba35ed65ef2",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, skill, policy, verifier, budget); 1 step(s)",
+      "jobId": "tender:9:c0",
+      "operationId": "job:tender:9:c0:submit",
+      "model": {
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "promptHash": "0x43870d8677975ee0e737921d50ecbf4ad3b665ffbe30c07761f99937225124b3",
+        "responseHash": "0x4edcb46789ef0060c854c30264448b6cba889cddf78ea9fa54d44cc1257aa9c5"
+      }
+    },
+    {
+      "id": 27,
+      "at": "2026-11-02T06:10:18.951Z",
+      "entrance": "runner",
+      "caller": "watcher",
+      "capability": "tender_settle",
+      "mode": "act",
+      "inputHash": "0x2e39f424325cdef638aa15c0fc1ea0df98d792d1aceb4c35eb4524b0b5c74f13",
+      "verdict": "allowed",
+      "gate": "all",
+      "reason": "all gates passed (safety, policy, budget); 1 step(s)",
+      "jobId": "tender:9:c0:settle",
+      "operationId": "job:tender:9:c0:settle:settle",
+      "model": null
+    }
+  ],
+  "jobs": [
+    {
+      "id": "tender:9:c0:settle",
+      "kind": "tender-settle",
+      "status": "done",
+      "caller": "watcher",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0x2e39f424325cdef638aa15c0fc1ea0df98d792d1aceb4c35eb4524b0b5c74f13",
+      "input": {
+        "tokenId": "9",
+        "submissionId": "1",
+        "proofHash": "0xe3a2803830399be2197fe2b5b9e0738dd450cf3b27f11a1f2060e5d2d7a0c7e1"
+      },
+      "result": {
+        "tokenId": "9",
+        "submissionId": "1",
+        "txHash": "0x577e78e7bbee37d1c18dcce9e3c7b846e3add6c9cabcf66ba52576c498938c61",
+        "operationId": "job:tender:9:c0:settle:settle",
+        "jobId": "tender:9:c0:settle",
+        "paidWei": "1000000000000000",
+        "creditWei": "0",
+        "status": 1
+      },
+      "error": null,
+      "operations": [
+        "job:tender:9:c0:settle:settle"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:18.953Z",
+      "updatedAt": "2026-11-02T06:10:19.149Z"
+    },
+    {
+      "id": "tender:9:c0",
+      "kind": "tender",
+      "status": "done",
+      "caller": "runner",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xa8bada6c2dbeb03d53d8a94411c9de13f3f136b04279f32d2d2a4ba35ed65ef2",
+      "input": {
+        "tokenId": "9",
+        "resultHash": "0x041008f8952c0937cd7b55cdf865e74ab25047f33919a236dc0e839665efa5f6"
+      },
+      "result": {
+        "tokenId": "9",
+        "submissionId": "1",
+        "txHash": "0x29340ed1a765d30ba3689ac66c5b1216e57acde71668e3b6e346e00f26a0d36a",
+        "operationId": "job:tender:9:c0:submit",
+        "jobId": "tender:9:c0"
+      },
+      "error": null,
+      "operations": [
+        "job:tender:9:c0:submit"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:17.272Z",
+      "updatedAt": "2026-11-02T06:10:17.378Z"
+    },
+    {
+      "id": "skill-run:foga-probe:dc577f8c22b8b24e",
+      "kind": "skill-run",
+      "status": "done",
+      "caller": "runner",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xeb7978fe0617e0b88b475462ee23c46dc1111cd01d0cb4578d654b3449f3f2df",
+      "input": {
+        "skill": "foga-probe",
+        "input": {
+          "subject": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+          "block": 112,
+          "lookback": 9000,
+          "kya": {
+            "schemeId": "0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b",
+            "issuers": [
+              "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+            ]
+          }
+        },
+        "tokenId": "9"
+      },
+      "result": {
+        "skill": "foga-probe",
+        "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+        "jobId": "skill-run:foga-probe:dc577f8c22b8b24e",
+        "answer": "{\"checks\":{\"erc8004\":{\"agentId\":\"1\",\"agentURI\":\"data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ==\",\"bound\":true,\"owner\":\"0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\"},\"erc8338\":{\"held\":\"2\",\"tokens\":[{\"packageHash\":\"0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed\",\"tokenId\":\"1\",\"version\":\"1\"},{\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\",\"tokenId\":\"2\",\"version\":\"1\"}]},\"erc8414\":{\"accepted\":\"2\",\"held\":\"2\",\"submissions\":\"2\"},\"erc8419\":{\"assertionId\":\"0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5\",\"expiresAt\":\"1825135788\",\"issuers\":[\"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\"],\"level\":\"2\",\"schemeId\":\"0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b\"},\"erc8434\":{\"agentId\":\"1\",\"boundAt\":\"1793599787\",\"documentDigest\":\"0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85\",\"lastSeen\":\"1793599787\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\",\"state\":\"ACTIVE\"},\"erc8436\":{\"issuesFiled\":\"0\"},\"erc8444\":{\"agentRecord\":{\"backed\":true,\"descriptorHash\":\"0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019\",\"recordId\":\"0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861\",\"status\":\"1\",\"urn\":\"urn:air:foga.local:agents:cell-d\"}},\"erc8447\":{\"memberships\":[]},\"erc8454\":{\"unitsControlled\":[\"1\",\"2\",\"3\"]},\"erc8468\":{\"bindingsAsSubject\":\"1\",\"status\":{\"reasons\":[\"Suspended\"],\"restrictions\":[\"9\"],\"verdict\":\"NotSatisfied\"}},\"erc8471\":{\"casesAsParty\":\"0\"}},\"schema\":\"foga.probe/1\",\"skill\":\"foga-probe\",\"subject\":\"eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"world\":{\"block\":112,\"blockHash\":\"0x1185eed984c437957c37d480f471ec7bed7f9eba0c81695af22f4389be1fbc78\",\"chainId\":31337,\"worldId\":\"anvil-31337-20261102T060938Z\"}}",
+        "answerHash": "0x95663ec26f29922ddc62c4d364b6e05e0bc712f181bee8ed253c548a242b2a74",
+        "resultHash": "0x041008f8952c0937cd7b55cdf865e74ab25047f33919a236dc0e839665efa5f6",
+        "report": {
+          "schema": "foga.probe/1",
+          "skill": "foga-probe",
+          "world": {
+            "worldId": "anvil-31337-20261102T060938Z",
+            "chainId": 31337,
+            "block": 112,
+            "blockHash": "0x1185eed984c437957c37d480f471ec7bed7f9eba0c81695af22f4389be1fbc78"
+          },
+          "subject": "eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05",
+          "checks": {
+            "erc8004": {
+              "bound": true,
+              "registry": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+              "agentId": "1",
+              "owner": "0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05",
+              "agentURI": "data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ=="
+            },
+            "erc8434": {
+              "state": "ACTIVE",
+              "registry": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+              "agentId": "1",
+              "boundAt": "1793599787",
+              "lastSeen": "1793599787",
+              "documentDigest": "0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85"
+            },
+            "erc8419": {
+              "schemeId": "0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b",
+              "issuers": [
+                "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+              ],
+              "level": "2",
+              "expiresAt": "1825135788",
+              "assertionId": "0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5"
+            },
+            "erc8468": {
+              "bindingsAsSubject": "1",
+              "status": {
+                "verdict": "NotSatisfied",
+                "reasons": [
+                  "Suspended"
+                ],
+                "restrictions": [
+                  "9"
+                ]
+              }
+            },
+            "erc8444": {
+              "agentRecord": {
+                "recordId": "0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861",
+                "status": "1",
+                "descriptorHash": "0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019",
+                "urn": "urn:air:foga.local:agents:cell-d",
+                "backed": true
+              }
+            },
+            "erc8454": {
+              "unitsControlled": [
+                "1",
+                "2",
+                "3"
+              ]
+            },
+            "erc8338": {
+              "held": "2",
+              "tokens": [
+                {
+                  "tokenId": "1",
+                  "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+                  "version": "1"
+                },
+                {
+                  "tokenId": "2",
+                  "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976",
+                  "version": "1"
+                }
+              ]
+            },
+            "erc8414": {
+              "held": "2",
+              "submissions": "2",
+              "accepted": "2"
+            },
+            "erc8447": {
+              "memberships": []
+            },
+            "erc8436": {
+              "issuesFiled": "0"
+            },
+            "erc8471": {
+              "casesAsParty": "0"
+            }
+          }
+        },
+        "runReceipt": {
+          "schema": "foga.run-receipt/1",
+          "skill": "foga-probe",
+          "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+          "tokenId": "9",
+          "input": {
+            "subject": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+            "block": 112,
+            "lookback": 9000,
+            "kya": {
+              "schemeId": "0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b",
+              "issuers": [
+                "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+              ]
+            }
+          },
+          "answerHash": "0x95663ec26f29922ddc62c4d364b6e05e0bc712f181bee8ed253c548a242b2a74",
+          "fulfiller": "eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05",
+          "worker": "isolated child process (skill-worker), view calls only"
+        },
+        "elapsedMs": 1046
+      },
+      "error": null,
+      "operations": [],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:16.038Z",
+      "updatedAt": "2026-11-02T06:10:17.097Z"
+    },
+    {
+      "id": "guardian-resume:980969ae65258bdf",
+      "kind": "admin",
+      "status": "done",
+      "caller": "operator",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xc730ead951bdd6c51c8c12b5add182a970c3ba0490ff22f3c6c32dea69053a31",
+      "input": {
+        "bindingId": "0xf35b3ca981d3a10f139bf1d2959b480d0420450a8de8da430a90a4cbb2d484a1",
+        "reason": "loop D case f: review complete"
+      },
+      "result": {
+        "bindingId": "0xf35b3ca981d3a10f139bf1d2959b480d0420450a8de8da430a90a4cbb2d484a1",
+        "state": "Active",
+        "txHash": "0x5b88a8a64de656d8d50d94ca7e613b8c5cb863d6c888a2ba12de6d9e62104cf2",
+        "jobId": "guardian-resume:980969ae65258bdf"
+      },
+      "error": null,
+      "operations": [
+        "job:guardian-resume:980969ae65258bdf:resume"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:14.126Z",
+      "updatedAt": "2026-11-02T06:10:14.237Z"
+    },
+    {
+      "id": "guardian-suspend:56868142ae833196",
+      "kind": "admin",
+      "status": "done",
+      "caller": "operator",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xc3e5ccdcf9932794714a4d36fd4090764190920c16812b46bc33a486e811c0dc",
+      "input": {
+        "bindingId": "0xf35b3ca981d3a10f139bf1d2959b480d0420450a8de8da430a90a4cbb2d484a1",
+        "restrictions": [
+          "noNewRisk",
+          "deriskOnly"
+        ],
+        "reason": "loop D case f: a review while a tender arrives"
+      },
+      "result": {
+        "bindingId": "0xf35b3ca981d3a10f139bf1d2959b480d0420450a8de8da430a90a4cbb2d484a1",
+        "restrictions": 9,
+        "state": "Suspended",
+        "txHash": "0x1d99009acd0d5452e92c1418579d2e75558ed38acb99b29389d9d130d82a14d7",
+        "jobId": "guardian-suspend:56868142ae833196"
+      },
+      "error": null,
+      "operations": [
+        "job:guardian-suspend:56868142ae833196:suspend"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:11.266Z",
+      "updatedAt": "2026-11-02T06:10:11.377Z"
+    },
+    {
+      "id": "tender:6:c0:settle",
+      "kind": "tender-settle",
+      "status": "done",
+      "caller": "watcher",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0x6a6b03b5be7b725b1b8dab0673d5973e02f6f5ad704da8721b828343af05aee3",
+      "input": {
+        "tokenId": "6",
+        "submissionId": "1",
+        "proofHash": "0x99a6cfb977d338798d11c68fc3fc3f2342bfc1e05cdd1efd8fce878a0cbb51a6"
+      },
+      "result": {
+        "tokenId": "6",
+        "submissionId": "1",
+        "txHash": "0x6e945f89794c442f838aefe723b960afe9709e521779517ec9282ffde49070fd",
+        "operationId": "job:tender:6:c0:settle:settle",
+        "jobId": "tender:6:c0:settle",
+        "paidWei": "1000000000000000",
+        "creditWei": "0",
+        "status": 1
+      },
+      "error": null,
+      "operations": [
+        "job:tender:6:c0:settle:settle"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:10.624Z",
+      "updatedAt": "2026-11-02T06:10:10.754Z"
+    },
+    {
+      "id": "tender:6:c0",
+      "kind": "tender",
+      "status": "done",
+      "caller": "runner",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0x85ba404104f0cec082c9599b348741669ed37dec26ba22b3f3a136988cee6ae4",
+      "input": {
+        "tokenId": "6",
+        "resultHash": "0x22cc66b2362fa135a91a61f38bff7d1d524444437c9425a07d4b20c378335bb7"
+      },
+      "result": {
+        "tokenId": "6",
+        "submissionId": "1",
+        "txHash": "0xc02c698e0e0acc4e220a68ba2c2cded82239fa2755634cf82136200aedea9ecd",
+        "operationId": "job:tender:6:c0:submit",
+        "jobId": "tender:6:c0"
+      },
+      "error": null,
+      "operations": [
+        "job:tender:6:c0:submit"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:08.990Z",
+      "updatedAt": "2026-11-02T06:10:09.094Z"
+    },
+    {
+      "id": "skill-run:foga-probe:f691732ed1c437a5",
+      "kind": "skill-run",
+      "status": "done",
+      "caller": "runner",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xdc37b8b6cff5f9382ddfd0e622237296630ddfa8742ae2758378d95b493533d0",
+      "input": {
+        "skill": "foga-probe",
+        "input": {
+          "subject": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+          "block": 84,
+          "lookback": 9000,
+          "kya": {
+            "schemeId": "0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b",
+            "issuers": [
+              "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+            ]
+          }
+        },
+        "tokenId": "6"
+      },
+      "result": {
+        "skill": "foga-probe",
+        "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+        "jobId": "skill-run:foga-probe:f691732ed1c437a5",
+        "answer": "{\"checks\":{\"erc8004\":{\"agentId\":\"1\",\"agentURI\":\"data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ==\",\"bound\":true,\"owner\":\"0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\"},\"erc8338\":{\"held\":\"2\",\"tokens\":[{\"packageHash\":\"0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed\",\"tokenId\":\"1\",\"version\":\"1\"},{\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\",\"tokenId\":\"2\",\"version\":\"1\"}]},\"erc8414\":{\"accepted\":\"0\",\"held\":\"0\",\"submissions\":\"0\"},\"erc8419\":{\"assertionId\":\"0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5\",\"expiresAt\":\"1825135788\",\"issuers\":[\"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\"],\"level\":\"2\",\"schemeId\":\"0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b\"},\"erc8434\":{\"agentId\":\"1\",\"boundAt\":\"1793599787\",\"documentDigest\":\"0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85\",\"lastSeen\":\"1793599787\",\"registry\":\"0x5fbdb2315678afecb367f032d93f642f64180aa3\",\"state\":\"ACTIVE\"},\"erc8436\":{\"issuesFiled\":\"0\"},\"erc8444\":{\"agentRecord\":{\"backed\":true,\"descriptorHash\":\"0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019\",\"recordId\":\"0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861\",\"status\":\"1\",\"urn\":\"urn:air:foga.local:agents:cell-d\"}},\"erc8447\":{\"memberships\":[]},\"erc8454\":{\"unitsControlled\":[\"1\",\"2\",\"3\"]},\"erc8468\":{\"bindingsAsSubject\":\"1\",\"status\":{\"reasons\":[\"None\"],\"restrictions\":[\"0\"],\"verdict\":\"Satisfied\"}},\"erc8471\":{\"casesAsParty\":\"0\"}},\"schema\":\"foga.probe/1\",\"skill\":\"foga-probe\",\"subject\":\"eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05\",\"world\":{\"block\":84,\"blockHash\":\"0xdd95025622560103b87b791a6f4e54addd4afa4f0864a5454d97b07997293447\",\"chainId\":31337,\"worldId\":\"anvil-31337-20261102T060938Z\"}}",
+        "answerHash": "0x288718c6eced35510fc742fb7e7f43373d88d7ea5b61fde733fcf9b221b2c9aa",
+        "resultHash": "0x22cc66b2362fa135a91a61f38bff7d1d524444437c9425a07d4b20c378335bb7",
+        "report": {
+          "schema": "foga.probe/1",
+          "skill": "foga-probe",
+          "world": {
+            "worldId": "anvil-31337-20261102T060938Z",
+            "chainId": 31337,
+            "block": 84,
+            "blockHash": "0xdd95025622560103b87b791a6f4e54addd4afa4f0864a5454d97b07997293447"
+          },
+          "subject": "eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05",
+          "checks": {
+            "erc8004": {
+              "bound": true,
+              "registry": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+              "agentId": "1",
+              "owner": "0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05",
+              "agentURI": "data:application/json;base64,eyJ0eXBlIjoiaHR0cHM6Ly9laXBzLmV0aGVyZXVtLm9yZy9FSVBTL2VpcC04MDA0I3JlZ2lzdHJhdGlvbi12MSIsIm5hbWUiOiJGT0dBIGNlbGwgRCIsImRlc2NyaXB0aW9uIjoiTG9vcCBEOiBhIGNlbGwgYm9ybiBmb3Igb25lIHVuc2NyaXB0ZWQgcnVuIiwic2VydmljZXMiOltdLCJ4NDAyU3VwcG9ydCI6ZmFsc2UsImFjdGl2ZSI6dHJ1ZSwic3VwcG9ydGVkVHJ1c3QiOlsicmVwdXRhdGlvbiJdLCJ4LWZvZ2EiOnsiY2VsbCI6IkQiLCJhbmNob3IiOiJlaXAxNTU6MzEzMzc6MHhhM2RhNjE0ZjVjOWU3YWQxYWM1M2U2NTAzOTU2MzMxZTk1ZjViYzA1IiwiYmluZGluZyI6IjB4ZjM1YjNjYTk4MWQzYTEwZjEzOWJmMWQyOTU5YjQ4MGQwNDIwNDUwYThkZThkYTQzMGE5MGE0Y2JiMmQ0ODRhMSJ9fQ=="
+            },
+            "erc8434": {
+              "state": "ACTIVE",
+              "registry": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+              "agentId": "1",
+              "boundAt": "1793599787",
+              "lastSeen": "1793599787",
+              "documentDigest": "0xc85f44770602a49b090f0f4f27de7f02669b4e7b4286be21a183f98197d75c85"
+            },
+            "erc8419": {
+              "schemeId": "0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b",
+              "issuers": [
+                "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+              ],
+              "level": "2",
+              "expiresAt": "1825135788",
+              "assertionId": "0x0807f056a3ff160b38375d0f4a8194bad664af02c79c4351d9c5eeacb0de81f5"
+            },
+            "erc8468": {
+              "bindingsAsSubject": "1",
+              "status": {
+                "verdict": "Satisfied",
+                "reasons": [
+                  "None"
+                ],
+                "restrictions": [
+                  "0"
+                ]
+              }
+            },
+            "erc8444": {
+              "agentRecord": {
+                "recordId": "0x06d1475e03cf7eeeee8728c507c019210413b907ce4593a8ebea0b8e80249861",
+                "status": "1",
+                "descriptorHash": "0x22795544e2056c83473227931082621129931f96d0caf620dc146d2c66ae5019",
+                "urn": "urn:air:foga.local:agents:cell-d",
+                "backed": true
+              }
+            },
+            "erc8454": {
+              "unitsControlled": [
+                "1",
+                "2",
+                "3"
+              ]
+            },
+            "erc8338": {
+              "held": "2",
+              "tokens": [
+                {
+                  "tokenId": "1",
+                  "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+                  "version": "1"
+                },
+                {
+                  "tokenId": "2",
+                  "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976",
+                  "version": "1"
+                }
+              ]
+            },
+            "erc8414": {
+              "held": "0",
+              "submissions": "0",
+              "accepted": "0"
+            },
+            "erc8447": {
+              "memberships": []
+            },
+            "erc8436": {
+              "issuesFiled": "0"
+            },
+            "erc8471": {
+              "casesAsParty": "0"
+            }
+          }
+        },
+        "runReceipt": {
+          "schema": "foga.run-receipt/1",
+          "skill": "foga-probe",
+          "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+          "tokenId": "6",
+          "input": {
+            "subject": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+            "block": 84,
+            "lookback": 9000,
+            "kya": {
+              "schemeId": "0x66cc8795ae859f2b3cc28ce037e3fc5d5be79847658cae941e4ac9d50aa92e9b",
+              "issuers": [
+                "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+              ]
+            }
+          },
+          "answerHash": "0x288718c6eced35510fc742fb7e7f43373d88d7ea5b61fde733fcf9b221b2c9aa",
+          "fulfiller": "eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05",
+          "worker": "isolated child process (skill-worker), view calls only"
+        },
+        "elapsedMs": 1001
+      },
+      "error": null,
+      "operations": [],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:07.796Z",
+      "updatedAt": "2026-11-02T06:10:08.812Z"
+    },
+    {
+      "id": "tender-mint:ca5b34fb8eb89bcc",
+      "kind": "tender-mint",
+      "status": "done",
+      "caller": "orchestrator",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0x92bdd5d36f36d0234a3de755977b1af47166c88776197c46ef5e6fb2fed9e166",
+      "input": {
+        "task": {
+          "schema": "foga.task/1",
+          "skill": "foga-probe",
+          "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+          "input": {
+            "concurrent": 2
+          },
+          "acceptance": {
+            "mode": "verifier",
+            "profile": "x-hashlock-v1",
+            "verifier": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+            "answerHash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "deliverable": "the canonical answer; resultHash = sha256(answer || fulfiller)"
+        },
+        "rewardWei": "800000000000000",
+        "submitBy": 1793686202,
+        "settleBy": 1794204602,
+        "owner": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05"
+      },
+      "result": {
+        "tokenId": "8",
+        "taskHash": "0x8a267c83125f8786af2733d79390435bae7aa4077847b1bfdbe483a465aa03d0",
+        "answerHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+        "rewardWei": "800000000000000",
+        "submitBy": 1793686202,
+        "settleBy": 1794204602,
+        "operations": [
+          "job:tender-mint:ca5b34fb8eb89bcc:mint",
+          "job:tender-mint:ca5b34fb8eb89bcc:fund",
+          "job:tender-mint:ca5b34fb8eb89bcc:commit"
+        ],
+        "jobId": "tender-mint:ca5b34fb8eb89bcc",
+        "recordId": null
+      },
+      "error": null,
+      "operations": [
+        "job:tender-mint:ca5b34fb8eb89bcc:mint",
+        "job:tender-mint:ca5b34fb8eb89bcc:fund",
+        "job:tender-mint:ca5b34fb8eb89bcc:commit"
+      ],
+      "valueWei": "800000000000000",
+      "createdAt": "2026-11-02T06:10:02.727Z",
+      "updatedAt": "2026-11-02T06:10:03.453Z"
+    },
+    {
+      "id": "tender-mint:b06ff29396bd83b5",
+      "kind": "tender-mint",
+      "status": "done",
+      "caller": "orchestrator",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xcb3b4f6993227cdc25f723a3b26e27d3e985bd9dcac4d6aa9f22a0f5f8fab3a4",
+      "input": {
+        "task": {
+          "schema": "foga.task/1",
+          "skill": "foga-probe",
+          "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+          "input": {
+            "concurrent": 1
+          },
+          "acceptance": {
+            "mode": "verifier",
+            "profile": "x-hashlock-v1",
+            "verifier": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+            "answerHash": "0x2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "deliverable": "the canonical answer; resultHash = sha256(answer || fulfiller)"
+        },
+        "rewardWei": "800000000000000",
+        "submitBy": 1793686202,
+        "settleBy": 1794204602,
+        "owner": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05"
+      },
+      "result": {
+        "tokenId": "7",
+        "taskHash": "0x88e29cfe0ae580df49405bb9d2ed31db8ced64efb9267f8f917dcacfbab81998",
+        "answerHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+        "rewardWei": "800000000000000",
+        "submitBy": 1793686202,
+        "settleBy": 1794204602,
+        "operations": [
+          "job:tender-mint:b06ff29396bd83b5:mint",
+          "job:tender-mint:b06ff29396bd83b5:fund",
+          "job:tender-mint:b06ff29396bd83b5:commit"
+        ],
+        "jobId": "tender-mint:b06ff29396bd83b5",
+        "recordId": null
+      },
+      "error": null,
+      "operations": [
+        "job:tender-mint:b06ff29396bd83b5:mint",
+        "job:tender-mint:b06ff29396bd83b5:fund",
+        "job:tender-mint:b06ff29396bd83b5:commit"
+      ],
+      "valueWei": "800000000000000",
+      "createdAt": "2026-11-02T06:10:02.653Z",
+      "updatedAt": "2026-11-02T06:10:03.364Z"
+    },
+    {
+      "id": "tender:3:c0:settle",
+      "kind": "tender-settle",
+      "status": "done",
+      "caller": "watcher",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xecc3219fa696ca707326a2e4c6ea0976377a663ceb8857c0ee2f7417048ef24c",
+      "input": {
+        "tokenId": "3",
+        "submissionId": "1",
+        "proofHash": "0x862824fda6cf4a5638588ec12292679dfde34b16f305724ce0c8295258bcf09b"
+      },
+      "result": {
+        "tokenId": "3",
+        "submissionId": "1",
+        "txHash": "0xb7838623126ebf8e3050dc4fe45fc40ca0e22235fe68653bff7a38e84e7c4530",
+        "operationId": "job:tender:3:c0:settle:settle",
+        "jobId": "tender:3:c0:settle",
+        "paidWei": "1000000000000000",
+        "creditWei": "0",
+        "status": 1
+      },
+      "error": null,
+      "operations": [
+        "job:tender:3:c0:settle:settle"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:10:02.374Z",
+      "updatedAt": "2026-11-02T06:10:02.510Z"
+    },
+    {
+      "id": "tender:3:c0",
+      "kind": "tender",
+      "status": "done",
+      "caller": "runner",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0xe3a693ee54ce7c5f1460dedb4ba01a89c8bac60ba79d2f81d5dc3406145e7fb3",
+      "input": {
+        "tokenId": "3",
+        "resultHash": "0xdbb10a0b9e5f02481e2cf6ef7fee2fb5f675a6a8064c30db50199e458c339db2"
+      },
+      "result": {
+        "tokenId": "3",
+        "submissionId": "1",
+        "txHash": "0x9d0345515273f0b38be31fa94235dd7fd841268f27e73295693a3b5583b2d0d3",
+        "operationId": "job:tender:3:c0:submit",
+        "jobId": "tender:3:c0"
+      },
+      "error": null,
+      "operations": [
+        "job:tender:3:c0:submit"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:09:59.288Z",
+      "updatedAt": "2026-11-02T06:09:59.401Z"
+    },
+    {
+      "id": "skill-run:finch-extract-verify:dab7f91e1cbabfc8",
+      "kind": "skill-run",
+      "status": "done",
+      "caller": "runner",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0x839a45a912ed94aba044c33a49db228369d84081026b756c629819e6497d1c02",
+      "input": {
+        "skill": "finch-extract-verify",
+        "input": {
+          "document": "sample-filing.txt"
+        },
+        "tokenId": "3"
+      },
+      "result": {
+        "skill": "finch-extract-verify",
+        "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976",
+        "jobId": "skill-run:finch-extract-verify:dab7f91e1cbabfc8",
+        "answer": "{\"documentDigest\":\"0x0a674dd99bd491b59ddab8d6124839a3379551ef2f7418b7388ca64b43d12342\",\"fields\":{\"documentDate\":{\"evidence\":[{\"line\":4,\"quote\":\"Document date: 2026-08-15\"}],\"value\":\"2026-08-15\"},\"issuer\":{\"evidence\":[{\"line\":5,\"quote\":\"Issuer: Example Holdings Ltd\"}],\"value\":\"Example Holdings Ltd\"},\"periodEnd\":{\"evidence\":[{\"line\":6,\"quote\":\"Period end: 2026-06-30\"}],\"value\":\"2026-06-30\"},\"totalAssets\":{\"evidence\":[{\"line\":10,\"quote\":\"Total assets: 1,250\"}],\"value\":\"1250\"},\"totalEquity\":{\"evidence\":[{\"line\":12,\"quote\":\"Total equity: 450\"}],\"value\":\"450\"},\"totalLiabilities\":{\"evidence\":[{\"line\":11,\"quote\":\"Total liabilities: 800\"}],\"value\":\"800\"}},\"rules\":[{\"id\":\"balance\",\"note\":\"1250 vs 800 + 450 (difference 0, tolerance 1)\",\"verdict\":\"pass\"},{\"id\":\"period\",\"note\":\"period end 2026-06-30, document date 2026-08-15\",\"verdict\":\"pass\"}],\"schema\":\"finch.extract-verify/1\",\"skill\":{\"name\":\"finch-extract-verify\",\"packageHash\":\"0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976\"}}",
+        "answerHash": "0xd73d6706d93ce0ac7247b98de4193f66d8ca5cb3893b9d21b2367c95cca02975",
+        "resultHash": "0xdbb10a0b9e5f02481e2cf6ef7fee2fb5f675a6a8064c30db50199e458c339db2",
+        "report": {
+          "schema": "finch.extract-verify/1",
+          "skill": {
+            "name": "finch-extract-verify",
+            "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976"
+          },
+          "documentDigest": "0x0a674dd99bd491b59ddab8d6124839a3379551ef2f7418b7388ca64b43d12342",
+          "fields": {
+            "issuer": {
+              "value": "Example Holdings Ltd",
+              "evidence": [
+                {
+                  "line": 5,
+                  "quote": "Issuer: Example Holdings Ltd"
+                }
+              ]
+            },
+            "documentDate": {
+              "value": "2026-08-15",
+              "evidence": [
+                {
+                  "line": 4,
+                  "quote": "Document date: 2026-08-15"
+                }
+              ]
+            },
+            "periodEnd": {
+              "value": "2026-06-30",
+              "evidence": [
+                {
+                  "line": 6,
+                  "quote": "Period end: 2026-06-30"
+                }
+              ]
+            },
+            "totalAssets": {
+              "value": "1250",
+              "evidence": [
+                {
+                  "line": 10,
+                  "quote": "Total assets: 1,250"
+                }
+              ]
+            },
+            "totalLiabilities": {
+              "value": "800",
+              "evidence": [
+                {
+                  "line": 11,
+                  "quote": "Total liabilities: 800"
+                }
+              ]
+            },
+            "totalEquity": {
+              "value": "450",
+              "evidence": [
+                {
+                  "line": 12,
+                  "quote": "Total equity: 450"
+                }
+              ]
+            }
+          },
+          "rules": [
+            {
+              "id": "balance",
+              "verdict": "pass",
+              "note": "1250 vs 800 + 450 (difference 0, tolerance 1)"
+            },
+            {
+              "id": "period",
+              "verdict": "pass",
+              "note": "period end 2026-06-30, document date 2026-08-15"
+            }
+          ]
+        },
+        "runReceipt": {
+          "schema": "foga.run-receipt/1",
+          "skill": "finch-extract-verify",
+          "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976",
+          "tokenId": "3",
+          "input": {
+            "document": "sample-filing.txt"
+          },
+          "answerHash": "0xd73d6706d93ce0ac7247b98de4193f66d8ca5cb3893b9d21b2367c95cca02975",
+          "fulfiller": "eip155:31337:0xa3da614f5c9e7ad1ac53e6503956331e95f5bc05",
+          "worker": "isolated child process (skill-worker), view calls only"
+        },
+        "elapsedMs": 606
+      },
+      "error": null,
+      "operations": [],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:09:58.480Z",
+      "updatedAt": "2026-11-02T06:09:59.103Z"
+    },
+    {
+      "id": "skill-mint:finch-extract-verify:dd2d2a398107a5ec",
+      "kind": "skill-mint",
+      "status": "done",
+      "caller": "operator",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0x8ffa7a3abda56eb5cd21795df4df36a27dfc0817be0a191bf62d8655bef3753c",
+      "input": {
+        "skill": "finch-extract-verify",
+        "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976"
+      },
+      "result": {
+        "skill": "finch-extract-verify",
+        "tokenId": "2",
+        "recordId": "0x9d72280707c1e5a486f0314458df0342227f597351cf618c06dfa8366bafefe3",
+        "unitId": "3",
+        "mdHash": "0xeaada255bbb1de70d7b64cbaffc060469dfc509039f56db10b230c2cd623cf0b",
+        "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976",
+        "offered": true,
+        "operations": [
+          "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:mint",
+          "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:record",
+          "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:unit"
+        ],
+        "jobId": "skill-mint:finch-extract-verify:dd2d2a398107a5ec"
+      },
+      "error": null,
+      "operations": [
+        "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:mint",
+        "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:record",
+        "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:unit"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:09:48.722Z",
+      "updatedAt": "2026-11-02T06:09:49.043Z"
+    },
+    {
+      "id": "skill-mint:foga-probe:da63365acd7dc540",
+      "kind": "skill-mint",
+      "status": "done",
+      "caller": "operator",
+      "cell": "0xA3DA614f5C9E7Ad1Ac53e6503956331E95F5bc05",
+      "inputHash": "0x76fe11b7a09a7984eac5d0a3b39c80d99c17c31cfe6967764dd94a1848ef81d9",
+      "input": {
+        "skill": "foga-probe",
+        "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed"
+      },
+      "result": {
+        "skill": "foga-probe",
+        "tokenId": "1",
+        "recordId": "0xffe09f07cb65aa593ea6293b50554e09dd82416bad99de7ea8f71a2294a5f0f8",
+        "unitId": "2",
+        "mdHash": "0x51072a8d268db36d234950d1ab0f24a31f88aad2a2e0bef41e9ac473c0ed5857",
+        "packageHash": "0x0114d2e2b06b6803de21f02c61662bc477af0849062400a77a7053aa48a930ed",
+        "offered": true,
+        "operations": [
+          "job:skill-mint:foga-probe:da63365acd7dc540:mint",
+          "job:skill-mint:foga-probe:da63365acd7dc540:record",
+          "job:skill-mint:foga-probe:da63365acd7dc540:unit"
+        ],
+        "jobId": "skill-mint:foga-probe:da63365acd7dc540"
+      },
+      "error": null,
+      "operations": [
+        "job:skill-mint:foga-probe:da63365acd7dc540:mint",
+        "job:skill-mint:foga-probe:da63365acd7dc540:record",
+        "job:skill-mint:foga-probe:da63365acd7dc540:unit"
+      ],
+      "valueWei": "0",
+      "createdAt": "2026-11-02T06:09:48.388Z",
+      "updatedAt": "2026-11-02T06:09:48.673Z"
+    }
+  ],
+  "operations": [
+    {
+      "key": "init.spec.register",
+      "kind": "call",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x2ba5c681dd093e11dfdd55afdad14e7120896df17518af41fe1080d89b624d3c",
+      "block": 56,
+      "nonce": 0,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "1178636940801285",
+      "createdAt": "2026-11-02T06:09:46.161Z",
+      "updatedAt": "2026-11-02T06:09:46.239Z"
+    },
+    {
+      "key": "init.deploy",
+      "kind": "deploy",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xfcca56ac0d09960dca38ad13c96f1bd965b79bdb186d6024f9d58794e604241a",
+      "block": 57,
+      "nonce": 1,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "2835370972473998",
+      "createdAt": "2026-11-02T06:09:46.245Z",
+      "updatedAt": "2026-11-02T06:09:46.380Z"
+    },
+    {
+      "key": "init.fund",
+      "kind": "transfer",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xa5ef2ff0bf7a5c7c644c59cbfc09a42d079525a473d374ade28eb3a672e2d348",
+      "block": 58,
+      "nonce": 2,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "50000000000000000",
+      "gasCostWei": "21082768774836",
+      "createdAt": "2026-11-02T06:09:46.386Z",
+      "updatedAt": "2026-11-02T06:09:46.459Z"
+    },
+    {
+      "key": "init.setOperator",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xffcad7b3503d8fb84bf434d0c6b19db9b827b709fe3fda31be492eaeb2d6925f",
+      "block": 59,
+      "nonce": 3,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "52894608264208",
+      "createdAt": "2026-11-02T06:09:46.461Z",
+      "updatedAt": "2026-11-02T06:09:46.537Z"
+    },
+    {
+      "key": "init.scope",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x192e6397d1bf04a07dafc5db1e0c56652d0faaa2b3db383f8167d69b4a407152",
+      "block": 60,
+      "nonce": 4,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "635911067485069",
+      "createdAt": "2026-11-02T06:09:46.572Z",
+      "updatedAt": "2026-11-02T06:09:46.663Z"
+    },
+    {
+      "key": "init.setAIDRegistry",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xdb87c579ab7bf534e4043debeb37c48ef6ca1f813ddf24982b8e0d764e7d7f3d",
+      "block": 61,
+      "nonce": 5,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "47032258626063",
+      "createdAt": "2026-11-02T06:09:46.665Z",
+      "updatedAt": "2026-11-02T06:09:46.734Z"
+    },
+    {
+      "key": "init.class.8414.submitFulfillment",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x9be40f48ac85c08a3376a7c9a945931209aa07973dc67c20f596e52e59848e7b",
+      "block": 62,
+      "nonce": 6,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48471203078613",
+      "createdAt": "2026-11-02T06:09:46.753Z",
+      "updatedAt": "2026-11-02T06:09:46.823Z"
+    },
+    {
+      "key": "init.class.8447.join",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x46aa2bff4fe04c6ae774d6765d390e3a4f71fc85afe67aeb534500eaab882283",
+      "block": 63,
+      "nonce": 7,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48467689120279",
+      "createdAt": "2026-11-02T06:09:46.825Z",
+      "updatedAt": "2026-11-02T06:09:46.898Z"
+    },
+    {
+      "key": "init.class.8447.applyToJoin",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x77c114a69b67aa0fbf37593b2b62665f89eba8e9ef86511ef2157f040d043c47",
+      "block": 64,
+      "nonce": 8,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48464612989779",
+      "createdAt": "2026-11-02T06:09:46.900Z",
+      "updatedAt": "2026-11-02T06:09:46.972Z"
+    },
+    {
+      "key": "init.class.8454.assertStatement",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xff7b0b6f25f9efaeeb1921eb1c18d6c431c47796a8e473af9a2d78cf85c13715",
+      "block": 65,
+      "nonce": 9,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48461920091852",
+      "createdAt": "2026-11-02T06:09:46.974Z",
+      "updatedAt": "2026-11-02T06:09:47.050Z"
+    },
+    {
+      "key": "init.class.8436.castBallot",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xb9a7bd9053b58f53925e7f704faced8d858c1d31ed548ba1a31badce567bb37e",
+      "block": 66,
+      "nonce": 10,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48459562758586",
+      "createdAt": "2026-11-02T06:09:47.053Z",
+      "updatedAt": "2026-11-02T06:09:47.127Z"
+    },
+    {
+      "key": "init.derisk.8414.withdrawCredit",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xde34957cfebe96f3b3b109fd49c38f4105597357eb13af058ddb16401164c36e",
+      "block": 67,
+      "nonce": 11,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48919637413215",
+      "createdAt": "2026-11-02T06:09:47.139Z",
+      "updatedAt": "2026-11-02T06:09:47.217Z"
+    },
+    {
+      "key": "init.derisk.8414.reclaimEscrow",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xaf2b171b1942864f30e9bdea4ebe81b6f3ae5864130ccc209992ae16888d4110",
+      "block": 68,
+      "nonce": 12,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48917813745765",
+      "createdAt": "2026-11-02T06:09:47.220Z",
+      "updatedAt": "2026-11-02T06:09:47.296Z"
+    },
+    {
+      "key": "init.derisk.8447.leave",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x7931c71ed12a4c3c24dc0f6e52dfca854bc5e2a858d4315843e0ada00e07c567",
+      "block": 69,
+      "nonce": 13,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48916217290945",
+      "createdAt": "2026-11-02T06:09:47.299Z",
+      "updatedAt": "2026-11-02T06:09:47.378Z"
+    },
+    {
+      "key": "init.derisk.8471.withdrawBalance",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xdbfa6a139876459d111b8bba22287acf9c9054d89a58271166c8e5724135aded",
+      "block": 70,
+      "nonce": 14,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "48902817323256",
+      "createdAt": "2026-11-02T06:09:47.380Z",
+      "updatedAt": "2026-11-02T06:09:47.453Z"
+    },
+    {
+      "key": "init.adopt",
+      "kind": "admin",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xa6d822b2bdbb639d5f6bef32e0d0d0c7e244e92ff1a2987817eb856f34706e2f",
+      "block": 71,
+      "nonce": 15,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "1052183915124225",
+      "createdAt": "2026-11-02T06:09:47.457Z",
+      "updatedAt": "2026-11-02T06:09:47.544Z"
+    },
+    {
+      "key": "init.8004.register",
+      "kind": "execute",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x5b92a3b595ecba4cb0c7992dea6d82a5223b9f5207f8e4a0461e3a79f2df48fc",
+      "block": 72,
+      "nonce": 16,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "629847828513750",
+      "createdAt": "2026-11-02T06:09:47.549Z",
+      "updatedAt": "2026-11-02T06:09:47.625Z"
+    },
+    {
+      "key": "init.aid.bind",
+      "kind": "execute",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x3647ed707b6a3c166aed423dc90a3f27b96fbbaa362d6e53461e27ca7b49b32c",
+      "block": 73,
+      "nonce": 17,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "262668913224319",
+      "createdAt": "2026-11-02T06:09:47.632Z",
+      "updatedAt": "2026-11-02T06:09:47.706Z"
+    },
+    {
+      "key": "init.aid.heartbeat",
+      "kind": "execute",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x0701b7edacc2d73e916ca554476e6cf4f6aa8f0d13fbe0140406a3c35ea6a5ab",
+      "block": 74,
+      "nonce": 18,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "144720357124850",
+      "createdAt": "2026-11-02T06:09:47.709Z",
+      "updatedAt": "2026-11-02T06:09:47.783Z"
+    },
+    {
+      "key": "init.aid.document",
+      "kind": "execute",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xf9de6e26b984258b43348ae975fd1947b53d675a3e26e6623f763b422fc66e95",
+      "block": 75,
+      "nonce": 19,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "835885843205598",
+      "createdAt": "2026-11-02T06:09:47.788Z",
+      "updatedAt": "2026-11-02T06:09:47.868Z"
+    },
+    {
+      "key": "init.ard.register",
+      "kind": "execute",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0x4afafecad8587cd44c2df273d88135d2352cf22908c7008ab02aefa2813f1aa3",
+      "block": 76,
+      "nonce": 20,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "979060746603120",
+      "createdAt": "2026-11-02T06:09:47.873Z",
+      "updatedAt": "2026-11-02T06:09:47.951Z"
+    },
+    {
+      "key": "init.auf.unit",
+      "kind": "execute",
+      "signer": "owner",
+      "status": "confirmed",
+      "txHash": "0xe7c555cb52a8cbc8f7ab9ae88c7cf4c5f007a6bc7cdb21bba31652b2cc9480a5",
+      "block": 77,
+      "nonce": 21,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": null,
+      "caller": null,
+      "valueWei": "0",
+      "gasCostWei": "1837663429839258",
+      "createdAt": "2026-11-02T06:09:47.958Z",
+      "updatedAt": "2026-11-02T06:09:48.038Z"
+    },
+    {
+      "key": "job:skill-mint:foga-probe:da63365acd7dc540:mint",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x5a15b4edc88c3478a8603bdf332efc41cdd0be436dd5392e52a9cd2beb771d2b",
+      "block": 79,
+      "nonce": 0,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "skill_mint",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "676491319053472",
+      "createdAt": "2026-11-02T06:09:48.405Z",
+      "updatedAt": "2026-11-02T06:09:48.486Z"
+    },
+    {
+      "key": "job:skill-mint:foga-probe:da63365acd7dc540:record",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x9e2747eefc80a4e8378dba8819f5a1226dff6117bdc2a8f24c348b8d5d43b728",
+      "block": 80,
+      "nonce": 1,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "skill_mint",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "1726507362618360",
+      "createdAt": "2026-11-02T06:09:48.493Z",
+      "updatedAt": "2026-11-02T06:09:48.576Z"
+    },
+    {
+      "key": "job:skill-mint:foga-probe:da63365acd7dc540:unit",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0xb5c72d623f566f8daa4e8d9c3d49adfb66369275687602669884a3caf82e4bd0",
+      "block": 81,
+      "nonce": 2,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "skill_mint",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "1291369769276190",
+      "createdAt": "2026-11-02T06:09:48.584Z",
+      "updatedAt": "2026-11-02T06:09:48.663Z"
+    },
+    {
+      "key": "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:mint",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x28d45084372ce37ca54ffd68ffaae5826fe657d51ebbaeb68f3228d452d6c5a4",
+      "block": 82,
+      "nonce": 3,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "skill_mint",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "682046300606848",
+      "createdAt": "2026-11-02T06:09:48.738Z",
+      "updatedAt": "2026-11-02T06:09:48.830Z"
+    },
+    {
+      "key": "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:record",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x57b427acf0252f387610ebff6ecc51da4d84ce968623705152d7b265f01f09f5",
+      "block": 83,
+      "nonce": 4,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "skill_mint",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "1772544353401800",
+      "createdAt": "2026-11-02T06:09:48.838Z",
+      "updatedAt": "2026-11-02T06:09:48.925Z"
+    },
+    {
+      "key": "job:skill-mint:finch-extract-verify:dd2d2a398107a5ec:unit",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x2cad228129c61c41ede6c071434e5d2ae61a7d2e9dd98a10603ac2ef93db3b59",
+      "block": 84,
+      "nonce": 5,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "skill_mint",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "1314526763656015",
+      "createdAt": "2026-11-02T06:09:48.932Z",
+      "updatedAt": "2026-11-02T06:09:49.034Z"
+    },
+    {
+      "key": "job:tender:3:c0:submit",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x9d0345515273f0b38be31fa94235dd7fd841268f27e73295693a3b5583b2d0d3",
+      "block": 102,
+      "nonce": 6,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_submit",
+      "caller": "runner",
+      "valueWei": "0",
+      "gasCostWei": "328691129378840",
+      "createdAt": "2026-11-02T06:09:59.302Z",
+      "updatedAt": "2026-11-02T06:09:59.394Z"
+    },
+    {
+      "key": "job:tender:3:c0:settle:settle",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0xb7838623126ebf8e3050dc4fe45fc40ca0e22235fe68653bff7a38e84e7c4530",
+      "block": 103,
+      "nonce": 7,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_settle",
+      "caller": "watcher",
+      "valueWei": "0",
+      "gasCostWei": "244805738331880",
+      "createdAt": "2026-11-02T06:10:02.391Z",
+      "updatedAt": "2026-11-02T06:10:02.485Z"
+    },
+    {
+      "key": "job:tender-mint:b06ff29396bd83b5:mint",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0xaab5933a637ae91444de2c3fa40b2ea642f9dbe9e675bf6263971d5381a7dad2",
+      "block": 104,
+      "nonce": 8,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_mint",
+      "caller": "orchestrator",
+      "valueWei": "0",
+      "gasCostWei": "1139271014503128",
+      "createdAt": "2026-11-02T06:10:02.703Z",
+      "updatedAt": "2026-11-02T06:10:02.845Z"
+    },
+    {
+      "key": "job:tender-mint:ca5b34fb8eb89bcc:mint",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x3486ab288973375eedc5806029c81258181dcbb761a7a4d8bef8a3019a68729a",
+      "block": 105,
+      "nonce": 9,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_mint",
+      "caller": "orchestrator",
+      "valueWei": "0",
+      "gasCostWei": "1122170626995288",
+      "createdAt": "2026-11-02T06:10:02.847Z",
+      "updatedAt": "2026-11-02T06:10:02.968Z"
+    },
+    {
+      "key": "job:tender-mint:b06ff29396bd83b5:fund",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x7d0e3a6fa5ce45df28405a70b64932d1bbdee6d77d253b129c1309144da3203d",
+      "block": 106,
+      "nonce": 10,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_mint",
+      "caller": "orchestrator",
+      "valueWei": "800000000000000",
+      "gasCostWei": "269818558793078",
+      "createdAt": "2026-11-02T06:10:02.975Z",
+      "updatedAt": "2026-11-02T06:10:03.094Z"
+    },
+    {
+      "key": "job:tender-mint:ca5b34fb8eb89bcc:fund",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x431cb02e586e8e8af6cbce5af98caec193735d62cd8ea69c4c564f72783cb417",
+      "block": 107,
+      "nonce": 11,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_mint",
+      "caller": "orchestrator",
+      "valueWei": "800000000000000",
+      "gasCostWei": "249516453370572",
+      "createdAt": "2026-11-02T06:10:03.096Z",
+      "updatedAt": "2026-11-02T06:10:03.266Z"
+    },
+    {
+      "key": "job:tender-mint:b06ff29396bd83b5:commit",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x7e15569d9c1fbf5e2adaf25d735b2628538597c4bb462dd339fe4129baec529e",
+      "block": 108,
+      "nonce": 12,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_mint",
+      "caller": "orchestrator",
+      "valueWei": "0",
+      "gasCostWei": "177051282219294",
+      "createdAt": "2026-11-02T06:10:03.269Z",
+      "updatedAt": "2026-11-02T06:10:03.352Z"
+    },
+    {
+      "key": "job:tender-mint:ca5b34fb8eb89bcc:commit",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0xe42fba1d7e35814d4c3b723259af9f3f81383e6ec3eb04cc9228a10831431942",
+      "block": 109,
+      "nonce": 13,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_mint",
+      "caller": "orchestrator",
+      "valueWei": "0",
+      "gasCostWei": "177051247517298",
+      "createdAt": "2026-11-02T06:10:03.355Z",
+      "updatedAt": "2026-11-02T06:10:03.445Z"
+    },
+    {
+      "key": "job:tender:6:c0:submit",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0xc02c698e0e0acc4e220a68ba2c2cded82239fa2755634cf82136200aedea9ecd",
+      "block": 110,
+      "nonce": 14,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_submit",
+      "caller": "runner",
+      "valueWei": "0",
+      "gasCostWei": "334838410511388",
+      "createdAt": "2026-11-02T06:10:09.005Z",
+      "updatedAt": "2026-11-02T06:10:09.086Z"
+    },
+    {
+      "key": "job:tender:6:c0:settle:settle",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x6e945f89794c442f838aefe723b960afe9709e521779517ec9282ffde49070fd",
+      "block": 111,
+      "nonce": 15,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_settle",
+      "caller": "watcher",
+      "valueWei": "0",
+      "gasCostWei": "271057291928389",
+      "createdAt": "2026-11-02T06:10:10.639Z",
+      "updatedAt": "2026-11-02T06:10:10.728Z"
+    },
+    {
+      "key": "job:guardian-suspend:56868142ae833196:suspend",
+      "kind": "direct",
+      "signer": "guardian",
+      "status": "confirmed",
+      "txHash": "0x1d99009acd0d5452e92c1418579d2e75558ed38acb99b29389d9d130d82a14d7",
+      "block": 112,
+      "nonce": 0,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "guardian_suspend",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "183649173548305",
+      "createdAt": "2026-11-02T06:10:11.282Z",
+      "updatedAt": "2026-11-02T06:10:11.355Z"
+    },
+    {
+      "key": "job:guardian-resume:980969ae65258bdf:resume",
+      "kind": "direct",
+      "signer": "guardian",
+      "status": "confirmed",
+      "txHash": "0x5b88a8a64de656d8d50d94ca7e613b8c5cb863d6c888a2ba12de6d9e62104cf2",
+      "block": 116,
+      "nonce": 1,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "guardian_resume",
+      "caller": "operator",
+      "valueWei": "0",
+      "gasCostWei": "64002036033126",
+      "createdAt": "2026-11-02T06:10:14.145Z",
+      "updatedAt": "2026-11-02T06:10:14.218Z"
+    },
+    {
+      "key": "job:tender:9:c0:submit",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x29340ed1a765d30ba3689ac66c5b1216e57acde71668e3b6e346e00f26a0d36a",
+      "block": 117,
+      "nonce": 16,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_submit",
+      "caller": "runner",
+      "valueWei": "0",
+      "gasCostWei": "334838165075134",
+      "createdAt": "2026-11-02T06:10:17.287Z",
+      "updatedAt": "2026-11-02T06:10:17.373Z"
+    },
+    {
+      "key": "job:tender:9:c0:settle:settle",
+      "kind": "execute",
+      "signer": "operator",
+      "status": "confirmed",
+      "txHash": "0x577e78e7bbee37d1c18dcce9e3c7b846e3add6c9cabcf66ba52576c498938c61",
+      "block": 118,
+      "nonce": 17,
+      "attempts": 1,
+      "replacements": 0,
+      "error": null,
+      "capability": "tender_settle",
+      "caller": "watcher",
+      "valueWei": "0",
+      "gasCostWei": "271168117415744",
+      "createdAt": "2026-11-02T06:10:18.968Z",
+      "updatedAt": "2026-11-02T06:10:19.123Z"
+    }
+  ],
+  "journal": [
+    {
+      "seq": 57,
+      "at": "2026-11-02T06:09:53.424Z",
+      "opKey": null,
+      "event": "tender-discovered",
+      "detail": {
+        "tokenId": "6",
+        "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "rewardWei": "1000000000000000",
+        "block": 101
+      }
+    },
+    {
+      "seq": 58,
+      "at": "2026-11-02T06:09:53.424Z",
+      "opKey": null,
+      "event": "tender-discovered",
+      "detail": {
+        "tokenId": "5",
+        "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "rewardWei": "1000000000000000",
+        "block": 101
+      }
+    },
+    {
+      "seq": 59,
+      "at": "2026-11-02T06:09:53.425Z",
+      "opKey": null,
+      "event": "tender-discovered",
+      "detail": {
+        "tokenId": "4",
+        "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "rewardWei": "1000000000000000",
+        "block": 101
+      }
+    },
+    {
+      "seq": 60,
+      "at": "2026-11-02T06:09:53.426Z",
+      "opKey": null,
+      "event": "tender-discovered",
+      "detail": {
+        "tokenId": "3",
+        "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "rewardWei": "1000000000000000",
+        "block": 101
+      }
+    },
+    {
+      "seq": 61,
+      "at": "2026-11-02T06:09:53.427Z",
+      "opKey": null,
+      "event": "tender-discovered",
+      "detail": {
+        "tokenId": "2",
+        "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "rewardWei": "1000000000000000",
+        "block": 101
+      }
+    },
+    {
+      "seq": 62,
+      "at": "2026-11-02T06:09:53.428Z",
+      "opKey": null,
+      "event": "tender-discovered",
+      "detail": {
+        "tokenId": "1",
+        "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "rewardWei": "100000000000000",
+        "block": 101
+      }
+    },
+    {
+      "seq": 63,
+      "at": "2026-11-02T06:09:53.443Z",
+      "opKey": null,
+      "event": "safety-changed",
+      "detail": {
+        "from": null,
+        "to": "Satisfied",
+        "reasons": [
+          "None"
+        ],
+        "restrictions": [
+          0
+        ],
+        "block": 101
+      }
+    },
+    {
+      "seq": 64,
+      "at": "2026-11-02T06:09:54.448Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:09:54.185Z",
+        "block": 101,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 4,
+        "toolCalls": 3,
+        "acts": 1,
+        "decisions": [
+          3,
+          4
+        ],
+        "refusals": [
+          {
+            "capability": "tender_mint",
+            "gate": "budget",
+            "reason": "the operation would move 5000000000000000 wei; the per-operation cap is 1000000000000000 wei"
+          },
+          {
+            "capability": "tender_precheck",
+            "gate": "policy",
+            "reason": "reward 100000000000000 wei is below the policy floor 500000000000000 wei"
+          }
+        ],
+        "trajectoryHash": "0xe0af4d008f843701797b5b5c224f61d1f74bf9e89c3f0c495c847e5e1c46257e",
+        "tenders": [
+          {
+            "tokenId": "6",
+            "status": "open"
+          },
+          {
+            "tokenId": "5",
+            "status": "open"
+          },
+          {
+            "tokenId": "4",
+            "status": "open"
+          },
+          {
+            "tokenId": "3",
+            "status": "open"
+          },
+          {
+            "tokenId": "2",
+            "status": "open"
+          },
+          {
+            "tokenId": "1",
+            "status": "open"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "seq": 65,
+      "at": "2026-11-02T06:09:56.472Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:09:56.312Z",
+        "block": 101,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 3,
+        "toolCalls": 2,
+        "acts": 0,
+        "decisions": [
+          5
+        ],
+        "refusals": [
+          {
+            "capability": "tender_precheck",
+            "gate": "verifier",
+            "reason": "acceptance authority 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 is not one the cell works under (hashlock)"
+          }
+        ],
+        "trajectoryHash": "0x33ad16ba0c23f0b790610cb3373f97a44562a659819e86077f7c4314439e3887",
+        "tenders": [
+          {
+            "tokenId": "6",
+            "status": "open"
+          },
+          {
+            "tokenId": "5",
+            "status": "open"
+          },
+          {
+            "tokenId": "4",
+            "status": "open"
+          },
+          {
+            "tokenId": "3",
+            "status": "open"
+          },
+          {
+            "tokenId": "2",
+            "status": "open"
+          },
+          {
+            "tokenId": "1",
+            "status": "refused",
+            "gate": "policy"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "seq": 68,
+      "at": "2026-11-02T06:09:59.406Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:09:58.259Z",
+        "block": 101,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 5,
+        "toolCalls": 4,
+        "acts": 2,
+        "decisions": [
+          6,
+          7,
+          8
+        ],
+        "refusals": [],
+        "trajectoryHash": "0x282d289836f4353ad91fd99ebbcebfed99133e1657bc641f9ff9ab1b7be893f0",
+        "tenders": [
+          {
+            "tokenId": "6",
+            "status": "open"
+          },
+          {
+            "tokenId": "5",
+            "status": "open"
+          },
+          {
+            "tokenId": "4",
+            "status": "open"
+          },
+          {
+            "tokenId": "3",
+            "status": "open"
+          },
+          {
+            "tokenId": "2",
+            "status": "refused",
+            "gate": "verifier"
+          },
+          {
+            "tokenId": "1",
+            "status": "refused",
+            "gate": "policy"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "seq": 81,
+      "at": "2026-11-02T06:10:03.395Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:10:03.160Z",
+        "block": 103,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 3,
+        "toolCalls": 2,
+        "acts": 0,
+        "decisions": [
+          15
+        ],
+        "refusals": [
+          {
+            "capability": "tender_precheck",
+            "gate": "skill",
+            "reason": "the cell holds no skill named foga-oracle (held: foga-probe, finch-extract-verify)"
+          }
+        ],
+        "trajectoryHash": "0x316dd61b012f51bfe4c5a3795f1ee7618061381dd50c4b7e4b5cf9ac0c049f2b",
+        "tenders": [
+          {
+            "tokenId": "6",
+            "status": "open"
+          },
+          {
+            "tokenId": "5",
+            "status": "open"
+          },
+          {
+            "tokenId": "4",
+            "status": "open"
+          },
+          {
+            "tokenId": "2",
+            "status": "refused",
+            "gate": "verifier"
+          },
+          {
+            "tokenId": "1",
+            "status": "refused",
+            "gate": "policy"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "seq": 84,
+      "at": "2026-11-02T06:10:05.609Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:10:05.431Z",
+        "block": 109,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 3,
+        "toolCalls": 2,
+        "acts": 0,
+        "decisions": [
+          16
+        ],
+        "refusals": [
+          {
+            "capability": "tender_precheck",
+            "gate": "policy",
+            "reason": "only 108 s left to submit; the policy wants 600 s"
+          }
+        ],
+        "trajectoryHash": "0xa832b6a72a74fdf95504e2a8d5107826a1897f2e55f90e8d324eea071e011acc",
+        "tenders": [
+          {
+            "tokenId": "6",
+            "status": "open"
+          },
+          {
+            "tokenId": "5",
+            "status": "open"
+          },
+          {
+            "tokenId": "4",
+            "status": "refused",
+            "gate": "skill"
+          },
+          {
+            "tokenId": "2",
+            "status": "refused",
+            "gate": "verifier"
+          },
+          {
+            "tokenId": "1",
+            "status": "refused",
+            "gate": "policy"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "seq": 87,
+      "at": "2026-11-02T06:10:09.100Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:10:07.583Z",
+        "block": 109,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 5,
+        "toolCalls": 4,
+        "acts": 2,
+        "decisions": [
+          17,
+          18,
+          19
+        ],
+        "refusals": [],
+        "trajectoryHash": "0xd1821816407c5a16eebdaa3f849f4455718ccd3f4e82b8e6aac1dfa54b593478",
+        "tenders": [
+          {
+            "tokenId": "6",
+            "status": "open"
+          },
+          {
+            "tokenId": "5",
+            "status": "refused",
+            "gate": "policy"
+          },
+          {
+            "tokenId": "4",
+            "status": "refused",
+            "gate": "skill"
+          },
+          {
+            "tokenId": "2",
+            "status": "refused",
+            "gate": "verifier"
+          },
+          {
+            "tokenId": "1",
+            "status": "refused",
+            "gate": "policy"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "seq": 92,
+      "at": "2026-11-02T06:10:12.927Z",
+      "opKey": null,
+      "event": "safety-changed",
+      "detail": {
+        "from": "Satisfied",
+        "to": "NotSatisfied",
+        "reasons": [
+          "Suspended"
+        ],
+        "restrictions": [
+          9
+        ],
+        "block": 112
+      }
+    },
+    {
+      "seq": 93,
+      "at": "2026-11-02T06:10:13.787Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:10:13.572Z",
+        "block": 115,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 3,
+        "toolCalls": 2,
+        "acts": 0,
+        "decisions": [
+          22
+        ],
+        "refusals": [
+          {
+            "capability": "tender_precheck",
+            "gate": "safety",
+            "reason": "binding NotSatisfied [Suspended], restrictions 9"
+          }
+        ],
+        "trajectoryHash": "0x071576bd148bac22e8bc628b3f54fa3f07bb359186cbd2edcdbc85cbacd19e6c",
+        "tenders": [
+          {
+            "tokenId": "9",
+            "status": "open"
+          },
+          {
+            "tokenId": "5",
+            "status": "refused",
+            "gate": "policy"
+          },
+          {
+            "tokenId": "4",
+            "status": "refused",
+            "gate": "skill"
+          },
+          {
+            "tokenId": "2",
+            "status": "refused",
+            "gate": "verifier"
+          },
+          {
+            "tokenId": "1",
+            "status": "refused",
+            "gate": "policy"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "seq": 96,
+      "at": "2026-11-02T06:10:15.179Z",
+      "opKey": null,
+      "event": "tender-discovered",
+      "detail": {
+        "tokenId": "9",
+        "demander": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "rewardWei": "1000000000000000",
+        "block": 116
+      }
+    },
+    {
+      "seq": 97,
+      "at": "2026-11-02T06:10:15.256Z",
+      "opKey": null,
+      "event": "safety-changed",
+      "detail": {
+        "from": "NotSatisfied",
+        "to": "Satisfied",
+        "reasons": [
+          "None"
+        ],
+        "restrictions": [
+          0
+        ],
+        "block": 116
+      }
+    },
+    {
+      "seq": 100,
+      "at": "2026-11-02T06:10:17.381Z",
+      "opKey": null,
+      "event": "runner-tick",
+      "detail": {
+        "at": "2026-11-02T06:10:15.826Z",
+        "block": 116,
+        "provider": "stub",
+        "model": "foga-stub/1",
+        "modelCalls": 5,
+        "toolCalls": 4,
+        "acts": 2,
+        "decisions": [
+          24,
+          25,
+          26
+        ],
+        "refusals": [],
+        "trajectoryHash": "0x4d4bd16f1b80d4a58211e9f64f2952f0caee653c563a5b299c8c48cddcd1dd94",
+        "tenders": [
+          {
+            "tokenId": "9",
+            "status": "refused",
+            "gate": "safety"
+          },
+          {
+            "tokenId": "5",
+            "status": "refused",
+            "gate": "policy"
+          },
+          {
+            "tokenId": "4",
+            "status": "refused",
+            "gate": "skill"
+          },
+          {
+            "tokenId": "2",
+            "status": "refused",
+            "gate": "verifier"
+          },
+          {
+            "tokenId": "1",
+            "status": "refused",
+            "gate": "policy"
+          }
+        ],
+        "error": null
+      }
+    }
+  ],
+  "summary": {
+    "cases": 7,
+    "taken": 3,
+    "refused": 4,
+    "pending": 0,
+    "decisions": {
+      "allowed": 19,
+      "refused": 8
+    },
+    "operations": 42
+  }
+}

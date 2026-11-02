@@ -81,7 +81,7 @@ foga node serve --config cell.config.json                 # no key: reads, dry r
 foga node serve --config cell.config.json --no-watch      # the server without the watchers
 ```
 
-With the operator key and a born cell, the watchers (heartbeat, tender discovery, settlement, safety) run beside the server on `runtime.pollSeconds`; their lines go to stderr. `SIGINT`/`SIGTERM` close the server and the store. The systemd unit and the Caddy site of the OG host are part of 3d.
+With the operator key and a born cell, the watchers (heartbeat, tender discovery, settlement, safety) run beside the server on `runtime.pollSeconds`; their lines go to stderr. `SIGINT`/`SIGTERM` close the server and the store. `foga node run` is the same server with the runner beside the watchers — a model proposing acts the catalog judges (docs/loop-d.md). The systemd unit and the Caddy site of the OG host are part of 3d.
 
 ## Client configuration
 

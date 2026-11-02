@@ -8,13 +8,13 @@
     "source": "github"
   },
   "websiteUrl": "https://foga.finchip.ai",
-  "version": "0.6.0-alpha.3",
+  "version": "0.6.0-alpha.4",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "foga",
-      "version": "0.6.0-alpha.3",
+      "version": "0.6.0-alpha.4",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

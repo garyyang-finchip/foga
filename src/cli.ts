@@ -31,6 +31,8 @@ usage:
   foga doctor --world <config.json> --attach [--rpc <url>] [--out <report.json>]
   foga doctor --world <...> --export-probe <probe.json>      write the JSON-RPC probe plan instead of calling an RPC
   foga doctor --world <...> --import-results <results.json>  evaluate results collected by a relay (offline replay)
+  foga doctor [--world <world.json>] --loop-d <evidence.json> [--compare <evidence2.json>] [--out <report.json>]
+                                                 the Loop D verdicts from a run's evidence (beside layer 5 when --world is given; alone otherwise)
   foga probe relay-script                        print a dependency-free node script that runs a probe plan
   foga genesis preflight --world <world.json> [--rpc <url>]   check RPC, keys, balances against the floors, escrow admin, proving material; sends nothing
   foga genesis run --world <world.json> [--rpc <url>] [--until T0..T9] [--store <file.sqlite>] [--out <evidence.json>]
@@ -38,9 +40,16 @@ usage:
                                                  run the genesis scenario (idempotent; re-run to resume)
   foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
   foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
+  foga demo --loop-d [--model stub|anthropic] [--model-name <name>] [--seed <n>] [--no-recovery] [--port <n>] [--keep]
+                                                 the above, then Loop D: a new cell born, a demander minting cases a-g, the embedded node with a model,
+                                                 the recovery drill, the guardian's suspension; evidence to deployments/loop-d.local.json, judged by the doctor
+  foga loop-d run --world <world.json> --rpc <url> [--dir <dir>] [--out <evidence.json>] [--model stub|anthropic] [--model-name <name>] [--seed <n>] [--no-recovery]
+                                                 Loop D on a world that exists (FOGA_FUNDER_KEY funds the cell's roles on a non-local chain)
+  foga demo demander --world <w> --rpc <url> --store <sqlite> --cell <addr> --scheme <id> --issuer <addr> --probe-hash <h> --extract-hash <h> --cases a,b,c --seed <n> --out <json>
+                                                 the independent demander of Loop D (FOGA_DEMANDER_KEY; anvil's first account by default)
   foga bundle info                               summarize the committed bundle
   foga cell …                                    a cell as a node: birth, migration, and every capability of the catalog as a subcommand (foga cell help)
-  foga node tick | watch | mcp | serve | key new --config <cell.config.json>   a running node: the watchers, MCP over stdio, the HTTP server, API keys
+  foga node tick | watch | mcp | serve | run | key new --config <cell.config.json>   a running node: the watchers, MCP over stdio, the HTTP server, the embedded runner, API keys
   foga mcp --config <cell.config.json>          = foga node mcp (what an MCP client's command line runs)
 
 environment:
@@ -172,7 +181,13 @@ async function main(): Promise<void> {
 
   if (group === "doctor") {
     let worldPath = str(flags, "world");
-    if (!worldPath) fail("--world <world.json> is required");
+    if (!worldPath && str(flags, "loop-d")) {
+      const { runLoopDDoctor } = await import("./doctor/doctor.js");
+      const report = runLoopDDoctor({ evidencePath: resolve(str(flags, "loop-d")!), comparePath: str(flags, "compare") ? resolve(str(flags, "compare")!) : undefined, outPath: str(flags, "out") ? resolve(str(flags, "out")!) : undefined });
+      if (report.summary.Fail > 0) process.exitCode = 3;
+      return;
+    }
+    if (!worldPath) fail("--world <world.json> is required (or --loop-d <evidence.json> alone)");
     worldPath = resolve(worldPath);
     if (flags.attach) {
       const cfg = loadWorldConfig(worldPath);
@@ -189,6 +204,8 @@ async function main(): Promise<void> {
       exportProbePath: str(flags, "export-probe") ? resolve(str(flags, "export-probe")!) : undefined,
       importResultsPath: str(flags, "import-results") ? resolve(str(flags, "import-results")!) : undefined,
       genesisPath: str(flags, "genesis") ? resolve(str(flags, "genesis")!) : undefined,
+      loopDPath: str(flags, "loop-d") ? resolve(str(flags, "loop-d")!) : undefined,
+      loopDComparePath: str(flags, "compare") ? resolve(str(flags, "compare")!) : undefined,
     });
     if (report && report.summary.Fail > 0) process.exitCode = 3;
     return;
@@ -306,8 +323,36 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (group === "demo" && cmd === "demander") {
+    const { mintCases } = await import("./demo/demander.js");
+    const { anvilKeys } = await import("./genesis/roles.js");
+    const need = (k: string) => str(flags, k) ?? fail(`--${k} is required`);
+    const worldPath = resolve(need("world"));
+    const worldFile = readJson<{ network?: string }>(worldPath);
+    const key = process.env.FOGA_DEMANDER_KEY ?? (worldFile.network === "anvil" ? anvilKeys().W : undefined);
+    if (!key) fail("FOGA_DEMANDER_KEY is required on a non-local world");
+    const cases = (str(flags, "cases") ?? "a,b,c,d,d2,e").split(",").map((c) => c.trim()) as any;
+    const result = await mintCases({ worldPath, rpc: need("rpc"), storePath: resolve(need("store")), key, cell: need("cell"), schemeId: need("scheme"), issuers: need("issuer").split(","), packages: { "foga-probe": need("probe-hash"), "finch-extract-verify": need("extract-hash") }, cases, seed: Number(str(flags, "seed") ?? 7), log: (line) => console.error(line) });
+    const out = str(flags, "out");
+    if (out) writeJson(resolve(out), result);
+    else console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if (group === "loop-d" && cmd === "run") {
+    const { runLoopD, defaultLoopDDir } = await import("./demo/loop-d.js");
+    const worldPath = str(flags, "world") ?? fail("--world <world.json> is required");
+    const rpc = str(flags, "rpc") ?? process.env.FOGA_RPC_URL ?? fail("--rpc <url> is required");
+    const model = (str(flags, "model") ?? "stub") as "stub" | "anthropic";
+    if (model !== "stub" && model !== "anthropic") fail("--model must be stub or anthropic");
+    await runLoopD({ rpc, worldPath: resolve(worldPath), dir: str(flags, "dir") ? resolve(str(flags, "dir")!) : defaultLoopDDir(), evidencePath: resolve(str(flags, "out") ?? join(root, "deployments", "loop-d.local.json")), model, modelName: str(flags, "model-name") ?? process.env.FOGA_MODEL, seed: str(flags, "seed") ? Number(str(flags, "seed")) : undefined, recovery: !flags["no-recovery"], funderKey: process.env.FOGA_FUNDER_KEY });
+    return;
+  }
+
   if (group === "demo") {
-    await demo({ port: Number(str(flags, "port") ?? 8545), keep: Boolean(flags.keep), genesis: str(flags, "genesis") as any });
+    const model = (str(flags, "model") ?? "stub") as "stub" | "anthropic";
+    if (model !== "stub" && model !== "anthropic") fail("--model must be stub or anthropic");
+    await demo({ port: Number(str(flags, "port") ?? 8545), keep: Boolean(flags.keep), genesis: str(flags, "genesis") as any, loopD: flags["loop-d"] ? { model, modelName: str(flags, "model-name") ?? process.env.FOGA_MODEL, seed: str(flags, "seed") ? Number(str(flags, "seed")) : undefined, recovery: !flags["no-recovery"] } : undefined });
     return;
   }
 
@@ -315,7 +360,7 @@ async function main(): Promise<void> {
   fail(`unknown command: ${positional.join(" ")}`);
 }
 
-async function demo(opts: { port: number; keep: boolean; genesis?: string }): Promise<void> {
+async function demo(opts: { port: number; keep: boolean; genesis?: string; loopD?: { model: "stub" | "anthropic"; modelName?: string; seed?: number; recovery: boolean } }): Promise<void> {
   const root = repoRoot();
   const rpc = `http://127.0.0.1:${opts.port}`;
 
@@ -401,6 +446,13 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string }): Pr
     // the doctor's fifth layer: what the genesis established, per standard
     const second = await runDoctor({ worldPath: out, rpc, outPath: join(root, "deployments", "local.doctor.json"), genesisPath: evidencePath, quiet: true });
     if (second.report && second.report.summary.Fail > 0) process.exitCode = 3;
+  }
+  if (opts.loopD) {
+    const { runLoopD, defaultLoopDDir } = await import("./demo/loop-d.js");
+    const evidencePath = join(root, "deployments", "loop-d.local.json");
+    await runLoopD({ rpc, worldPath: out, dir: defaultLoopDDir(), evidencePath, model: opts.loopD.model, modelName: opts.loopD.modelName, seed: opts.loopD.seed, recovery: opts.loopD.recovery });
+    const judged = await runDoctor({ worldPath: out, rpc, outPath: join(root, "deployments", "local.doctor.json"), genesisPath: opts.genesis ? join(root, "deployments", "local.genesis.json") : undefined, loopDPath: evidencePath, quiet: true });
+    if (judged.report && judged.report.summary.Fail > 0) process.exitCode = 3;
   }
   if (opts.keep) {
     // Let this process return while anvil, started detached, keeps serving.
