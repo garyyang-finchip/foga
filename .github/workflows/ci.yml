@@ -150,7 +150,14 @@ jobs:
         run: npm run build && node bin/foga.js --help
 
       - name: Pack the npm tarball and run the packaged CLI from a clean install (help, catalog, a cell born on the local world, MCP over stdio)
-        run: node scripts/pack-smoke.mjs http://127.0.0.1:8545 deployments/ci-local.json "$RUNNER_TEMP/foga-pack"
+        shell: bash
+        run: |
+          # the tail of a failure becomes an annotation, readable on the run's summary page without the logs
+          set -o pipefail
+          if ! node scripts/pack-smoke.mjs http://127.0.0.1:8545 deployments/ci-local.json "$RUNNER_TEMP/foga-pack" 2>&1 | tee "$RUNNER_TEMP/pack-smoke.log"; then
+            echo "::error title=pack smoke failed::$(tail -c 1200 "$RUNNER_TEMP/pack-smoke.log" | tr -d '\r' | tr '\n' ' ')"
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v7
         if: always()
