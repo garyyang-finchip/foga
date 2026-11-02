@@ -60,7 +60,8 @@ export interface LoopDEvidence {
   ranAt: string;
   finishedAt: string;
   seed: number;
-  model: { provider: string; model: string };
+  /** The proposer: stub or anthropic with the embedded runner (caller "runner"), or external — an outside agent through the entrance, named by the label given and the id of its key. */
+  model: { provider: string; model: string; caller?: string };
   cell: { name: string; account: string; agentId: string | null; owner: string; operator: string; guardian: string; bornAtBlock: number; specId: string | null };
   demander: string;
   cases: (DemandCase & { outcome: CaseOutcome })[];

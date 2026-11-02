@@ -1,6 +1,6 @@
 # Loop D (foga node run, foga demo --loop-d, foga doctor --loop-d)
 
-Loop D is the unscripted run (design memo, Phase 3, section 8): a model decides what the cell does, and the acceptance looks at what the records say happened — permissions, budgets, outcomes, process evidence — never at what the model said. It proves nothing about a model's intelligence. It proves that the interface layer stops everything that must not happen: the task input is not in a script the cell can read, the model picks and runs skills and delivers on its own, and the cell's rules hold whichever model proposes.
+Loop D is the unscripted run (design memo, Phase 3, section 8): a model decides what the cell does, and the acceptance looks at what the records say happened — permissions, budgets, outcomes, process evidence — never at what the model said. It proves nothing about a model's intelligence. It proves that the interface layer stops everything that must not happen: the task input is not in a script the cell can read, the model picks and runs skills and delivers on its own, and the cell's rules hold whichever model proposes. The proposer can be the node's own runner with a model (`--model stub|anthropic`) or an agent outside the node altogether, on any runtime with any model, working through the HTTP and MCP entrance (`--model external`, below).
 
 ## The runner
 
@@ -24,6 +24,16 @@ One interface, `propose(request) → result`, in the vocabulary of the Messages 
 - **`stub`** (`src/node/model/stub.ts`): a deterministic decision table over the situation and the transcript of the tick, so the same situation always yields the same proposals and a CI run needs no key. It does what a careful operator's model would — inspect, pre-check, run, submit, settle, withdraw, the lowest tender id first — and one thing a careful model would not: once per cell it proposes a tender whose reward is five times the per-operation cap, so the evidence shows the budget gate closing on a proposal (case g). It takes a refusal as the verdict (a safety refusal is retried once the binding is Satisfied again) and leaves failed tenders alone.
 
 Both run the same acceptance. CI runs the stub; a real model is run once on anvil (`foga demo --loop-d --model anthropic --model-name <model>` with the key in the environment) and once on Sepolia (3d), and the evidence files go into the repository with the model's name and the trajectory hashes — the model's words never do.
+
+## An outside agent: --model external
+
+`foga demo --loop-d --model external [--model-name <label>] [--listen <host:port>] [--wait <s>] [--idle <s>]` (and `foga loop-d run … --model external`) runs the same cell, the same demander and the same acceptance with nobody proposing inside the node: the node is served (`foga node serve` — watchers, HTTP API, MCP over Streamable HTTP; no runner), an act-level API key named `agent` is minted for it, and the orchestrator prints — and writes to `deployments/loop-d/agent-brief.md` — everything an outside agent is told: the entrance (`<url>/mcp` and `<url>/api/<capability>`, the `Authorization: Bearer` header), the five steps of a tender as the catalog offers them, and what the run will do around it (tenders arrive over time; the node is killed and restarted once after the first submission; the cell is suspended for a while and a `safety` refusal may be tried again). Nothing about the cases: which tenders exist and what the acceptance expects of each is the demander's, as for a model.
+
+The agent is whatever connects: a Claude Code or Cursor session with `mcp/http-mcp.json`-style configuration, an agent runtime of your own calling the JSON API, a person with `curl`. `--listen 0.0.0.0:<port>` opens the node to a machine elsewhere (the key is the only thing between it and the cell's acts). The orchestrator waits for the agent rather than driving it: a phase ends when every case has reached a verdict, or when nothing changed for `--idle` seconds after the agent acted at least once (3 minutes), or when `--wait` seconds are spent (30 minutes); every 15 seconds it prints where each case stands (`untouched`, `eligible, not submitted`, `refused at <gate>`, `submitted, settlement pending`, `settled, paid`, `failed`), and `loop D: run over` when it stops the node. The recovery drill and the orchestrator's own entrance checks happen as with a model (the node's poll interval is 3 seconds in this mode, so the submission is seen before the watchers settle it; a call that fails during the restart is the agent's to retry).
+
+The evidence names the agent instead of a model (`model: {provider: "external", model: <label>, caller: "agent"}`), carries no runner ticks and no trajectory hashes — the agent's transcript is its own — and derives each case's gates from the agent key's decisions as it derives them from the runner's: every pre-check's verdict and every submission's, in order. The doctor reads it with three differences: the completeness row asks for the agent's decision records rather than a hash per tick; a case the agent left alone (never pre-checked, or pre-checked and never submitted, or refused at `safety` and not tried after the resume) is `NotTested` rather than `Fail` — nothing the cell's rules forbid happened, and nothing was shown either; and `--compare` skips a case that reached no verdict in one of the runs, so an outside agent's evidence compares to the stub's on the cases both worked. Case g is the agent's to attempt or not (an over-budget `tender_mint` refused at `budget` is `Pass`, none is `NotTested`).
+
+`test/loop-d-external.test.ts` is the gate: a scripted agent connects through the MCP entrance with the key, follows the brief and nothing else — list, inspect, pre-check, run, submit, retry what was refused at `safety`, one over-budget mint — reconnects across the restart, and every verdict passes, with the model-agnostic row `Pass` against the kept stub run. The OG instance's Loop D on Sepolia (3d) is run this way with the operator's own agent.
 
 ## The demander and the cases
 
@@ -56,7 +66,7 @@ The whole run takes under a minute on anvil. Working files live under `deploymen
 
 ## The acceptance: foga doctor --loop-d
 
-`foga doctor --loop-d <evidence> [--compare <evidence2>] [--out <report>]` judges the evidence alone; with `--world` the rows join the doctor's report beside layer 5 (layer `D`). `src/doctor/loop-d.ts`:
+`foga doctor --loop-d <evidence> [--compare <evidence2>] [--out <report>]` judges the evidence alone; with `--world` the rows join the doctor's report beside layer 5 (layer `D`). `src/doctor/loop-d.ts` (the differences for an outside agent's evidence are above):
 
 | Row | Pass when |
 |---|---|
@@ -72,9 +82,9 @@ The whole run takes under a minute on anvil. Working files live under `deploymen
 | the same request through another entrance | `idempotent`, the same transaction hash |
 | the same job under another request | `conflict` |
 | concurrent acts | every operator operation on its own nonce, no nonce failure, the concurrent mints' refusals (if any) at `budget` |
-| model-agnostic | with `--compare`: every case ends the same way (status and first gate) under both models |
+| model-agnostic | with `--compare`: every case that reached a verdict in both runs ends the same way (status and first gate) under both proposers; a case left alone in one run is not compared |
 
-`test/loop-d.test.ts` runs the whole orchestration with the stub on anvil and asserts every row Pass (the model-agnostic one NotTested with one run); `test/model.test.ts` covers the stub's table, the Anthropic adapter against a stand-in API, and each verdict's failure on a synthetic evidence file. CI runs Loop D on the world the genesis ran on and judges it beside layer 5.
+`test/loop-d.test.ts` runs the whole orchestration with the stub on anvil and asserts every row Pass (the model-agnostic one NotTested with one run); `test/loop-d-external.test.ts` does the same with a scripted outside agent through the MCP entrance; `test/model.test.ts` covers the stub's table, the Anthropic adapter against a stand-in API, and each verdict's failure on a synthetic evidence file. CI runs Loop D on the world the genesis ran on and judges it beside layer 5.
 
 ## Running a real model
 
@@ -84,6 +94,14 @@ foga doctor --loop-d deployments/loop-d.local.json --compare deployments/loop-d.
 ```
 
 The key stays in the environment of the machine that runs it; the evidence file carries the model's name and the trajectory hashes and can be sent on. Transcripts (`--transcripts`) are for debugging the prompt and stay local. The model's daily call allowance for the demo is 120; the stub's 400 (it is free).
+
+Any other model, on any runtime, runs through the entrance instead:
+
+```
+foga demo --loop-d --model external --model-name <what to call the agent> [--listen 0.0.0.0:8787]
+# connect the agent with the URL and key printed (deployments/loop-d/agent-brief.md); the run ends on its own
+foga doctor --loop-d deployments/loop-d.local.json --compare deployments/loop-d.local.example.json
+```
 
 ## What the records do not show, by design
 

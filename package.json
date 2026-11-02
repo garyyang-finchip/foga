@@ -1,6 +1,6 @@
 {
   "name": "@finchip.ai/foga",
-  "version": "0.6.0-alpha.5",
+  "version": "0.6.0-alpha.6",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/garyyang-finchip/foga.git"
@@ -48,6 +48,7 @@
     "build/profiles.json",
     "build/known-interface-ids.json",
     "vendor/LOCK.json",
+    "scripts/prepare.mjs",
     "server.json",
     "README.md",
     "LICENSE",
@@ -55,6 +56,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepare": "node scripts/prepare.mjs",
     "foga": "tsx src/cli.ts",
     "vendor:sync": "tsx src/cli.ts vendor sync",
     "bundle": "tsx src/cli.ts build",

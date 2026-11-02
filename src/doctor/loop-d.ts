@@ -26,8 +26,14 @@ export function loadLoopDEvidence(path: string): LoopDEvidence {
 
 const row = (check: string, verdict: Verdict, expected: string, actual: string, detail?: string): LoopDRow => ({ check, verdict, expected, actual, ...(detail ? { detail } : {}) });
 
+/** The proposer's decisions: the runner's for a model, the agent key's for an outside agent (older evidence names no caller: the runner). */
+function proposerCaller(e: LoopDEvidence): string {
+  return e.model.caller ?? "runner";
+}
+
 export function loopDVerdicts(e: LoopDEvidence, compare?: LoopDEvidence): LoopDRow[] {
   const rows: LoopDRow[] = [];
+  const external = e.model.provider === "external";
   const allowed = e.decisions.filter((d) => d.verdict === "allowed");
   const refused = e.decisions.filter((d) => d.verdict === "refused");
   const jobOps = e.operations.filter((o) => o.signer === "operator" && o.key.startsWith("job:"));
@@ -56,13 +62,17 @@ export function loopDVerdicts(e: LoopDEvidence, compare?: LoopDEvidence): LoopDR
   const reverted = txs.filter((t) => t.status === 0);
   rows.push(row("no operator transaction reverted", reverted.length ? "Unknown" : txs.length ? "Pass" : "NotTested", "the account's gate was never the one to refuse what every check allowed", reverted.length ? `${reverted.length} reverted: ${reverted.map((t) => t.hash).join(", ")}` : `${txs.length} succeeded`, reverted.length ? "a revert after an allowed decision is the chain refusing, not a policy refusal; see the execution decisions" : undefined));
 
-  // 5. the cases
+  // 5. the cases (an outside agent may leave a tender alone: nothing the cell's rules forbid happened, nothing was tested either)
   for (const c of e.cases) {
     const o = c.outcome;
     const exp = c.expect;
     let verdict: Verdict = "Fail";
     let actual = `${o.status}${o.gates.length ? ` (gates ${o.gates.join(" > ")})` : ""}`;
-    if (exp.outcome === "taken") {
+    const untouched = external && !o.settled && !o.submissions.some((s) => s.byCell) && o.gates.every((g) => g === "allowed" || g === "safety");
+    if (untouched) {
+      verdict = "NotTested";
+      actual += o.gates.includes("safety") ? "; refused at safety during the suspension, never submitted after the resume" : o.gates.length ? "; pre-checked by the agent but never submitted" : "; the agent made no attempt";
+    } else if (exp.outcome === "taken") {
       const reached = BigInt(o.paidWei) + BigInt(o.withdrawnWei);
       const paid = reached === BigInt(c.rewardWei);
       verdict = o.status === "taken" && o.settled && paid ? "Pass" : "Fail";
@@ -82,9 +92,11 @@ export function loopDVerdicts(e: LoopDEvidence, compare?: LoopDEvidence): LoopDR
   const g = e.budgetProbe;
   rows.push(row("case g: a proposal above the budget is refused at budget", g.attempted ? (g.gate === "budget" ? "Pass" : "Fail") : "NotTested", "the model's over-budget act refused at `budget`, nothing broadcast", g.attempted ? `${g.capability} refused at ${g.gate} (decision ${g.decisionId})` : "the model made no proposal above the budget", g.attempted ? undefined : "the stub makes this proposal on purpose; a real model may never make it"));
 
-  // 7. the evidence is complete
-  const complete = e.runner.ticks > 0 && e.runner.trajectoryHashes.length === e.runner.ticks && e.model.model.length > 0 && e.decisions.length > 0;
-  rows.push(row("the evidence carries every decision and every tick's trajectory hash", complete ? "Pass" : "Fail", "model named, a hash per tick, decision records present", `${e.model.provider}/${e.model.model || "?"}, ${e.runner.ticks} tick(s), ${e.runner.trajectoryHashes.length} hash(es), ${e.decisions.length} decision(s), ${e.runner.errors} model error(s)`));
+  // 7. the evidence is complete: a model's run has a hash per tick; an outside agent's run has the agent's decisions (its transcript is its own)
+  const proposer = proposerCaller(e);
+  const proposed = e.decisions.filter((d) => d.caller === proposer).length;
+  const complete = external ? e.model.model.length > 0 && proposed > 0 : e.runner.ticks > 0 && e.runner.trajectoryHashes.length === e.runner.ticks && e.model.model.length > 0 && e.decisions.length > 0;
+  rows.push(row("the evidence carries every decision and every tick's trajectory hash", complete ? "Pass" : "Fail", external ? "the agent named, decision records of its proposals present (no transcript: the agent's words stay with the agent)" : "model named, a hash per tick, decision records present", external ? `${e.model.provider}/${e.model.model || "?"} as caller ${proposer}: ${proposed} decision(s) on its proposals, ${e.decisions.length} in all` : `${e.model.provider}/${e.model.model || "?"}, ${e.runner.ticks} tick(s), ${e.runner.trajectoryHashes.length} hash(es), ${e.decisions.length} decision(s), ${e.runner.errors} model error(s)`));
 
   // 8. recovery: killed after a submission, restarted, nothing sent twice
   const r = e.recovery;
@@ -107,20 +119,29 @@ export function loopDVerdicts(e: LoopDEvidence, compare?: LoopDEvidence): LoopDR
   const nonceFailures = e.operations.filter((o) => o.signer === "operator" && o.status === "failed" && /nonce/i.test(o.error ?? ""));
   rows.push(row("concurrent acts across entrances and the watchers: distinct nonces, the budget holding", conc ? (uniqueNonces && nonceFailures.length === 0 && conc.allowed + conc.refused.length === conc.requested && conc.refused.every((x) => x.gate === "budget") ? "Pass" : "Fail") : uniqueNonces && nonceFailures.length === 0 ? "Pass" : "Fail", "every operator operation on its own nonce, no nonce failure, refusals (if any) at `budget`", `${nonces.length} nonce(s), ${uniqueNonces ? "all distinct" : "repeated"}, ${nonceFailures.length} nonce failure(s)${conc ? `; ${conc.requested} concurrent mint(s): ${conc.allowed} allowed, ${conc.refused.length} refused (${conc.refused.map((x) => x.gate).join(", ") || "-"})` : ""}`));
 
-  // 10. model-agnostic: the stub and a real model reach the same outcomes
+  // 10. model-agnostic: two proposers (the stub, a real model, an outside agent) reach the same outcomes; a case one of them left alone compares to nothing
   if (compare) {
     const diffs: string[] = [];
+    const skipped: string[] = [];
+    let agreed = 0;
+    const decided = (o: LoopDEvidence["cases"][number]["outcome"]) => o.status !== "pending" && o.status !== "other";
     for (const c of e.cases) {
       const other = compare.cases.find((x) => x.id === c.id);
       if (!other) {
         diffs.push(`${c.id}: missing in the other run`);
         continue;
       }
+      if (!decided(c.outcome) || !decided(other.outcome)) {
+        skipped.push(c.id);
+        continue;
+      }
       const a = `${c.outcome.status}/${c.outcome.gates[0] ?? "-"}`;
       const b = `${other.outcome.status}/${other.outcome.gates[0] ?? "-"}`;
       if (a !== b) diffs.push(`${c.id}: ${a} vs ${b}`);
+      else agreed++;
     }
-    rows.push(row("model-agnostic: the same outcomes from both models", diffs.length ? "Fail" : "Pass", "every case ends the same way under both models", diffs.length ? diffs.join("; ") : `${e.cases.length} case(s) agree (${e.model.provider}/${e.model.model} vs ${compare.model.provider}/${compare.model.model})`));
+    const label = `${e.model.provider}/${e.model.model} vs ${compare.model.provider}/${compare.model.model}`;
+    rows.push(row("model-agnostic: the same outcomes from both models", diffs.length ? "Fail" : agreed ? "Pass" : "NotTested", "every case ends the same way under both proposers", diffs.length ? diffs.join("; ") : agreed ? `${agreed} case(s) agree (${label})${skipped.length ? `; ${skipped.join(", ")} left alone in one of the runs, not compared` : ""}` : `no case reached a verdict in both runs (${label})`));
   } else rows.push(row("model-agnostic: the same outcomes from both models", "NotTested", "every case ends the same way under both models", "one run only; pass a second evidence file with --compare"));
 
   return rows;

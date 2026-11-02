@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
-import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
-import { createConnection } from "node:net";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { cpus, homedir, loadavg } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { buildBundle } from "./build/bundle.js";
 import { syncVendor, verifyVendor } from "./build/vendor.js";
+import { anvilBinary, launchAnvil, portProblem } from "./demo/anvil.js";
+import { LOOP_D_MODELS, type LoopDModel } from "./demo/loop-d.js";
 import { runDoctor } from "./doctor/doctor.js";
-import { ensureDir, exists, readJson, repoRoot, writeJson } from "./util/fs.js";
+import { exists, readJson, repoRoot, writeJson } from "./util/fs.js";
 import { fail, log } from "./util/log.js";
 import { attachWorld, deployWorld, loadWorldConfig, missingPlanSteps } from "./world/deploy.js";
 import { loadBundle } from "./bundle/load.js";
@@ -39,12 +39,17 @@ usage:
                    [--zk auto|require|skip] [--crash-after <opKey>] [--crash-before <opKey>]
                                                  run the genesis scenario (idempotent; re-run to resume)
   foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
+  foga quickstart [--dir <dir>] [--port <n>] [--listen <host:port> | --no-serve] [--name <cell>] [--no-tenders] [--exit]
+                                                 one command to a live cell: anvil, the local world, a cell born with fresh keys and its two skills, two tenders,
+                                                 the node serving HTTP and MCP, and the MCP client configurations printed with every path filled in (~/.foga/quickstart)
   foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
-  foga demo --loop-d [--model stub|anthropic] [--model-name <name>] [--seed <n>] [--no-recovery] [--port <n>] [--keep]
-                                                 the above, then Loop D: a new cell born, a demander minting cases a-g, the embedded node with a model,
-                                                 the recovery drill, the guardian's suspension; evidence to deployments/loop-d.local.json, judged by the doctor
-  foga loop-d run --world <world.json> --rpc <url> [--dir <dir>] [--out <evidence.json>] [--model stub|anthropic] [--model-name <name>] [--seed <n>] [--no-recovery]
-                                                 Loop D on a world that exists (FOGA_FUNDER_KEY funds the cell's roles on a non-local chain)
+  foga demo --loop-d [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery] [--port <n>] [--keep]
+                                                 the above, then Loop D: a new cell born, a demander minting cases a-g, the node with a model (or served for an
+                                                 outside agent), the recovery drill, the guardian's suspension; evidence to deployments/loop-d.local.json, judged by the doctor
+  foga loop-d run --world <world.json> --rpc <url> [--dir <dir>] [--out <evidence.json>] [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery]
+                  [--listen <host:port>] [--wait <s>] [--idle <s>]
+                                                 Loop D on a world that exists (FOGA_FUNDER_KEY funds the cell's roles on a non-local chain); with --model external the
+                                                 node is served and an outside agent — any model, any runtime — works the tenders through /mcp or /api with the key printed
   foga demo demander --world <w> --rpc <url> --store <sqlite> --cell <addr> --scheme <id> --issuer <addr> --probe-hash <h> --extract-hash <h> --cases a,b,c --seed <n> --out <json>
                                                  the independent demander of Loop D (FOGA_DEMANDER_KEY; anvil's first account by default)
   foga bundle info                               summarize the committed bundle
@@ -343,16 +348,34 @@ async function main(): Promise<void> {
     const { runLoopD, defaultLoopDDir } = await import("./demo/loop-d.js");
     const worldPath = str(flags, "world") ?? fail("--world <world.json> is required");
     const rpc = str(flags, "rpc") ?? process.env.FOGA_RPC_URL ?? fail("--rpc <url> is required");
-    const model = (str(flags, "model") ?? "stub") as "stub" | "anthropic";
-    if (model !== "stub" && model !== "anthropic") fail("--model must be stub or anthropic");
-    await runLoopD({ rpc, worldPath: resolve(worldPath), dir: str(flags, "dir") ? resolve(str(flags, "dir")!) : defaultLoopDDir(), evidencePath: resolve(str(flags, "out") ?? join(root, "deployments", "loop-d.local.json")), model, modelName: str(flags, "model-name") ?? process.env.FOGA_MODEL, seed: str(flags, "seed") ? Number(str(flags, "seed")) : undefined, recovery: !flags["no-recovery"], funderKey: process.env.FOGA_FUNDER_KEY });
+    await runLoopD({ rpc, worldPath: resolve(worldPath), dir: str(flags, "dir") ? resolve(str(flags, "dir")!) : defaultLoopDDir(), evidencePath: resolve(str(flags, "out") ?? join(root, "deployments", "loop-d.local.json")), funderKey: process.env.FOGA_FUNDER_KEY, ...loopDFlags(flags) });
     return;
   }
 
+  if (group === "quickstart") {
+    const { runQuickstart } = await import("./demo/quickstart.js");
+    let result;
+    try {
+      result = await runQuickstart({ dir: str(flags, "dir"), port: str(flags, "port") ? Number(str(flags, "port")) : undefined, listen: flags["no-serve"] ? null : str(flags, "listen"), name: str(flags, "name"), tenders: !flags["no-tenders"], exit: Boolean(flags.exit) });
+    } catch (e) {
+      fail((e as Error).message);
+    }
+    if (flags.exit) {
+      await result.stop();
+      return;
+    }
+    const stopping = () => {
+      console.error("quickstart: stopping the node and the chain");
+      result.stop().finally(() => process.exit(0));
+    };
+    process.on("SIGINT", stopping);
+    process.on("SIGTERM", stopping);
+    const why = await result.ended;
+    fail(`${why}; the quickstart is over`);
+  }
+
   if (group === "demo") {
-    const model = (str(flags, "model") ?? "stub") as "stub" | "anthropic";
-    if (model !== "stub" && model !== "anthropic") fail("--model must be stub or anthropic");
-    await demo({ port: Number(str(flags, "port") ?? 8545), keep: Boolean(flags.keep), genesis: str(flags, "genesis") as any, loopD: flags["loop-d"] ? { model, modelName: str(flags, "model-name") ?? process.env.FOGA_MODEL, seed: str(flags, "seed") ? Number(str(flags, "seed")) : undefined, recovery: !flags["no-recovery"] } : undefined });
+    await demo({ port: Number(str(flags, "port") ?? 8545), keep: Boolean(flags.keep), genesis: str(flags, "genesis") as any, loopD: flags["loop-d"] ? loopDFlags(flags) : undefined });
     return;
   }
 
@@ -360,20 +383,22 @@ async function main(): Promise<void> {
   fail(`unknown command: ${positional.join(" ")}`);
 }
 
-async function demo(opts: { port: number; keep: boolean; genesis?: string; loopD?: { model: "stub" | "anthropic"; modelName?: string; seed?: number; recovery: boolean } }): Promise<void> {
+/** The Loop D options the flags name (shared by `foga demo --loop-d` and `foga loop-d run`). */
+function loopDFlags(flags: Args["flags"]): { model: LoopDModel; modelName?: string; seed?: number; recovery: boolean; listen?: string; waitMs?: number; idleMs?: number } {
+  const model = (str(flags, "model") ?? "stub") as LoopDModel;
+  if (!LOOP_D_MODELS.includes(model)) fail(`--model must be one of ${LOOP_D_MODELS.join(", ")}`);
+  const seconds = (key: string) => (str(flags, key) ? Number(str(flags, key)) * 1000 : undefined);
+  return { model, modelName: str(flags, "model-name") ?? process.env.FOGA_MODEL, seed: str(flags, "seed") ? Number(str(flags, "seed")) : undefined, recovery: !flags["no-recovery"], listen: str(flags, "listen"), waitMs: seconds("wait"), idleMs: seconds("idle") };
+}
+
+async function demo(opts: { port: number; keep: boolean; genesis?: string; loopD?: ReturnType<typeof loopDFlags> }): Promise<void> {
   const root = repoRoot();
   const rpc = `http://127.0.0.1:${opts.port}`;
 
   // Say what is wrong before starting anything: a port that is already taken makes anvil exit at once, and a
   // silent exit would otherwise surface only as "the RPC did not come up".
-  if (await portInUse(opts.port)) {
-    const answers = await rpcAnswers(rpc);
-    fail(
-      answers
-        ? `${rpc} already answers JSON-RPC (another anvil or node is running). Stop it, or pass --port <n> to use another port.`
-        : `port ${opts.port} is in use by something that does not speak JSON-RPC. Free it, or pass --port <n>.`,
-    );
-  }
+  const problem = await portProblem(opts.port);
+  if (problem) fail(problem);
 
   // A machine that is already saturated (a proving-key build, for instance) starves anvil: blocks come late and the
   // kernel gives up on a receipt after its timeout. Say so before starting rather than after a failure.
@@ -384,52 +409,25 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string; loopD
   }
 
   // FOGA_FOUNDRY_DIR points at a Foundry install of its own (scripts/install-foundry.sh puts the static build there).
-  const foundryDir = process.env.FOGA_FOUNDRY_DIR;
-  const anvilBin = foundryDir ? join(foundryDir, "anvil") : "anvil";
   // anvil's output goes to a log file rather than a pipe: with --keep the node survives this process, and a
   // Rust program whose stderr pipe has gone away dies on its next write.
+  const { path: anvilBin, fromDir } = anvilBinary();
   const logPath = join(root, ".foga-build", "anvil.log");
-  ensureDir(join(root, ".foga-build"));
-  const logFd = openSync(logPath, "w");
-  log.info(`starting anvil on ${rpc}${foundryDir ? ` (${anvilBin})` : ""}; log ${relative(root, logPath)}`);
-  const anvil = spawn(anvilBin, ["--port", String(opts.port), "--silent"], { stdio: ["ignore", logFd, logFd], detached: opts.keep });
-  closeSync(logFd);
-  let exited: string | null = null;
-  anvil.on("exit", (code, signal) => {
-    exited = code !== null ? `exit code ${code}` : `signal ${signal}`;
-  });
+  log.info(`starting anvil on ${rpc}${fromDir ? ` (${anvilBin})` : ""}; log ${relative(root, logPath)}`);
+  let anvil;
+  try {
+    anvil = await launchAnvil({ port: opts.port, logPath, detached: opts.keep });
+  } catch (e) {
+    fail((e as Error).message);
+  }
   const stop = () => {
     if (!opts.keep && !anvil.killed) anvil.kill("SIGTERM");
   };
-  anvil.on("error", (e: NodeJS.ErrnoException) =>
-    fail(
-      e.code === "ENOENT"
-        ? foundryDir
-          ? `${anvilBin} not found (FOGA_FOUNDRY_DIR=${foundryDir}). Run scripts/install-foundry.sh ${foundryDir} first.`
-          : "anvil not found on PATH. Install Foundry (https://getfoundry.sh: `curl -L https://foundry.sh | bash && foundryup`), or run scripts/install-foundry.sh and export FOGA_FOUNDRY_DIR, or use docker compose."
-        : `could not start anvil: ${e.message}`,
-    ),
-  );
   process.on("exit", stop);
   process.on("SIGINT", () => {
     stop();
     process.exit(130);
   });
-  try {
-    await waitForRpc(rpc, 20000, () => exited !== null);
-  } catch (e: any) {
-    let output = "";
-    try {
-      output = readFileSync(logPath, "utf8").slice(-8000);
-    } catch {
-      /* no log */
-    }
-    const why = exited ? `anvil stopped (${exited}) before serving ${rpc}` : `anvil did not serve ${rpc} within 20 s`;
-    const glibc = /GLIBC_[0-9.]+' not found/.test(output)
-      ? "\nThis anvil is the glibc build and this machine's glibc is older than it needs (GLIBC >= 2.35: Ubuntu 22.04 or newer). Install the static build next to it: `scripts/install-foundry.sh` then `export FOGA_FOUNDRY_DIR=~/.foga/foundry` (or put that directory first on PATH)."
-      : "";
-    fail(`${why}.${output.trim() ? `\n--- anvil output ---\n${output.trim()}\n--------------------` : ""}${glibc}\nRun \`${anvilBin} --port ${opts.port}\` by hand to see its output; \`${anvilBin} --version\` shows the installed version (CI uses Foundry v1.7.1).`);
-  }
   const worldConfig = join(root, "worlds", "local.json");
   const out = join(root, "deployments", "local.json");
   await deployWorld({ worldConfigPath: worldConfig, rpc, outPath: out });
@@ -450,7 +448,7 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string; loopD
   if (opts.loopD) {
     const { runLoopD, defaultLoopDDir } = await import("./demo/loop-d.js");
     const evidencePath = join(root, "deployments", "loop-d.local.json");
-    await runLoopD({ rpc, worldPath: out, dir: defaultLoopDDir(), evidencePath, model: opts.loopD.model, modelName: opts.loopD.modelName, seed: opts.loopD.seed, recovery: opts.loopD.recovery });
+    await runLoopD({ rpc, worldPath: out, dir: defaultLoopDDir(), evidencePath, ...opts.loopD });
     const judged = await runDoctor({ worldPath: out, rpc, outPath: join(root, "deployments", "local.doctor.json"), genesisPath: opts.genesis ? join(root, "deployments", "local.genesis.json") : undefined, loopDPath: evidencePath, quiet: true });
     if (judged.report && judged.report.summary.Fail > 0) process.exitCode = 3;
   }
@@ -459,39 +457,6 @@ async function demo(opts: { port: number; keep: boolean; genesis?: string; loopD
     anvil.unref();
     log.info(`anvil left running on ${rpc} (pid ${anvil.pid}, log ${relative(root, logPath)}); world at deployments/local.json. Stop it with: kill ${anvil.pid}`);
   } else stop();
-}
-
-/** True when something accepts TCP connections on 127.0.0.1:port. */
-function portInUse(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = createConnection({ host: "127.0.0.1", port });
-    const done = (v: boolean) => {
-      socket.destroy();
-      resolve(v);
-    };
-    socket.setTimeout(1000, () => done(false));
-    socket.once("connect", () => done(true));
-    socket.once("error", () => done(false));
-  });
-}
-
-async function rpcAnswers(rpc: string): Promise<boolean> {
-  try {
-    const res = await fetch(rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }), signal: AbortSignal.timeout(2000) });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function waitForRpc(rpc: string, timeoutMs: number, giveUp?: () => boolean): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (await rpcAnswers(rpc)) return;
-    if (giveUp?.()) break;
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  throw new Error(`RPC at ${rpc} did not come up within ${timeoutMs} ms`);
 }
 
 main().catch((e) => {

@@ -29,6 +29,8 @@ export interface DeployOptions {
   gasMultiplier?: number;
   /** Local chains only: deploy even if the configured chainId differs (e.g. a fork). */
   allowChainMismatch?: boolean;
+  /** Print nothing but warnings (the quickstart prints its own summary). */
+  quiet?: boolean;
 }
 
 export function loadWorldConfig(path: string): WorldConfig {
@@ -100,6 +102,7 @@ export function resolveRpc(rpc: string): string {
 
 export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFile; path: string }> {
   const root = repoRoot();
+  const say = opts.quiet ? { info: (_m: string) => {}, step: (_m: string) => {}, warn: log.warn } : log;
   const cfg = loadWorldConfig(opts.worldConfigPath);
   const bundle = loadBundle(opts.bundlePath);
   const outPath = opts.outPath ?? join(root, "deployments", `${cfg.name}.json`);
@@ -111,7 +114,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   if (cfg.mode === "attach" && toDeploy.length === 0) {
     const world = attachWorld(cfg, bundle);
     writeJson(outPath, world);
-    log.info(`attached world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${relative(root, outPath)}`);
+    say.info(`attached world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${relative(root, outPath)}`);
     return { world, path: outPath };
   }
 
@@ -131,13 +134,13 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   const wallet = new NonceManager(new Wallet(pk, provider));
   const deployer = await wallet.getAddress();
   const balance = await provider.getBalance(deployer);
-  log.info(`world ${cfg.name} on chain ${net.chainId} via ${rpc}; deployer ${deployer} (balance ${Number(balance) / 1e18} ETH)`);
+  say.info(`world ${cfg.name} on chain ${net.chainId} via ${rpc}; deployer ${deployer} (balance ${Number(balance) / 1e18} ETH)`);
 
   let world: WorldFile;
   if (opts.resume && exists(outPath)) {
     world = readJson<WorldFile>(outPath);
     if (world.chainId !== Number(net.chainId) && !opts.allowChainMismatch) throw new Error(`cannot resume ${outPath}: it belongs to chain ${world.chainId}`);
-    log.info(`resuming world ${world.worldId} from ${relative(root, outPath)}`);
+    say.info(`resuming world ${world.worldId} from ${relative(root, outPath)}`);
   } else if (cfg.mode === "attach") {
     world = attachWorld(cfg, bundle);
     world.notes.push(`${toDeploy.length} reference contracts the upstream records do not provide at the locked revision are deployed from the bundle by ${deployer}: ${toDeploy.join(", ")}`);
@@ -146,7 +149,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   }
   world.deployer = deployer;
   world.bundleHash = bundle.hash;
-  if (cfg.mode === "attach") log.info(`attach-mode world: ${Object.keys(cfg.contracts ?? {}).length} contracts attached; deploying ${toDeploy.length} from the bundle (${toDeploy.join(", ")})`);
+  if (cfg.mode === "attach") say.info(`attach-mode world: ${Object.keys(cfg.contracts ?? {}).length} contracts attached; deploying ${toDeploy.length} from the bundle (${toDeploy.join(", ")})`);
 
   // What the deployer must hold for the contracts not yet in the world file, before the first one is sent.
   const remaining = DEPLOY_PLAN.filter((s) => !world.contracts[s.id] && !(s.id === "identity8004" && cfg.identity8004.mode === "address")).length;
@@ -155,7 +158,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
     const need = BigInt(remaining) * DEPLOY_GAS_PER_STEP * price;
     const priced = `${remaining} contracts x ${Number(DEPLOY_GAS_PER_STEP) / 1e6} M gas at ${Number(price) / 1e9} gwei (${price === feeFloor() ? "the fee floor FOGA_FEE_FLOOR_GWEI; the chain quotes less" : "the chain's quote"}) = ${formatEther(need)} ETH`;
     if (balance < need) throw new Error(`deployer ${deployer} holds ${formatEther(balance)} ETH, the deployment is budgeted at ${priced}. Fund it and run again${world.steps.some((s) => s.status === "deployed") ? " with --resume" : ""}.`);
-    log.info(`deployment budget: ${priced}; the deployer holds ${formatEther(balance)} ETH`);
+    say.info(`deployment budget: ${priced}; the deployer holds ${formatEther(balance)} ETH`);
   }
 
   const stepById = new Map(DEPLOY_PLAN.map((s) => [s.id, s]));
@@ -175,11 +178,11 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   for (const step of DEPLOY_PLAN) {
     const existing = world.contracts[step.id];
     if (existing && cfg.mode === "attach" && cfg.contracts?.[step.id]) {
-      log.step(`${step.id}: attached at ${existing.address}`);
+      say.step(`${step.id}: attached at ${existing.address}`);
       continue;
     }
     if (existing && (await provider.getCode(existing.address)) !== "0x") {
-      log.step(`${step.id}: already at ${existing.address}`);
+      say.step(`${step.id}: already at ${existing.address}`);
       continue;
     }
     const skip = step.skip?.(ctx);
@@ -190,7 +193,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
       }
       world.steps.push({ id: step.id, status: "skipped", note: skip });
       writeJson(outPath, world);
-      log.step(`${step.id}: skipped (${skip})`);
+      say.step(`${step.id}: skipped (${skip})`);
       continue;
     }
     const art = getContract(bundle, step.bundleKey);
@@ -225,12 +228,12 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
     if (step.id === "identity8004") world.identity8004 = { mode: "stub", address, note: cfg.identity8004.note ?? "local stand-in, not the reference registry" };
     world.steps.push({ id: step.id, status: "deployed", txHash: receipt?.hash });
     writeJson(outPath, world);
-    log.step(`${step.id}: ${address} (gas ${receipt?.gasUsed}, block ${receipt?.blockNumber})`);
+    say.step(`${step.id}: ${address} (gas ${receipt?.gasUsed}, block ${receipt?.blockNumber})`);
   }
 
   for (const wire of WIRE_PLAN) {
     if (world.steps.some((s) => s.id === wire.id && s.status === "wired")) {
-      log.step(`${wire.id}: already wired`);
+      say.step(`${wire.id}: already wired`);
       continue;
     }
     const skip = wire.skip?.(ctx);
@@ -248,7 +251,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
       const tx = await c.getFunction(call.fn)(...call.args);
       const receipt = await tx.wait();
       hashes.push(receipt.hash);
-      log.step(`${wire.id}: ${call.fn}(${call.note ?? ""}) in ${receipt.hash}`);
+      say.step(`${wire.id}: ${call.fn}(${call.note ?? ""}) in ${receipt.hash}`);
     }
     world.wiring[wire.id] = { txHashes: hashes };
     world.steps.push({ id: wire.id, status: "wired", txHash: hashes[hashes.length - 1] });
@@ -258,7 +261,7 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   const kinds = bundle.extras["ard-onchain-framework"]?.kindIds?.kinds;
   if (kinds) world.wiring["8444/kindIds"] = kinds;
   writeJson(outPath, world);
-  log.info(`world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${relative(root, outPath)}`);
+  say.info(`world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${relative(root, outPath)}`);
   return { world, path: outPath };
 }
 
