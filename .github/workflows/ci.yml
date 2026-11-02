@@ -114,6 +114,11 @@ jobs:
           '
           npm run foga -- genesis status --world deployments/ci-local.json --store deployments/ci-local.genesis.sqlite
 
+      - name: Loop D with the stub model (a new cell on the local world, the demander's cases a-g, the embedded node killed and restarted, the guardian's suspension, the HTTP entrance beside the runner; judged by the doctor beside layer 5)
+        run: |
+          npm run foga -- loop-d run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --dir "$RUNNER_TEMP/loop-d" --out deployments/ci-loop-d.json --seed 7
+          npm run foga -- doctor --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --genesis deployments/ci-local.genesis.json --loop-d deployments/ci-loop-d.json --out deployments/ci-local.doctor.json
+
       - name: Rehearse the public-chain path (attach-mode world on a second anvil, backing AID registry, hybrid deploy, genesis T0-T9, doctor)
         run: |
           anvil --silent --port 8546 &
@@ -168,6 +173,7 @@ jobs:
             deployments/ci-local.doctor.json
             deployments/ci-local.genesis.json
             deployments/ci-local.genesis.replay.json
+            deployments/ci-loop-d.json
             deployments/ci-local-attach.json
             deployments/ci-local-attach.genesis.json
             deployments/ci-local-attach.doctor.json
