@@ -10,7 +10,7 @@
 // The roles of the smoke cell are three accounts of anvil's phrase beyond the ten it pre-funds (indexes 12-14), so
 // they collide with no genesis role; the owner is funded from anvil's first account, which anvil leaves unlocked.
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -24,6 +24,7 @@ if (!rpc || !worldArg) {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const world = resolve(worldArg);
 const work = workArg ? resolve(workArg) : mkdtempSync(join(tmpdir(), "foga-pack-"));
+mkdirSync(work, { recursive: true }); // npm pack does not create a missing --pack-destination
 const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("FOGA_")));
 
 function run(cmd, args, opts = {}) {
