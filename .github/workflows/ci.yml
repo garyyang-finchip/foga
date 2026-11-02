@@ -119,6 +119,19 @@ jobs:
           npm run foga -- loop-d run --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --dir "$RUNNER_TEMP/loop-d" --out deployments/ci-loop-d.json --seed 7
           npm run foga -- doctor --world deployments/ci-local.json --rpc http://127.0.0.1:8545 --genesis deployments/ci-local.genesis.json --loop-d deployments/ci-loop-d.json --out deployments/ci-local.doctor.json
 
+      - name: Quickstart (its own anvil and node ports; both entrances checked; stops after the summary)
+        run: |
+          npm run foga -- quickstart --dir "$RUNNER_TEMP/quickstart" --port 8547 --listen 127.0.0.1:8797 --exit > "$RUNNER_TEMP/quickstart.out"
+          node -e '
+            const fs = require("fs");
+            const dir = process.env.RUNNER_TEMP + "/quickstart";
+            for (const f of ["cell.config.json", "connect.md", "quickstart.json", "keys/operator.key", "mcp/claude_desktop_config.json", "mcp/claude-code.mcp.json", "mcp/cursor-mcp.json", "mcp/http-mcp.json"]) if (!fs.existsSync(dir + "/" + f)) throw new Error("quickstart did not write " + f);
+            const desktop = JSON.parse(fs.readFileSync(dir + "/mcp/claude_desktop_config.json", "utf8"));
+            if (!desktop.mcpServers.foga.args.includes("mcp")) throw new Error("the client configuration does not start the stdio server");
+            const out = fs.readFileSync(process.env.RUNNER_TEMP + "/quickstart.out", "utf8");
+            if (!/a FOGA cell is live/.test(out) || !/Authorization: Bearer foga\.agent\./.test(out)) throw new Error("the summary is incomplete:\n" + out.slice(0, 2000));
+          '
+
       - name: Rehearse the public-chain path (attach-mode world on a second anvil, backing AID registry, hybrid deploy, genesis T0-T9, doctor)
         run: |
           anvil --silent --port 8546 &
