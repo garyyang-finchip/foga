@@ -1,0 +1,18 @@
+# Every text file is checked out with LF line endings on every platform: the package's launcher (bin/foga.js) and the
+# shell scripts must keep their LF (a CRLF shebang line breaks them), and the committed JSON and fixtures hash the same
+# everywhere (the bundle hash, the skill package hashes and the fixture's extraction are computed over the bytes).
+# A checkout made before this file existed on a Windows machine with core.autocrlf=true should be renormalized:
+#   git add --renormalize . && git status
+* text=auto eol=lf
+
+# Shell scripts and the launcher stay executable and LF
+*.sh text eol=lf
+bin/foga.js text eol=lf
+
+# Binary content, should any be committed (proving material, images)
+*.zkey binary
+*.wasm binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
