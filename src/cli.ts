@@ -40,7 +40,8 @@ usage:
   foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga bundle info                               summarize the committed bundle
   foga cell …                                    a cell as a node: birth, migration, and every capability of the catalog as a subcommand (foga cell help)
-  foga node tick | watch --config <cell.config.json>   the watchers of a running node (operator key alone)
+  foga node tick | watch | mcp | serve | key new --config <cell.config.json>   a running node: the watchers, MCP over stdio, the HTTP server, API keys
+  foga mcp --config <cell.config.json>          = foga node mcp (what an MCP client's command line runs)
 
 environment:
   FOGA_SOLC_DIR   directory with solc-<version> static binaries (offline builds; otherwise forge downloads solc)
@@ -98,7 +99,13 @@ async function main(): Promise<void> {
   }
   if (group === "node") {
     const { nodeCommand } = await import("./cli-cell.js");
-    await nodeCommand(cmd, flags);
+    await nodeCommand(cmd, positional.slice(2), flags);
+    return;
+  }
+  if (group === "mcp") {
+    // `npx foga mcp --config <cell.config.json>`: the stdio MCP server
+    const { nodeCommand } = await import("./cli-cell.js");
+    await nodeCommand("mcp", [], flags);
     return;
   }
 

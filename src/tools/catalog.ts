@@ -218,7 +218,16 @@ export class Catalog {
   }
 }
 
+/**
+ * The canonical hash of a request: the input without its idempotency key. `jobId` names the job and is not part of
+ * what the job does, so a request first made under a derived id and then repeated naming that id is the same request
+ * (idempotent), while the same id with another input is a conflict.
+ */
 export function hashInput(input: unknown): string {
+  if (input && typeof input === "object" && !Array.isArray(input) && "jobId" in input) {
+    const { jobId: _jobId, ...rest } = input as Record<string, unknown>;
+    return sha256Hex(jcs(rest));
+  }
   return sha256Hex(jcs(input ?? {}));
 }
 

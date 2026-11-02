@@ -3,7 +3,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { z } from "zod";
 import { newCellConfig, saveCellConfig } from "./node/config.js";
 import { cellInit } from "./node/init.js";
-import { KeyIsolationError, loadOperatorKey, loadRoleKey } from "./node/keys.js";
+import { KeyIsolationError, forbiddenVariables, loadOperatorKey, loadRoleKey } from "./node/keys.js";
 import { cellMigrate } from "./node/migrate.js";
 import { Node, type NodeKeys } from "./node/node.js";
 import { Watchers } from "./node/watchers.js";
@@ -33,6 +33,13 @@ export const CELL_USAGE = `
   foga cell owner <capability> … | foga cell guardian <capability> …   the same, said explicitly
   foga node tick --config <cell.config.json>     run the watchers once (heartbeat, discovery, settlement, safety) in a node environment (operator key alone)
   foga node watch --config <cell.config.json> [--interval <s>]   run the watchers on the poll interval until stopped
+  foga node mcp --config <cell.config.json>      MCP over stdio for a local client (Claude Desktop, Claude Code, Cursor): the operator's full level with
+                                                 FOGA_OPERATOR_KEY[_FILE] in the environment, read and build without it; logs go to stderr
+  foga node serve --config <cell.config.json> [--listen <host:port>] [--no-watch]
+                                                 the HTTP server: POST /api/<capability>, /mcp (Streamable HTTP), /healthz, / — the public reads and builds,
+                                                 a Bearer key acts as its grant says; the watchers run beside it
+  foga node key new --config <cell.config.json> --id <id> [--level read|build|act] [--visibility public|caller|operator] [--note <text>]
+                                                 mint an API key for the HTTP entrance: printed once, kept only as its hash in the config
 `;
 
 type Flags = Record<string, string | boolean>;
@@ -181,16 +188,99 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
   }
 }
 
-export async function nodeCommand(cmd: string | undefined, flags: Flags): Promise<void> {
+/** The node's own key situation: the operator key alone (acting), or none at all (reads and builds); anything else is refused. */
+function nodeKeys(): { operator?: string } {
+  const forbidden = forbiddenVariables(process.env);
+  if (forbidden.length) fail(`the node's environment holds ${forbidden.join(", ")}: a node runs with its operator key alone (FOGA_OPERATOR_KEY or FOGA_OPERATOR_KEY_FILE), or with no key for reads and builds`);
+  try {
+    return { operator: loadOperatorKey().privateKey };
+  } catch (e) {
+    if (e instanceof KeyIsolationError && /no operator key/.test(e.message)) return {};
+    if (e instanceof KeyIsolationError) fail(e.message);
+    throw e;
+  }
+}
+
+/** Who a local stdio client is: the operator when the key is here, otherwise the machine's user — operator data, build level. */
+function localCaller(hasKey: boolean): Caller {
+  return hasKey ? { ...OPERATOR_CALLER, entrance: "mcp" } : { id: "local", entrance: "mcp", level: "build", visibility: "operator" };
+}
+
+export async function nodeCommand(cmd: string | undefined, rest: string[], flags: Flags): Promise<void> {
   if (!cmd || cmd === "help") {
     console.log(CELL_USAGE);
     return;
   }
   const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
-  if (cmd !== "tick" && cmd !== "watch") fail(`unknown node command ${cmd}; tick or watch`);
+  const log = (line: string) => console.error(line);
+
+  if (cmd === "key") {
+    if (rest[0] !== "new") fail("foga node key new --config <cfg> --id <id> [--level act] [--visibility caller]");
+    const id = str(flags, "id") ?? fail("--id <id> is required");
+    const { loadCellConfig } = await import("./node/config.js");
+    const loaded = loadCellConfig(configPath);
+    if (loaded.config.access.keys.some((k) => k.id === id)) fail(`a key with id ${id} exists; choose another id (or remove the old entry from the config first)`);
+    const level = (str(flags, "level") ?? "act") as "read" | "build" | "act";
+    const visibility = (str(flags, "visibility") ?? "caller") as "public" | "caller" | "operator";
+    if (!["read", "build", "act"].includes(level)) fail("--level must be read, build or act");
+    if (!["public", "caller", "operator"].includes(visibility)) fail("--visibility must be public, caller or operator");
+    const { newApiKey } = await import("./http/server.js");
+    const made = newApiKey(id);
+    loaded.config.access.keys.push({ id, sha256: made.sha256, level, visibility, note: str(flags, "note") });
+    saveCellConfig(loaded.path, loaded.config);
+    console.error(`key ${id} (${level}, ${visibility}) recorded in ${loaded.path} as its hash; the key itself is printed once below and never again:`);
+    console.log(made.key);
+    return;
+  }
+
+  if (cmd === "mcp") {
+    const keys = nodeKeys();
+    const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys, log });
+    const catalog = defaultCatalog();
+    const caller = localCaller(Boolean(keys.operator));
+    const { buildMcpServer } = await import("./mcp/server.js");
+    const { serveStdio } = await import("@modelcontextprotocol/server/stdio");
+    const { version } = await import("./util/version.js");
+    log(`foga ${version}: MCP over stdio for cell ${node.config.name}${node.cell ? ` (${node.cell.address})` : ""}; caller ${caller.id} at level ${caller.level}`);
+    const handle = await serveStdio(() => buildMcpServer({ node, catalog, caller, version }), { onerror: (e) => log(`mcp: ${e.message}`) });
+    const stop = () => {
+      handle.close().finally(() => {
+        node.close();
+        process.exit(0);
+      });
+    };
+    process.on("SIGINT", stop);
+    process.on("SIGTERM", stop);
+    process.stdin.on("end", stop);
+    return;
+  }
+
+  if (cmd === "serve") {
+    const keys = nodeKeys();
+    const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys, log });
+    const catalog = defaultCatalog();
+    const { createHttpServer, startWatchLoop } = await import("./http/server.js");
+    const { version } = await import("./util/version.js");
+    const listen = str(flags, "listen") ?? node.config.runtime.http.listen;
+    const running = await createHttpServer({ node, catalog, version, log }).listen(listen);
+    log(`foga ${version}: serving cell ${node.config.name}${node.cell ? ` (${node.cell.address})` : ""} at ${running.url} — /mcp, /api/<capability>, /healthz; ${keys.operator ? "acting with the operator key" : "no operator key: reads and builds only"}; ${node.config.access.keys.length} API key(s) configured`);
+    const stopWatch = !flags["no-watch"] && keys.operator && node.cell ? startWatchLoop(new Watchers(node, catalog), node.config.runtime.pollSeconds * 1000, log) : () => {};
+    const stop = () => {
+      stopWatch();
+      running.close().finally(() => {
+        node.close();
+        process.exit(0);
+      });
+    };
+    process.on("SIGINT", stop);
+    process.on("SIGTERM", stop);
+    return;
+  }
+
+  if (cmd !== "tick" && cmd !== "watch") fail(`unknown node command ${cmd}; tick, watch, mcp, serve or key`);
   // a node environment: the operator key alone, nothing that derives another role
   const operator = keysFor("operator", true);
-  const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys: { operator }, log: (line) => console.error(line) });
+  const node = await Node.open({ configPath, rpc: str(flags, "rpc"), keys: { operator }, log });
   const watchers = new Watchers(node, defaultCatalog());
   try {
     if (cmd === "tick") {

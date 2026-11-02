@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { getAddress } from "ethers";
 import { z } from "zod";
 import { accountRef } from "../core/canonical.js";
@@ -442,4 +443,30 @@ export const safety_status: ReadCapability = {
   },
 };
 
-export const READ_CAPABILITIES: ReadCapability[] = [world_describe, identity_resolve, tender_list, tender_inspect, skill_list, skill_inspect, cell_status, operation_status, job_status, operation_list, decision_list, evidence_export, kya_check, safety_status];
+/** The texts a caller (or a model) may read rules from; each ships in the package, so no vendor checkout is needed. */
+export const SPEC_TEXTS = ["foga-cell-v1", "policy", "compatibility-matrix", "cell-config-schema"] as const;
+
+export const spec_read: ReadCapability = {
+  name: "spec_read",
+  title: "Read a rule text",
+  description: "The texts the cell acts under: the FOGA-Cell-v1 safety specification it adopted, its own policy block, the compatibility matrix of the ten standards, and the schema of the cell configuration.",
+  action: "read",
+  visibility: "public",
+  principal: "none",
+  ercs: [8468],
+  input: z.object({ name: z.enum(SPEC_TEXTS) }),
+  output: z.object({ name: z.string(), mediaType: z.string(), text: z.string() }),
+  async handler({ node }, { name }) {
+    const { fogaCellSpecification } = await import("../core/asf.js");
+    const { CellConfigSchema } = await import("../node/config.js");
+    const { repoRoot } = await import("../util/fs.js");
+    if (name === "foga-cell-v1") return { name, mediaType: "application/json", text: JSON.stringify(fogaCellSpecification(), null, 2) };
+    if (name === "policy") return { name, mediaType: "application/json", text: JSON.stringify(node.config.policy, null, 2) };
+    if (name === "cell-config-schema") return { name, mediaType: "application/schema+json", text: JSON.stringify(z.toJSONSchema(CellConfigSchema, { target: "draft-2020-12", io: "input" }), null, 2) };
+    const path = join(repoRoot(), "docs", "compatibility-matrix.md");
+    if (!existsSync(path)) throw new Error("the compatibility matrix is not in this installation");
+    return { name, mediaType: "text/markdown", text: readFileSync(path, "utf8") };
+  },
+};
+
+export const READ_CAPABILITIES: ReadCapability[] = [world_describe, identity_resolve, tender_list, tender_inspect, skill_list, skill_inspect, cell_status, operation_status, job_status, operation_list, decision_list, evidence_export, kya_check, safety_status, spec_read];

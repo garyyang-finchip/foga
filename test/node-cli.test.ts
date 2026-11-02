@@ -149,6 +149,14 @@ test("Loop D cases a-g through the CLI on anvil: birth, skills, two tenders take
 
     assert.equal(await k.world.provider.getTransactionCount(owner.address), ownerNonce, "a replayed init sends nothing");
 
+    // a second cell of the same owner adopts the FOGA-Cell-v1 specification the owner published, instead of registering it again
+    const config2 = join(dir, "D-sibling.json");
+    assert.equal(foga(["cell", "new", "--name", "D-sibling", "--world", worldPath, "--store", join(dir, "D-sibling.ops.sqlite"), "--owner", owner.address, "--operator", operator.address, "--guardian", guardian.address, "--out", config2]).code, 0);
+    const born2 = ok(foga(["cell", "init", "--config", config2], { FOGA_OWNER_KEY: owner.privateKey }), "a second cell's init");
+    assert.equal(born2.specId, after.identity.safety.specId, "the same specification");
+    assert.ok(!born2.operations.includes("init.spec.register"), "not registered again");
+    assert.notEqual(getAddress(born2.account), D);
+
     // --- standing from the issuer (W)
     const claim = { scheme: "S_att", level: 2, subject: `eip155:${chainId}:${D.toLowerCase()}` };
     const expiresAt = (await k.blockTimestamp()) + 365 * 86400;

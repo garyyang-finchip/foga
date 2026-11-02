@@ -89,9 +89,11 @@ export class Node {
       } catch {
         version = 1;
       }
-      if (version < 2) {
+      // a revision-1 account has no operator allow-list: nothing holding the operator key may run on it. Reads, builds
+      // and the owner's own commands (the migration away from it, above all) are not what the refusal is about.
+      if (version < 2 && opts.keys.operator) {
         kernel.close();
-        throw new Error(`the cell account ${cfg.identity.account} is a revision-${version} FogaCellAccount: it has no operator allow-list, so a node must not run on it. Move the cell to a revision-2 account first (foga cell migrate).`);
+        throw new Error(`the cell account ${cfg.identity.account} is a revision-${version} FogaCellAccount: it has no operator allow-list, so a node must not act on it. Move the cell to a revision-2 account first (foga cell migrate); reads and builds work without the operator key.`);
       }
       const [onchainOperator, onchainOwner] = await Promise.all([cell.operator(), cell.owner()]);
       if (getAddress(onchainOperator) !== getAddress(cfg.identity.operator)) {
@@ -158,6 +160,15 @@ export class Node {
 
   get bundlePath(): string | undefined {
     return this.config.bundle ? configPath(this.loaded, this.config.bundle) : undefined;
+  }
+
+  /** FogaCellAccount revision of the cell's account (1 for accounts deployed before 0.6.0). */
+  async accountVersion(): Promise<number> {
+    try {
+      return Number(await this.body.contract().ACCOUNT_VERSION());
+    } catch {
+      return 1;
+    }
   }
 
   get skillsDir(): string {

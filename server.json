@@ -1,0 +1,79 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.garyyang-finchip/foga",
+  "title": "FOGA node",
+  "description": "A Finch OG Agent cell as an MCP server: read the world, dry-run and take ERC-8414 tenders by policy.",
+  "repository": {
+    "url": "https://github.com/garyyang-finchip/foga",
+    "source": "github"
+  },
+  "websiteUrl": "https://foga.finchip.ai",
+  "version": "0.6.0-alpha.3",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "foga",
+      "version": "0.6.0-alpha.3",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "node",
+          "description": "the node command group"
+        },
+        {
+          "type": "positional",
+          "value": "mcp",
+          "description": "MCP over stdio"
+        },
+        {
+          "type": "named",
+          "name": "--config",
+          "valueHint": "cell.config.json",
+          "format": "filepath",
+          "isRequired": true,
+          "description": "the cell's configuration file (written by foga cell new and foga cell init)"
+        },
+        {
+          "type": "named",
+          "name": "--rpc",
+          "valueHint": "https://...",
+          "isRequired": false,
+          "description": "the JSON-RPC endpoint of the world's chain, when the configuration names none"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "FOGA_OPERATOR_KEY_FILE",
+          "format": "filepath",
+          "isRequired": false,
+          "isSecret": false,
+          "description": "a file (mode 0600) holding the operator key: with it the server acts for the cell; without it, reads, dry runs and builds only"
+        },
+        {
+          "name": "FOGA_RPC_URL",
+          "isRequired": false,
+          "description": "the JSON-RPC endpoint when neither the configuration nor --rpc names one"
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://foga.finchip.ai/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "isRequired": false,
+          "isSecret": true,
+          "description": "Bearer <api key> for a caller the node's operator granted; without it the public reads and builds"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import { getAddress, parseEther } from "ethers";
 import { AID, type AIDDocument } from "../core/aid.js";
 import { agentDescriptor, kindId } from "../core/ard.js";
-import { Enforcement, Rights, accountSubjectKey, fogaCellSpecification, oneClause, scopeKeyOf } from "../core/asf.js";
+import { Enforcement, Rights, accountSubjectKey, fogaCellSpecification, oneClause, scopeKeyOf, specIdOf } from "../core/asf.js";
 import { accountRef, dataUri, keccakJcs } from "../core/canonical.js";
 import { cellUnitDefinition } from "../core/units.js";
 import { operatorScope, type ScopeGroup } from "../genesis/operator-scope.js";
@@ -52,19 +52,30 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   const operations: string[] = [];
   const done = (key: string) => operations.push(key);
 
-  // 0. the specification the cell adopts: published by the owner when the config names none
+  // 0. the specification the cell adopts: published by the owner when the config names none. The registry derives
+  // the id from the publisher and the salt, so an owner who has published FOGA-Cell-v1 before (an earlier cell of
+  // theirs on this chain) adopts that specification rather than registering it again.
   let spec = cfg.identity.safety;
   if (!spec.specId || !spec.contentHash) {
     const document = fogaCellSpecification();
     const salt = keccakJcs({ spec: "FOGA-Cell-v1", publisher: owner.toLowerCase() });
     const commitment = k.asf.specificationCommitment(document);
-    const reg = await k.call("init.spec.register", ownerSigner, k.asf.specRegistryAddress, k.asf.specs().interface, "registerSpecification", [salt, commitment.contentHash, commitment.locator, []]);
-    done("init.spec.register");
-    const specId = k.asf.specIdFromReceipt(reg.receipt);
-    spec = { specId, version: 1, contentHash: commitment.contentHash };
+    const expected = specIdOf(chainId, k.asf.specRegistryAddress, owner, salt);
+    const published = await k.asf.versionOf(expected, 1).catch(() => null);
+    if (published) {
+      if (published.contentHash.toLowerCase() !== commitment.contentHash.toLowerCase()) throw new Error(`the owner published specification ${expected} before with contentHash ${published.contentHash}; this build's FOGA-Cell-v1 hashes to ${commitment.contentHash}. Name the specification to adopt in identity.safety.`);
+      spec = { specId: expected, version: 1, contentHash: commitment.contentHash };
+      log(`  spec: FOGA-Cell-v1 already published by the owner as ${expected}; adopted`);
+    } else {
+      const reg = await k.call("init.spec.register", ownerSigner, k.asf.specRegistryAddress, k.asf.specs().interface, "registerSpecification", [salt, commitment.contentHash, commitment.locator, []]);
+      done("init.spec.register");
+      const specId = k.asf.specIdFromReceipt(reg.receipt);
+      if (specId.toLowerCase() !== expected.toLowerCase()) throw new Error(`the registry assigned ${specId}; expected ${expected}`);
+      spec = { specId, version: 1, contentHash: commitment.contentHash };
+      log(`  spec: FOGA-Cell-v1 published by the owner as ${specId}`);
+    }
     cfg.identity.safety = spec;
     node.saveConfig();
-    log(`  spec: FOGA-Cell-v1 published by the owner as ${specId}`);
   } else {
     const v = await k.asf.versionOf(spec.specId, spec.version);
     if (v.contentHash.toLowerCase() !== spec.contentHash.toLowerCase()) throw new Error(`specification ${spec.specId} v${spec.version} on chain has contentHash ${v.contentHash}, the config says ${spec.contentHash}`);

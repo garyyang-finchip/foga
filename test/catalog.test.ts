@@ -96,4 +96,5 @@ test("the input hash is canonical: key order does not matter, values do", () => 
   assert.equal(hashInput({ a: 1, b: "x" }), hashInput({ b: "x", a: 1 }));
   assert.notEqual(hashInput({ a: 1 }), hashInput({ a: 2 }));
   assert.equal(hashInput(undefined), hashInput({}));
+  assert.equal(hashInput({ tokenId: "1", jobId: "j" }), hashInput({ tokenId: "1" }), "the idempotency key is not part of the request");
 });

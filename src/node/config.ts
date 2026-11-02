@@ -5,10 +5,10 @@ import { ensureDir } from "../util/fs.js";
 
 /**
  * `cell.config.json` (schema `foga.cell-config/1`): the one file a node maintains (design memo, Phase 3, section 7).
- * Five blocks: identity (the world, the account and its roles, what `foga cell init` writes back), presence (how the
+ * Six blocks: identity (the world, the account and its roles, what `foga cell init` writes back), presence (how the
  * cell describes itself to the world), skills (what it holds and offers), policy (the business authorization the
- * policy engine applies to every act) and runtime (how the node runs). Amounts in wei are decimal strings so the
- * file stays plain JSON.
+ * policy engine applies to every act), runtime (how the node runs, the HTTP server among it) and access (the API
+ * keys the HTTP entrance accepts, as their hashes). Amounts in wei are decimal strings so the file stays plain JSON.
  */
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "an address (0x + 40 hex digits)");
 const bytes32 = z.string().regex(/^0x[0-9a-fA-F]{64}$/, "a 32-byte hex value");
@@ -106,9 +106,23 @@ export const PolicySchema = z.object({
   tenders: TenderPolicySchema.prefault({}),
 });
 
+export const HttpSchema = z.object({
+  /** host:port the HTTP server binds (loopback by default; a reverse proxy terminates TLS in front of it). */
+  listen: z.string().default("127.0.0.1:8787"),
+  /** Origins (hostnames) a browser-sent request may carry; a request with another Origin is refused. Requests without an Origin pass. */
+  allowedOrigins: z.array(z.string()).default([]),
+  /** Host names this server answers for (the reverse proxy's and the loopback ones). Empty: any Host. */
+  allowedHosts: z.array(z.string()).default([]),
+  /** The URL the public reaches the node at (for its documents and card). */
+  publicUrl: z.string().url().optional(),
+  rateLimitPerMinute: z.number().int().min(1).default(60),
+  maxBodyBytes: z.number().int().min(1024).default(256 * 1024),
+});
+
 export const RuntimeSchema = z.object({
   heartbeatEverySeconds: z.number().int().positive().default(3600),
   pollSeconds: z.number().int().positive().default(12),
+  http: HttpSchema.prefault({}),
   model: z
     .object({
       provider: z.enum(["stub", "anthropic"]).default("stub"),
@@ -116,6 +130,19 @@ export const RuntimeSchema = z.object({
       dailyCalls: z.number().int().min(0).default(20),
     })
     .prefault({}),
+});
+
+/** An API key the HTTP entrance accepts: only its hash is kept; the key itself is shown once by `foga node key new`. */
+export const AccessKeySchema = z.object({
+  id: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.-]+$/, "a key id: letters, digits, _ . -"),
+  sha256: bytes32,
+  level: z.enum(["read", "build", "act"]).default("act"),
+  visibility: z.enum(["public", "caller", "operator"]).default("caller"),
+  note: z.string().max(200).optional(),
+});
+
+export const AccessSchema = z.object({
+  keys: z.array(AccessKeySchema).default([]),
 });
 
 export const CellConfigSchema = z.object({
@@ -131,6 +158,7 @@ export const CellConfigSchema = z.object({
   skills: SkillsSchema.prefault({}),
   policy: PolicySchema.prefault({}),
   runtime: RuntimeSchema.prefault({}),
+  access: AccessSchema.prefault({}),
 });
 
 export type CellConfig = z.infer<typeof CellConfigSchema>;
@@ -184,5 +212,6 @@ export function newCellConfig(p: { name: string; world: string; store: string; o
     skills: { dir: p.skillsDir ?? "scenarios/skills", inputDir: p.inputDir ?? "scenarios/fixtures", held: {}, offered: [] },
     policy: {},
     runtime: {},
+    access: {},
   });
 }

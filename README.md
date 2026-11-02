@@ -19,7 +19,9 @@ ERC-8004 (Trustless Agents) is a required dependency: ERC-8419, ERC-8434 and ERC
 
 The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository has completed **Phase 2c: the genesis on a public chain**, on top of the Phase 2 genesis (T0–T9) and the Phase 1 world layer.
 
-## Status: Phase 3a done — the kernel hardened (3a-1) and turned into a node with a capability catalog (3a-2); Phase 2c done
+## Status: Phase 3b done — the node served over MCP and HTTP (3b); Phase 3a done — the kernel hardened (3a-1) and turned into a node with a capability catalog (3a-2); Phase 2c done
+
+**3b (0.6.0-alpha.3, 2026-11-02).** The catalog gets its second and third entrances. `src/mcp/server.ts` builds one MCP server per caller from the catalog with the official TypeScript SDK v2: the tool list is what the caller may see and do (a write capability is up to three tools over one handler — `<name>` acts, `<name>_simulate` runs every check and sends nothing, `<name>_build` returns the calls for the caller's own account — with static annotations), results are `structuredContent` under the capability's output schema, a refused act is a tool error carrying the gate, the reason and the decision record's id, an ineligible pre-check an ordinary `eligible: false`; resources for the world, the cell, the policy, the FOGA-Cell-v1 specification and the compatibility matrix; one prompt. Both protocol eras are served on both transports — the 2026-07-28 revision (`server/discover`, no session) as the main path and the 2025-era `initialize` handshake in stateless form — and `foga node mcp` serves a local client over stdio (the operator with the key, a build-level local user without). `src/http/server.ts` is the HTTP entrance on `node:http`: `/mcp` over Streamable HTTP, `POST /api/<capability>`, the health and front pages, the public without a credential (reads and builds) and `Authorization: Bearer <key>` for a grant the operator minted with `foga node key new` (stored as its hash alone); the edge checks Host, Origin, body size, content type and a per-address rate, maps permission refusals to 403 and business refusals to `200 {ok: false, gate, reason, decisionId}`. `foga node serve` runs it with the watchers beside it. The gate of the slice is `test/mcp.test.ts`: on anvil, the reference client pinned to 2026-07-28, in legacy mode and in auto mode, over HTTP and stdio — the public's tools, the key holder walking a tender from pre-check to settlement with the reward reaching the account, idempotency and conflict on the wire, every edge refusal. `scripts/pack-smoke.mjs` (a CI step) installs the npm tarball in a clean directory and runs the packaged CLI and MCP server from there; `package.json` carries `mcpName` and `server.json` the registry manifest for the publication in 3d. docs/mcp.md.
 
 **3a-2 (0.6.0-alpha.2, 2026-11-02).** The kernel becomes a node other agents can call. `src/tools/` is the capability catalog — 28 capabilities on the Loop D path, each declaring its action (read, build, act, admin), the visibility of its data (public, caller, operator) and whose act it is — and `Catalog.invoke` is the one place authorization happens: call permission, business authorization through the policy engine (anchor and binding, skill held and offered, reward and deadlines, acceptance authority, budget), wallet permission by simulating the account's own gate; every attempt to act, allowed or refused, is a decision record naming the gate. Jobs are the business unit and operations the chain writes under them; the same job is answered once, a failed one with its failure, the same job under another request as a conflict. `src/node/` is the runtime: one `cell.config.json`, the node over the kernel holding the operator key alone, `foga cell init` (a cell's birth from its config, T1 for one cell), `foga cell migrate` (the move to a new revision-2 account, T9 for one cell), the watchers (heartbeat, tender discovery, settlement, safety). The CLI (`foga cell …`, `foga node …`) is generated from the catalog. The gate of the slice is `test/node-cli.test.ts`: on anvil, through the CLI and without the genesis script, a cell is born, mints its skills and meets the seven Loop D cases — two tenders taken and settled, five refused at the right gate (skill, policy, verifier, safety during a suspension and allowed after the resume, budget) — then moves to a new account. docs/node.md.
 
@@ -66,7 +68,7 @@ From Phase 1, unchanged in substance:
 - **The doctor.** `foga doctor` reports five layers per contract — chain and code, interfaces, version match, configuration and permissions, semantic validation — with the verdicts Pass / Fail / Unknown / Not tested / Not applicable. Layers 1–4 probe the chain; layer 5 reads the genesis evidence. A doctor run can be exported as a JSON-RPC probe plan and replayed from results collected elsewhere, so a report never depends on which machine can reach which RPC.
 - **Sepolia address book.** `worlds/sepolia.json` records every upstream reference deployment at its deployed revision, including the three seams the inventory found (docs/version-lock.md); the completed world and the doctor's report on it are the 2c files above.
 
-What is next: Phase 3 continues with MCP and the HTTP API on the same catalog (3b), loop D with the model adapters and the demander (3c), A2A, the documents and the OG instance's move to a revision-2 account with public endpoints (3d); Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
+What is next: Phase 3 continues with loop D — the model adapters and the demander, the unscripted run the doctor judges (3c) — then A2A, the documents, the npm and registry publication and the OG instance's move to a revision-2 account with public endpoints (3d); Phase 4 the hosted node and payments. The design is in docs/design-memo.md.
 
 ## Quick start
 
@@ -152,16 +154,17 @@ deployments/         world files, doctor reports, genesis evidence (local output
 prover/              the ZK proving sub-package: run.cjs bridge (credential and predicate proofs), build-predicate.mjs (the development ceremony), its own dependencies
 zk/                  circuits/ (kya_predicate_count_v1.circom) and build/ (verification_key.json committed; the proving key is rebuilt locally)
 docker/, docker-compose.yml
-docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node
+docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node, mcp; examples/ (client configurations)
 scenarios/skills/    the two ERC-8338 skill packages of the genesis: foga-probe, finch-extract-verify
 scenarios/fixtures/  the pinned document finch-extract-verify works on in T5 and T7
-scripts/             install-solc.sh, install-foundry.sh, relay.mjs
+scripts/             install-solc.sh, install-foundry.sh, relay.mjs, pack-smoke.mjs (the npm tarball run from a clean install)
 src/                 TypeScript: build/ (vendor + bundle), world/ (plan + deploy), doctor/ (probe + evaluate),
                      core/ (foga-core: one module per ERC incl. acdf, adrf and swarm, measure, canonicalization, DAG-CBOR packager),
                      kernel/ (store, transaction manager, cell, kernel), genesis/ (roles, operator scope, probe, extract, skill worker, zk, scenario T0-T3, t3-zk, t4..t9, runner),
                      tools/ (the capability catalog: types, catalog, read, tenders, identity, admin), node/ (config, keys, node, policy, init, migrate, watchers),
+                     mcp/ (the MCP server built from the catalog), http/ (the HTTP API, MCP over Streamable HTTP, API keys),
                      cli.ts, cli-cell.ts (foga cell / foga node)
-test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, transaction semantics against an in-process chain (mock-chain.ts), keys, policy gates, catalog, cell config, swarm/ACDF vectors, extractor, measurement resolver, doctor layer 5; node-cli.test.ts (the Loop D cases through the CLI on anvil)
+test/                unit tests: bytecode and interface ids, skill packages, canonicalization, operation store, transaction semantics against an in-process chain (mock-chain.ts), keys, policy gates, catalog, cell config, swarm/ACDF vectors, extractor, measurement resolver, doctor layer 5; node-cli.test.ts (the Loop D cases through the CLI on anvil), mcp.test.ts (the entrances over MCP and HTTP on anvil; helpers/anvil-cell.ts births the cell)
 vendor/              LOCK.json (sources are materialized here and gitignored)
 worlds/              world configs: local.json (deploy), sepolia.json (attach)
 ```
@@ -186,6 +189,9 @@ foga cell init --config <cell.config.json> [--capital-wei <n>]          (owner k
 foga cell migrate --config <cell.config.json> --to <new.config.json> [--operator <addr>]   (owner key)
 foga cell <capability> --config <cell.config.json> [--mode simulate|build|act] [--<field> <value> ...] [--json '<input>']
 foga node tick | watch --config <cell.config.json> [--interval <s>]      (operator key alone)
+foga node mcp --config <cell.config.json>                                 MCP over stdio (= foga mcp; the operator with FOGA_OPERATOR_KEY[_FILE], reads and builds without)
+foga node serve --config <cell.config.json> [--listen <host:port>] [--no-watch]   the HTTP API, /mcp over Streamable HTTP, /healthz, the watchers
+foga node key new --config <cell.config.json> --id <id> [--level read|build|act] [--visibility public|caller|operator] [--note <text>]
 ```
 
 During development the CLI runs from source with `npm run foga -- <args>`; `npm run build` compiles it to `dist/` for the `foga` binary.

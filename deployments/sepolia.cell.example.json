@@ -1,0 +1,83 @@
+{
+  "schema": "foga.cell-config/1",
+  "name": "A-prime",
+  "world": "sepolia.example.json",
+  "store": "sepolia.cell.ops.sqlite",
+  "identity": {
+    "account": "0x09F35299C34694929f0f35DDD7AE894E8F122D75",
+    "agentId": "11255",
+    "owner": "0x8511aC9DF5DDe6F6C3DDF7442bA5109FD823024f",
+    "operator": "0x535CE7B38cc393Ca5119adFDbCA0CDD682cae988",
+    "guardian": "0xF4a35718C0CC01287aeB628269A2ec475A9a3df5",
+    "bindingId": "0x0930cb88650ae1e97d3ad7850144d22b8a79ff7e35087b845226ce72cd9f9525",
+    "recordId": "0xcaa197a2ff418873b32974067546436e36a7021c9581868fde880660f17e5c80",
+    "unitId": "14",
+    "documentDigest": "0x7918d0b43d049127c74ae38bb3ef2ed74576fd802393acb4919b3ab86282c534",
+    "safety": {
+      "specId": "0x8b47b174403ea1d44dd7e76e3474b81083c71eb85f66cfb8aed5b59845d06008",
+      "version": 1,
+      "contentHash": "0x374524dcd5d05328b082290145ee620f69996284ecf6f5b9e4b691c4274c4ff2"
+    },
+    "standing": {
+      "schemeId": "0x904015e960a2db777b7cbdd5caad0ae41f4e018c07522ac245c63b3a86606fef",
+      "issuers": ["0x3D177ecaa56402335fC7C6449d35bC1Fa68Bc1b8"]
+    }
+  },
+  "presence": {
+    "name": "FOGA cell A-prime",
+    "description": "The Finch OG Agent's identity line on Sepolia (ERC-8004 agent 11255) in the revision-1 body it took at the T9 succession. This configuration serves reads, dry runs and builds; the node acts only after the migration to a revision-2 account (Phase 3d).",
+    "homepage": "https://foga.finchip.ai",
+    "endpoints": {
+      "mcp": "https://foga.finchip.ai/mcp",
+      "web": "https://foga.finchip.ai"
+    }
+  },
+  "skills": {
+    "dir": "../scenarios/skills",
+    "inputDir": "../scenarios/fixtures",
+    "held": {
+      "finch-extract-verify": {
+        "tokenId": "3",
+        "recordId": "0x1a334920e14a90cf184d0b9db94697644530ff5ac968e9dd5508e6c35159f0cf",
+        "unitId": "12",
+        "packageHash": "0x80d8d17c484586521c2ea09d2ea565978d48fb97e301aa7066c159c9a1a3a976"
+      }
+    },
+    "offered": ["finch-extract-verify"]
+  },
+  "policy": {
+    "budget": {
+      "dailyValueWei": "2000000000000000",
+      "perOperationValueWei": "1000000000000000",
+      "dailyGasWei": "5000000000000000",
+      "maxConcurrentCommitments": 1
+    },
+    "tenders": {
+      "minRewardWei": "100000000000000",
+      "minSubmitWindowSeconds": 600,
+      "minSettleWindowSeconds": 600,
+      "acceptance": ["hashlock"],
+      "counterpartyMinLevel": 0,
+      "lookbackBlocks": 9000
+    }
+  },
+  "runtime": {
+    "heartbeatEverySeconds": 3600,
+    "pollSeconds": 12,
+    "http": {
+      "listen": "127.0.0.1:8787",
+      "allowedOrigins": [],
+      "allowedHosts": ["foga.finchip.ai", "localhost", "127.0.0.1"],
+      "publicUrl": "https://foga.finchip.ai",
+      "rateLimitPerMinute": 60,
+      "maxBodyBytes": 262144
+    },
+    "model": {
+      "provider": "stub",
+      "dailyCalls": 20
+    }
+  },
+  "access": {
+    "keys": []
+  }
+}
