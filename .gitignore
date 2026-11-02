@@ -18,6 +18,8 @@ deployments/*.sqlite
 deployments/*.sqlite-*
 # cells born locally (foga cell new / init): configs, stores and inline documents; the OG cell's published files live under deployments/og/
 deployments/cells/
+# loop D working files (foga demo --loop-d): the cell's config and store, the demander's store, transcripts
+deployments/loop-d/
 
 # foundry
 contracts/out/
