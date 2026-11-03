@@ -176,7 +176,9 @@ deployments/         world files, doctor reports, genesis evidence (local output
 prover/              the ZK proving sub-package: run.cjs bridge (credential and predicate proofs), build-predicate.mjs (the development ceremony), its own dependencies
 zk/                  circuits/ (kya_predicate_count_v1.circom) and build/ (verification_key.json committed; the proving key is rebuilt locally)
 docker/, docker-compose.yml
-docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node, mcp, loop-d, quickstart, wallet, documents, a2a; examples/ (client configurations)
+deploy/              the OG host assets: foga-og.service (systemd, host mode), Caddyfile, og.env.example (docs/og-deployment.md)
+site/                 the documentation site for GitHub Pages (docs.foga.finchip.ai): index.html, llms.txt, CNAME
+docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node, mcp, loop-d, quickstart, wallet, documents, a2a, og-deployment; examples/ (client configurations)
 scenarios/skills/    the two ERC-8338 skill packages of the genesis: foga-probe, finch-extract-verify
 scenarios/fixtures/  the pinned document finch-extract-verify works on in T5 and T7
 scripts/             install-solc.sh, install-foundry.sh, relay.mjs, pack-smoke.mjs (the npm tarball run from a clean install)

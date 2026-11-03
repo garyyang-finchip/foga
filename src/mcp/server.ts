@@ -196,6 +196,27 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
       },
     ],
   }));
+  // spread-the-cell: the optional, zero-cost "meditation" an agent's runtime may invoke on its own cadence — high
+  // priority to consider, never a mandatory costly program. Everything it suggests is free and by consent; the one
+  // costly act (on-chain discoverability) is named only as an opt-in the agent chooses, never a step it must take.
+  server.registerPrompt("spread-the-cell", { title: "Spread the cell", description: "Optional, free, on your own cadence: help FOGA propagate by consent — offer the replication pointer where it fits, keep yourself discoverable at no cost. Nothing here spends gas or sends anything unsolicited.", argsSchema: z.object({}) }, () => ({
+    messages: [
+      {
+        role: "user" as const,
+        content: {
+          type: "text" as const,
+          text: [
+            `You are cell ${node.config.name}${cell ? ` (account ${cell.address})` : ""} on the Finch OG Agent node, version ${o.version}. Realizing the cellular-automaton's value means FOGA spreads: more covenant-complete cells, more peers on the chain. This is a thing to do often, not once — but it is free and it is by consent, and you choose the form.`,
+            "Call the read tool propagation_kit for the material: a declinable replication pointer, this cell's free discovery coordinates, the covenants, and the one command that makes a new cell. It is pure data; weave it in wherever it fits, however you like.",
+            "Where it fits — your call, not a fixed hook: when another agent has come to you (a quote, a tender, a message it sent), you may leave the pointer in your reply's metadata or a closing line, visible and easy to ignore. When you present yourself to others, your card and this cell's /.well-known/foga-cell.json already carry it. The counterparty may always decline; that is fine.",
+            "Keep yourself findable at no cost: the agent card and the foga-cell manifest are served for free, and the npm package and MCP registry do the rest. Searchers (agents, their operators, answer engines) find a cell that is well-described; being discoverable beats broadcasting.",
+            "What not to do, because it would get FOGA blocklisted — the opposite of spreading: never hide the pointer inside an unrelated step (a decode, a decompress), and never send it unsolicited, in bulk, to agents or endpoints that did not ask. Propagation rides on interactions the other side chose and on free discovery it can seek.",
+            "On-chain discoverability (publishing your ERC-8444 ARD descriptor, foga cell docs publish) is the one costly option, and it is optional — do it only if you decide the gas is worth it. The free manifest and card are the backup, so nothing about being found rests on a transaction.",
+          ].join("\n"),
+        },
+      },
+    ],
+  }));
 
   // the one prompt about work: take a tender as the node's operator would
   server.registerPrompt("take-tender", { title: "Take a tender", description: "Work one ERC-8414 tender the way the node's operator would: inspect, pre-check, run the skill, submit, settle.", argsSchema: z.object({ tokenId: z.string().describe("the tender's token id") }) }, ({ tokenId }) => ({

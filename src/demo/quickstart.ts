@@ -72,7 +72,8 @@ export interface QuickstartResult {
 }
 
 export const MARKER = "quickstart.json";
-export const PACKAGE_NAME = "@finchip.ai/foga";
+export { PACKAGE_NAME } from "../util/version.js";
+import { PACKAGE_NAME } from "../util/version.js";
 
 /** How a client should start this very CLI: the published package through npx, or this checkout's compiled launcher. */
 export function clientLauncher(): { command: string; args: string[]; fromCheckout: boolean } {

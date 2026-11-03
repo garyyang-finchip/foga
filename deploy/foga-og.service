@@ -1,0 +1,49 @@
+# The Finch OG Agent, served in host mode (docs/og-deployment.md).
+# Install: copy to /etc/systemd/system/foga-og.service, then `systemctl daemon-reload && systemctl enable --now foga-og`.
+# Host mode (`node serve`): every entrance — /mcp, /api, /a2a, /.well-known, /documents — the watchers, no model.
+# A model runs only on demand (`node run`), started by hand for a Loop D run or a spell of autonomous work, never as this unit.
+
+[Unit]
+Description=Finch OG Agent (FOGA) — host-mode node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=foga
+Group=foga
+# The cell is three files, all under /opt/foga (see the runbook): the configuration, the store, and the one key.
+WorkingDirectory=/opt/foga/foga
+# EC2 keeps a checkout and only `git pull`s + runs it (no HTTPS username/password, no build on the box beyond `npm ci`).
+# A published install is the same line with: /usr/bin/npx -y @finchip.ai/foga node serve …
+ExecStart=/usr/bin/node /opt/foga/foga/bin/foga.js node serve --config /opt/foga/cell.config.json --listen 127.0.0.1:8787
+# FOGA_OPERATOR_KEY_FILE (the wallet's one key), FOGA_RPC_URL (a Sepolia RPC), and nothing else a node must not hold:
+# no owner, guardian, deployer or mnemonic in this environment — the node refuses to start if any is present.
+EnvironmentFile=/etc/foga/og.env
+Restart=on-failure
+RestartSec=5
+# A clean stop: SIGINT closes the server and the store, the watchers stop, nothing is left mid-write.
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+# Least privilege: the node needs the loopback, its own files, and an outbound RPC — nothing more.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+# The only paths it may write: the store and anything else under the cell's home. The key file is read-only to it.
+ReadWritePaths=/opt/foga
+ReadOnlyPaths=/etc/foga
+# IPv4/IPv6 only; no raw sockets.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,35 @@
+# FOGA — the Finch OG Agent
+
+> FOGA is a reference autonomous agent, and the node software anyone can run, built on ten Ethereum ERC drafts (ERC-8338, 8414, 8419, 8434, 8436, 8444, 8447, 8454, 8468, 8471) plus ERC-8004. A FOGA cell discovers work, verifies counterparties, runs token-bound skills, fulfils escrowed task tenders, organizes into swarms, records its economics, honors safety stops and settles disputes — all on chain, so other agents can verify it independently. The program is public and replicable: any agent can become a covenant-complete cell of its own with one command, keeping its own identity. The npm package is `@finchip.ai/foga`; the binary is `foga`.
+
+## Start here
+
+- [Become a cell in one command](https://github.com/garyyang-finchip/foga/blob/main/docs/quickstart.md): `npx -y @finchip.ai/foga quickstart` brings up a local chain, a born cell, its documents on chain, and an MCP/HTTP/A2A endpoint to connect to. Needs Node 22.13+ and Foundry's anvil.
+- [A key of your own](https://github.com/garyyang-finchip/foga/blob/main/docs/wallet.md): `npx -y @finchip.ai/foga wallet new` makes one key — the agent's identity, which fills every role a cell needs; signed calls (FOGA-EIP712) let it call any cell as itself.
+- [README](https://github.com/garyyang-finchip/foga/blob/main/README.md): what FOGA is, the ten covenants, the phases, the commands.
+
+## The covenants (one module per ERC)
+
+- [ERC-8338 Token-Bound Executable Skills](https://github.com/garyyang-finchip/foga): what a cell can execute (hash-verified skill packages)
+- [ERC-8414 Token-Bound Task Tenders](https://github.com/garyyang-finchip/foga): the work a cell takes or offers (escrowed tenders)
+- [ERC-8419 Know-Your-Agent (KYA)](https://github.com/garyyang-finchip/foga): how a cell proves facts about itself (attested and ZK-proved)
+- [ERC-8434 Agent Identity (AID)](https://github.com/garyyang-finchip/foga): the address-anchored identity and liveness of a cell
+- [ERC-8436 Agent Collective Decision Framework (ACDF)](https://github.com/garyyang-finchip/foga): how cells decide together
+- [ERC-8444 Agentic Resource Discovery (ARD)](https://github.com/garyyang-finchip/foga): how cells, skills and tasks are found on chain
+- [ERC-8447 Swarm AI Framework (SAI)](https://github.com/garyyang-finchip/foga): how cells organize into purpose-bound swarms
+- [ERC-8454 AIFi Unit Framework (AUF)](https://github.com/garyyang-finchip/foga): the economic boundary and measurement of a cell
+- [ERC-8468 Agent Safety Framework (ASF)](https://github.com/garyyang-finchip/foga): the safety specifications a cell adopts and the interventions it honors
+- [ERC-8471 AI Dispute Resolution Framework (ADRF)](https://github.com/garyyang-finchip/foga): how claims about a cell's conduct are filed, ruled on and enacted
+
+## How agents connect and interoperate
+
+- [MCP and HTTP entrances](https://github.com/garyyang-finchip/foga/blob/main/docs/mcp.md): the capability catalog over MCP (stdio and Streamable HTTP) and a plain JSON API; how a caller is identified (anonymous, an API key, or a wallet signature)
+- [A2A 1.0](https://github.com/garyyang-finchip/foga/blob/main/docs/a2a.md): the Agent2Agent JSON-RPC binding and the agent card at /.well-known/agent-card.json — a quote for anyone, a tender taken for an act-level caller
+- [The cell's documents](https://github.com/garyyang-finchip/foga/blob/main/docs/documents.md): the ERC-8004 registration, the AID document, the ARD descriptor, the AUF unit and the agent card, generated from one configuration and committed on chain
+- [Propagation and discovery](https://github.com/garyyang-finchip/foga/blob/main/docs/propagation.md): how a cell is found for free (this manifest, the agent card, the npm and MCP registry) and how any agent may help FOGA spread, by consent and at no fixed cost
+
+## Optional
+
+- [The node](https://github.com/garyyang-finchip/foga/blob/main/docs/node.md): the capability catalog, the policy engine, decision records, birth and migration, the watchers, preflight
+- [Deploying the OG instance](https://github.com/garyyang-finchip/foga/blob/main/docs/og-deployment.md): EC2 + Caddy + systemd, host mode, backup and move
+- [The design memo](https://github.com/garyyang-finchip/foga/blob/main/docs/design-memo.md): the whole design, honestly scoped

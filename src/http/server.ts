@@ -6,6 +6,7 @@ import { A2AServer } from "../a2a/server.js";
 import { A2A_ERRORS, A2A_WELL_KNOWN } from "../a2a/types.js";
 import { buildMcpServer } from "../mcp/server.js";
 import { DOCUMENT_FILES, documentsDir, readManifest } from "../node/documents.js";
+import { buildPropagationManifest } from "../node/propagation.js";
 import type { Node } from "../node/node.js";
 import type { Watchers } from "../node/watchers.js";
 import { PUBLIC_CALLER, type Caller, type Catalog, type Mode } from "../tools/index.js";
@@ -183,7 +184,7 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
     if (method === "GET" && url.pathname === "/") {
       const r = await catalog.invoke(node, "cell_status", {}, caller);
       const decisions = node.store.summary().decisions;
-      return json(res, 200, { foga: o.version, cell: cfg.name, status: r.ok ? r.output : null, decisions, endpoints: { mcp: "/mcp", api: "/api/<capability>", a2a: "/a2a", agentCard: A2A_WELL_KNOWN, documents: "/documents/<file>", health: "/healthz" } });
+      return json(res, 200, { foga: o.version, cell: cfg.name, status: r.ok ? r.output : null, decisions, endpoints: { mcp: "/mcp", api: "/api/<capability>", a2a: "/a2a", agentCard: A2A_WELL_KNOWN, manifest: "/.well-known/foga-cell.json", documents: "/documents/<file>", health: "/healthz" } });
     }
     if (method === "GET" && url.pathname === "/api/capabilities") return json(res, 200, { caller: { id: caller.id, level: caller.level, visibility: caller.visibility, via: resolved.via }, capabilities: catalog.list(caller) });
     const jobMatch = /^\/api\/jobs\/([^/]+)$/.exec(url.pathname);
@@ -209,6 +210,13 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
       const mode = (url.searchParams.get("mode") ?? "act") as Mode;
       if (!["simulate", "build", "act"].includes(mode)) return json(res, 400, { ok: false, gate: "input", reason: "mode must be simulate, build or act" });
       return answer(res, await catalog.invoke(node, name, input, caller, { mode }));
+    }
+    // the propagation manifest: free, built live from the configuration, answered even before any document is published
+    if (method === "GET" && url.pathname === "/.well-known/foga-cell.json") {
+      const text = Buffer.from(JSON.stringify(buildPropagationManifest(node, { version: o.version }), null, 2) + "\n");
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
+      res.end(text);
+      return;
     }
     // the published documents (foga cell docs build): served as built, by their file names, and at the well-known paths
     if (method === "GET" && (url.pathname.startsWith("/.well-known/") || url.pathname.startsWith("/documents/"))) {

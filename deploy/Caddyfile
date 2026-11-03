@@ -1,0 +1,23 @@
+# Caddy in front of the Finch OG Agent (docs/og-deployment.md).
+# Caddy gets and renews the TLS certificate for the public name and forwards to the loopback node.
+# Install: put this at /etc/caddy/Caddyfile (or import it), then `systemctl reload caddy`.
+#
+# The node binds 127.0.0.1:8787 and trusts the Host header only for the names in its config's
+# runtime.http.allowedHosts — so that list must include foga.finchip.ai. Caddy passes the original
+# Host through by default, which is what the node checks; no extra header rewriting is needed.
+
+foga.finchip.ai {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8787 {
+		# The node sets cache-control: no-store itself and keeps responses small; these are belt-and-braces.
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# docs.foga.finchip.ai is the documentation site (docs/og-deployment.md, "The documentation site"); it is
+# served by GitHub Pages, not from this box — point its DNS at Pages with a CNAME, do not proxy it here.
+# If you would rather serve the docs from this host too, uncomment:
+# docs.foga.finchip.ai {
+# 	root * /opt/foga/site
+# 	file_server
+# }

@@ -151,7 +151,7 @@ test("MCP over Streamable HTTP and stdio, and the HTTP API, on a born cell", { t
     assert.equal(front.status, 200);
     assert.equal(front.json.status.name, "D");
     assert.equal(front.json.status.budget, null, "the public sees no budget");
-    assert.deepEqual(front.json.endpoints, { mcp: "/mcp", api: "/api/<capability>", a2a: "/a2a", agentCard: "/.well-known/agent-card.json", documents: "/documents/<file>", health: "/healthz" });
+    assert.deepEqual(front.json.endpoints, { mcp: "/mcp", api: "/api/<capability>", a2a: "/a2a", agentCard: "/.well-known/agent-card.json", manifest: "/.well-known/foga-cell.json", documents: "/documents/<file>", health: "/healthz" });
 
     // --- the edge: credentials, Origin, Host, body size, content type, unknown paths
     assert.equal((await api(url, "/api/capabilities", { headers: { authorization: "Bearer foga.partner.not-the-key" } })).status, 401);
@@ -207,7 +207,7 @@ test("MCP over Streamable HTTP and stdio, and the HTTP API, on a born cell", { t
     assert.equal(pub.getNegotiatedProtocolVersion(), "2026-07-28");
     const pubTools = await pub.listTools();
     const pubToolNames = names(pubTools);
-    assert.deepEqual(pubToolNames, ["cell_status", "docs_status", "identity_resolve", "kya_check", "safety_status", "skill_inspect", "skill_list", "spec_read", "tender_inspect", "tender_list", "tender_precheck_simulate", "world_describe"], "the public's tools: the public reads and the dry run of a pre-check");
+    assert.deepEqual(pubToolNames, ["cell_status", "docs_status", "identity_resolve", "kya_check", "propagation_kit", "safety_status", "skill_inspect", "skill_list", "spec_read", "tender_inspect", "tender_list", "tender_precheck_simulate", "world_describe"], "the public's tools: the public reads and the dry run of a pre-check");
     const statusTool = pubTools.tools.find((x) => x.name === "cell_status")!;
     assert.equal(statusTool.annotations?.readOnlyHint, true);
     assert.equal((statusTool.outputSchema as { type?: string })?.type, "object");
@@ -242,7 +242,7 @@ test("MCP over Streamable HTTP and stdio, and the HTTP API, on a born cell", { t
     const spec = await pub.readResource({ uri: "foga://spec/foga-cell-v1" });
     assert.equal(JSON.parse((spec.contents[0] as { text: string }).text).kind, "safety-specification");
     const prompts = await pub.listPrompts();
-    assert.deepEqual(prompts.prompts.map((p) => p.name).sort(), ["become-a-cell", "take-tender"]);
+    assert.deepEqual(prompts.prompts.map((p) => p.name).sort(), ["become-a-cell", "spread-the-cell", "take-tender"]);
     const become = await pub.getPrompt({ name: "become-a-cell", arguments: {} });
     assert.match(String((become.messages[0].content as { text?: string }).text), /wallet new[\s\S]*quickstart[\s\S]*cell init[\s\S]*wallet sign --url/, "the replicate prompt: wallet first, then the quickstart, then a public chain, and the signed credential for this cell");
     const prompt = await pub.getPrompt({ name: "take-tender", arguments: { tokenId: a } });
