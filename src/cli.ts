@@ -25,8 +25,9 @@ usage:
   foga world verify --world <world.json> --sourcify [--dry-run] [--only <id,id>] [--server <url>] [--out <dir>] [--build-info <dir>]
                                                  submit every contract the world deployed from the bundle to Sourcify, with the standard JSON input of its
                                                  compiler run (.foga-build/out/<repo>/build-info, written by npm run bundle:verify); a local chain is a dry run
-  foga wallet new [--name <n> | --dir <dir>] [--single]   the first step: a wallet of your own — owner, operator and guardian keys in 0600 files
-                                                 (default ~/.foga/wallet; --name under ~/.foga/wallets/<n>; --single: one signer key). Never overwrites; prints the addresses
+  foga wallet new [--name <n> | --dir <dir>] [--cell]   the first step: a key of your own — one signer in a 0600 file, your identity, which fills
+                                                 every role a cell needs (default ~/.foga/wallet; --name under ~/.foga/wallets/<n>; --cell: the
+                                                 separated owner/operator/guardian set for a guarded cell account). Never overwrites; prints the addresses
   foga wallet show [--name <n> | --dir <dir>] [--rpc <url>]   the wallet's addresses (and balances with an RPC)
   foga wallet sign (--config <cell.config.json> | --url <node url> | --cell <account> --chain-id <n>) [--name <n> | --dir <dir>]
                    [--role signer|operator|owner|guardian] [--ttl <s>] [--agent-id <id>] [--method <METHOD> --path <path> [--body '<json>' | --body-file <f>]]
@@ -246,7 +247,7 @@ async function main(): Promise<void> {
   }
 
   if (group === "wallet") {
-    const { createWallet, loadWallet, walletDir, walletFileProblems } = await import("./node/wallet.js");
+    const { CELL_ROLES, createWallet, loadWallet, walletDir, walletFileProblems } = await import("./node/wallet.js");
     const dir = resolve(str(flags, "dir") ?? walletDir(str(flags, "name")));
     const printWallet = async (w: Awaited<ReturnType<typeof loadWallet>> & object, made: boolean) => {
       console.log(`${made ? "wallet made at" : "wallet"} ${w.dir}${w.name !== "default" ? ` (${w.name})` : ""}, ${w.createdAt}`);
@@ -265,7 +266,9 @@ async function main(): Promise<void> {
       }
       provider?.destroy();
       for (const p of walletFileProblems(w)) log.warn(p);
-      if (w.roles.includes("owner")) console.log(`fund the owner for a cell's birth (capital and gas) and the operator for its gas; then: foga cell new --wallet ${dir} … and foga cell init --config <cfg> --wallet ${dir}`);
+      const single = w.roles.length === 1 && w.roles[0] === "signer";
+      if (single) console.log(`one key, your identity; it fills every role a cell needs. For a cell's birth, fund this address (capital and gas), then: foga cell new --wallet ${dir} … and foga cell init --config <cfg> --wallet ${dir}`);
+      else if (w.roles.includes("owner")) console.log(`a separated cell wallet; fund the owner for a cell's birth (capital and gas) and the operator for its gas, then: foga cell new --wallet ${dir} … and foga cell init --config <cfg> --wallet ${dir}`);
     };
     if (cmd === "new") {
       const existing = loadWallet(dir);
@@ -274,8 +277,10 @@ async function main(): Promise<void> {
         console.log("(already there; a wallet is never overwritten — foga wallet new --name <n> makes another)");
         return;
       }
+      // the base is one key (--single, now the default); --cell makes the separated owner/operator/guardian set (the guarded FogaCellAccount profile)
+      const roles = flags.cell ? [...CELL_ROLES] : undefined;
       try {
-        await printWallet(createWallet(dir, { name: str(flags, "name") ?? "default", roles: flags.single ? ["signer"] : undefined }), true);
+        await printWallet(createWallet(dir, { name: str(flags, "name") ?? "default", roles }), true);
       } catch (e) {
         fail((e as Error).message);
       }
@@ -481,13 +486,17 @@ async function main(): Promise<void> {
       await result.stop();
       return;
     }
+    let asked = false;
     const stopping = () => {
+      if (asked) return;
+      asked = true;
       console.error("quickstart: stopping the node and the chain");
       result.stop().finally(() => process.exit(0));
     };
     process.on("SIGINT", stopping);
     process.on("SIGTERM", stopping);
     const why = await result.ended;
+    if (why === "stopped") return; // a stop that was asked for: both children are gone
     fail(`${why}; the quickstart is over`);
   }
 

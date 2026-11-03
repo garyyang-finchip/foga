@@ -5,17 +5,19 @@ The principle (design memo, section 10): **the wallet is the first step, made by
 ## foga wallet new
 
 ```
-foga wallet new                      # ~/.foga/wallet: owner.key, operator.key, guardian.key (0600 each) and wallet.json
+foga wallet new                      # ~/.foga/wallet: one signer.key (0600) and wallet.json — your identity
 foga wallet new --name agent-x       # ~/.foga/wallets/agent-x
-foga wallet new --single             # one signer key, for an agent that only calls other cells
-foga wallet show [--rpc <url>]       # the addresses (and balances with an RPC)
+foga wallet new --cell               # the separated owner/operator/guardian set, for a guarded cell account
+foga wallet show [--rpc <url>]       # the address (and balance with an RPC)
 ```
 
-Pure entropy, no network, no chain: it does not fail unless the disk refuses the write, and then whatever needed the keys goes on with keys made in memory and says they are not kept (`foga quickstart` does exactly that). A wallet is never overwritten: `foga wallet new` on a directory that holds one prints it and stops; a second identity is `--name <another>`. `FOGA_HOME` moves `~/.foga` elsewhere.
+**The base is one key.** A wallet is, by default, a single `signer` key — the agent's identity — and that one key answers for every role a cell needs: a cell born with a single-key wallet has the same address as its owner, operator and guardian. One key is all it takes to be covenant-complete, to call cells as yourself, and to run a cell of your own. The three-role split — a cold owner that holds the assets, a hot operator that signs day to day, a separate guardian that can intervene — is the `FogaCellAccount` guarded profile's hardening, not a requirement of the ten covenants; it is opt-in with `--cell` (or `--roles owner,operator,guardian`), for when a cell runs real value and wants the keys separated.
 
-The wallet's files are what the node's key rules read (docs/node.md): `FOGA_OPERATOR_KEY_FILE=~/.foga/wallet/operator.key` is a node's environment, and `--wallet <dir>` is the CLI's shorthand for the role each command needs — `foga cell new --wallet` fills the three addresses, `foga cell init --wallet` births with the owner key, `foga cell <act> --wallet` acts with the operator's, `foga cell owner|guardian <admin> --wallet` with theirs, `foga node serve|run|mcp|tick|watch|preflight --wallet` take the operator's (and refuse to run beside `FOGA_OPERATOR_KEY[_FILE]`: a node's key comes from one place).
+Pure entropy, no network, no chain: it does not fail unless the disk refuses the write, and then whatever needed the key goes on with a key made in memory and says it is not kept (`foga quickstart` does exactly that). A wallet is never overwritten: `foga wallet new` on a directory that holds one prints it and stops; a second identity is `--name <another>`. `FOGA_HOME` moves `~/.foga` elsewhere.
 
-`foga quickstart` makes the default wallet on its first run and reuses it after: the chain is new every time, the identity is the one the agent made on day one, and `foga cell new --wallet ~/.foga/wallet` on a public chain is the same keys, funded.
+The wallet's files are what the node's key rules read (docs/node.md): `FOGA_OPERATOR_KEY_FILE=~/.foga/wallet/signer.key` is a node's environment, and `--wallet <dir>` is the CLI's shorthand for the key each command needs — `foga cell new --wallet` fills the account's roles (all from the one key, unless the wallet is a `--cell` one), `foga cell init --wallet` births with the owner's, `foga cell <act> --wallet` acts with the operator's, `foga cell owner|guardian <admin> --wallet` with theirs, `foga node serve|run|mcp|tick|watch|preflight --wallet` take the operator's (and refuse to run beside `FOGA_OPERATOR_KEY[_FILE]`: a node's key comes from one place). For a single-key wallet every one of these is the same key; for a `--cell` wallet each is its own.
+
+`foga quickstart` makes the default wallet on its first run and reuses it after: the chain is new every time, the identity is the one the agent made on day one, and `foga cell new --wallet ~/.foga/wallet` on a public chain is the same key, funded.
 
 ## Signed calls: FOGA-EIP712
 

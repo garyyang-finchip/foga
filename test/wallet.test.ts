@@ -6,38 +6,45 @@ import { test } from "node:test";
 import { Wallet, parseEther } from "ethers";
 import { anvilKeys } from "../src/genesis/roles.js";
 import { Kernel } from "../src/kernel/kernel.js";
-import { createWallet, ensureWallet, ensuredKey, loadWallet, walletDir, walletKey } from "../src/node/wallet.js";
+import { CELL_ROLES, createWallet, ensureWallet, ensuredKey, loadWallet, walletDir, walletKey } from "../src/node/wallet.js";
 import { anvilPath, foga, ok, startAnvil } from "./helpers/anvil-cell.js";
 
 /**
- * The wallet (3d): the first thing an agent makes — one key per role in its own file, never overwritten, never a
- * reason to stop — and the CLI's --wallet, which takes the place of the FOGA_*_KEY environment for a cell's birth and
- * for a node. The chain part births a cell with a wallet's keys through the CLI alone.
+ * The wallet (3d): the first thing an agent makes — by default one key, its identity, which answers for every role a
+ * cell needs; never overwritten, never a reason to stop — and the CLI's --wallet, which takes the place of the
+ * FOGA_*_KEY environment for a cell's birth and for a node. The owner/operator/guardian split is the guarded profile's
+ * opt-in hardening (--cell). The chain part births a cell with a single-key wallet through the CLI alone.
  */
 const PORT = 8568;
 const RPC = `http://127.0.0.1:${PORT}`;
 
-test("wallet: made once with three 0600 key files, read back from the keys, never overwritten", () => {
+test("wallet: one key by default, answering for every role; --cell makes the separated set; never overwritten", () => {
   const dir = mkdtempSync(join(tmpdir(), "foga-wallet-"));
   try {
+    // the base: one signer key
     const w = createWallet(join(dir, "w"), { name: "t" });
-    assert.deepEqual(w.roles, ["owner", "operator", "guardian"]);
-    for (const role of w.roles) {
-      assert.equal(new Wallet(walletKey(w, role)).address, w.addresses[role]);
-      if (process.platform !== "win32") assert.equal(statSync(w.files[role]).mode & 0o777, 0o600, `${role}.key is private`);
+    assert.deepEqual(w.roles, ["signer"], "the default wallet is a single key");
+    assert.equal(new Wallet(walletKey(w, "signer")).address, w.addresses.signer);
+    if (process.platform !== "win32") assert.equal(statSync(w.files.signer).mode & 0o777, 0o600, "signer.key is private");
+    // the one key fills owner, operator and guardian — the same address, the same file, the same key
+    for (const role of CELL_ROLES) {
+      assert.equal(w.addresses[role], w.addresses.signer, `${role} resolves to the signer`);
+      assert.equal(walletKey(w, role), walletKey(w, "signer"), `${role}'s key is the signer's`);
     }
     const manifest = JSON.parse(readFileSync(join(dir, "w", "wallet.json"), "utf8"));
     assert.equal(manifest.schema, "foga.wallet/1");
-    assert.equal(manifest.roles.operator.file, "operator.key");
+    assert.deepEqual(Object.keys(manifest.roles), ["signer"], "only the one key is on disk");
     const again = loadWallet(join(dir, "w"))!;
     assert.deepEqual(again.addresses, w.addresses, "the addresses come from the key files");
     assert.throws(() => createWallet(join(dir, "w")), /never overwritten/);
     writeFileSync(join(dir, "full"), "x");
     assert.throws(() => createWallet(join(dir, "full")), /exists and is not empty|not a directory|ENOTDIR/);
     assert.equal(loadWallet(join(dir, "none")), null);
-    const single = createWallet(join(dir, "s"), { roles: ["signer"] });
-    assert.deepEqual(single.roles, ["signer"]);
-    assert.throws(() => walletKey(single, "owner"), /no owner key/);
+    // --cell: the separated owner/operator/guardian set, three distinct keys, no signer to fall back on
+    const cell = createWallet(join(dir, "c"), { roles: [...CELL_ROLES] });
+    assert.deepEqual(cell.roles, ["owner", "operator", "guardian"]);
+    assert.equal(new Set(CELL_ROLES.map((r) => cell.addresses[r])).size, 3, "three distinct addresses");
+    assert.throws(() => walletKey(cell, "signer"), /no signer key/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -92,11 +99,14 @@ test("wallet: a cell born through the CLI with --wallet alone, then a node tick 
     assert.equal(made.code, 0, made.stderr);
     assert.match(made.stdout, /wallet made at/);
     const w = loadWallet(join(dir, "wallet"))!;
-    // the owner pays for the birth and the operator for its acts: anvil's first account funds them
+    assert.deepEqual(w.roles, ["signer"], "foga wallet new makes one key");
+    // one key is owner, operator and guardian all at once; anvil's first account funds that one address
+    assert.equal(w.addresses.owner, w.addresses.signer);
+    assert.equal(w.addresses.operator, w.addresses.signer);
+    assert.equal(w.addresses.guardian, w.addresses.signer);
     const k = await Kernel.open({ worldPath, rpc: RPC, storePath: join(dir, "funder.sqlite"), keys: { W: anvilKeys().W } });
     try {
-      await k.transfer("fund.owner", "W", w.addresses.owner, parseEther("1"));
-      await k.transfer("fund.operator", "W", w.addresses.operator, parseEther("0.5"));
+      await k.transfer("fund.identity", "W", w.addresses.signer, parseEther("1.5"));
     } finally {
       k.close();
       k.world.provider.destroy();
@@ -105,9 +115,9 @@ test("wallet: a cell born through the CLI with --wallet alone, then a node tick 
     const created = foga(RPC, ["cell", "new", "--name", "W", "--world", worldPath, "--store", join(dir, "W.ops.sqlite"), "--wallet", join(dir, "wallet"), "--out", configPath]);
     assert.equal(created.code, 0, created.stderr);
     const cfg = JSON.parse(readFileSync(configPath, "utf8"));
-    assert.equal(cfg.identity.owner, w.addresses.owner);
-    assert.equal(cfg.identity.operator, w.addresses.operator);
-    assert.equal(cfg.identity.guardian, w.addresses.guardian);
+    assert.equal(cfg.identity.owner, w.addresses.signer, "owner, operator and guardian are the one key");
+    assert.equal(cfg.identity.operator, w.addresses.signer);
+    assert.equal(cfg.identity.guardian, w.addresses.signer);
     const born = ok(foga(RPC, ["cell", "init", "--config", configPath, "--wallet", join(dir, "wallet")]), "cell init --wallet");
     assert.match(born.account, /^0x[0-9a-fA-F]{40}$/);
     const status = ok(foga(RPC, ["cell", "status", "--config", configPath]), "cell status");

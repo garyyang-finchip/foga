@@ -141,8 +141,10 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
 
   // --- the wallet: the first step; made now when there is none, reused when there is; never a reason to stop
   const wallet: EnsuredWallet = ensureWallet(walletPath, { name: "default" });
+  const singleKey = wallet.wallet.roles.length === 1 && wallet.wallet.roles[0] === "signer";
+  const walletAddrs = singleKey ? `identity ${wallet.wallet.addresses.signer}` : `owner ${wallet.wallet.addresses.owner}, operator ${wallet.wallet.addresses.operator}, guardian ${wallet.wallet.addresses.guardian}`;
   if (wallet.ephemeral) log(`quickstart: wallet: could not write ${walletPath} (${wallet.reason}); using keys made in memory for this run — they are not kept`);
-  else log(`quickstart: wallet: ${wallet.created ? "made" : "using"} ${wallet.wallet.dir} — owner ${wallet.wallet.addresses.owner}, operator ${wallet.wallet.addresses.operator}, guardian ${wallet.wallet.addresses.guardian}`);
+  else log(`quickstart: wallet: ${wallet.created ? "made" : "using"} ${wallet.wallet.dir} — ${walletAddrs}`);
 
   // --- the chain and the world
   log(`quickstart: starting ${version} on ${rpc} (log ${join(dir, "anvil.log")})`);
@@ -150,11 +152,18 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
   let node: ChildProcess | null = null;
   let endedWith: ((why: string) => void) | null = null;
   const ended = new Promise<string>((r) => (endedWith = r));
-  anvil.on("exit", (code, signal) => endedWith?.(`anvil stopped (${code !== null ? `exit code ${code}` : `signal ${signal}`})`));
+  // a stop asked for (Ctrl-C, --exit, SIGTERM) ends the children in order; their exits are then expected and do not end the run
+  // early — otherwise the node's exit would resolve `ended` while anvil is still being stopped and leave the chain running
+  let stopping = false;
+  anvil.on("exit", (code, signal) => {
+    if (!stopping) endedWith?.(`anvil stopped (${code !== null ? `exit code ${code}` : `signal ${signal}`})`);
+  });
   const stop = async () => {
+    stopping = true;
     if (node) await stopChild(node);
     node = null;
     await stopChild(anvil);
+    endedWith?.("stopped");
   };
   try {
     const worldPath = join(dir, "world.json");
@@ -242,10 +251,14 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
       const host = listen.slice(0, i) || "127.0.0.1";
       nodeUrl = `http://${host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host}:${listen.slice(i + 1)}`;
       node = spawn(cli.command, [...cli.args, "node", "serve", "--config", configPath, "--rpc", rpc, "--listen", listen], { env: cleanEnv({ FOGA_OPERATOR_KEY_FILE: keyPaths.operator }), stdio: ["ignore", "ignore", "pipe"] });
+      // the node's lines are relayed, except a watcher tick in which nothing happened (every two seconds, forever)
+      const idleTick = /: anchor ACTIVE, heartbeat not sent \([^)]*\); 0 new tender\(s\); 0 settled, 0 withdrawn; safety Satisfied$/;
       node.stderr!.on("data", (d) => {
-        for (const line of String(d).split("\n")) if (line.trim()) log(`  node| ${line}`);
+        for (const line of String(d).split("\n")) if (line.trim() && !idleTick.test(line.trim())) log(`  node| ${line}`);
       });
-      node.on("exit", (code, signal) => endedWith?.(`the node stopped (${code !== null ? `exit code ${code}` : `signal ${signal}`})`));
+      node.on("exit", (code, signal) => {
+        if (!stopping) endedWith?.(`the node stopped (${code !== null ? `exit code ${code}` : `signal ${signal}`})`);
+      });
       await waitForHttp(`${nodeUrl}/healthz`);
 
       // --- the entrance answers: health, a public read, the agent key's pre-check of the first tender, the MCP handshake and tool list
@@ -291,7 +304,8 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
     lines.push("");
     lines.push(`  chain     anvil on ${rpc} (chain ${world.chainId}), world ${world.worldId} — the chain lives as long as this process`);
     lines.push(`  cell      ${name} = ${cell.account}${cell.agentId ? ` (ERC-8004 agent ${cell.agentId})` : ""}`);
-    lines.push(`  wallet    ${wallet.ephemeral ? `keys made in memory for this run, written to ${keysDir} (${walletPath} was not writable)` : `${wallet.wallet.dir} (${wallet.created ? "made now" : "reused"}) — owner ${cell.owner.address}, operator ${cell.operator.address}, guardian ${cell.guardian.address}; the same wallet on every run`}`);
+    const walletRoles = singleKey ? `identity ${cell.owner.address} (one key, every role)` : `owner ${cell.owner.address}, operator ${cell.operator.address}, guardian ${cell.guardian.address}`;
+    lines.push(`  wallet    ${wallet.ephemeral ? `keys made in memory for this run, written to ${keysDir} (${walletPath} was not writable)` : `${wallet.wallet.dir} (${wallet.created ? "made now" : "reused"}) — ${walletRoles}; the same wallet on every run`}`);
     lines.push(`  skills    ${Object.keys(cell.held).join(", ")} (held and offered)`);
     if (minted.length) lines.push(`  tenders   ${minted.map((c) => `#${c.tokenId} ${c.skill} (${formatEther(c.rewardWei)} ETH)`).join(", ")} — open, waiting for the cell to take them`);
     if (nodeUrl) lines.push(`  node      ${nodeUrl} — /mcp (Streamable HTTP), /api/<capability>, /a2a (A2A 1.0, JSON-RPC), /.well-known/agent-card.json, /documents/*, /healthz; its watchers settle and withdraw`);

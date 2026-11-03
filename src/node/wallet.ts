@@ -4,17 +4,27 @@ import { join, resolve } from "node:path";
 import { Wallet, isHexString } from "ethers";
 
 /**
- * The wallet: an agent's own keys, the first thing it makes (design memo, Phase 3, section 3, "wallet first").
- * One directory holds one key per role in its own 0600 file — owner, operator and guardian for an agent that will
- * be a cell, or a single signer for one that only calls other cells — and a `wallet.json` naming the addresses.
- * Making one touches no network and no chain; it is pure entropy on the agent's own machine, so it does not fail,
- * and it is never made twice: an existing wallet is reported, never overwritten. The node's key rules
- * (`src/node/keys.ts`) read the files as they are; `FOGA_OPERATOR_KEY_FILE=<wallet>/operator.key` is a node's
+ * The wallet: an agent's own keys, the first thing it makes (design memo, section 10, "the wallet is the first step").
+ * The base is one key — a single `signer` in its own 0600 file, the agent's identity — and that one key answers for
+ * every role a cell needs: a cell born with a single-key wallet has the same address as owner, operator and guardian.
+ * The owner/operator/guardian split (a cold owner, a hot operator, a separate guardian) is the `FogaCellAccount`
+ * guarded profile's hardening, not a requirement of being covenant-complete; it is opt-in (`foga wallet new --cell`).
+ * Making a wallet touches no network and no chain; it is pure entropy on the agent's own machine, so it does not
+ * fail, and it is never made twice: an existing wallet is reported, never overwritten. The node's key rules
+ * (`src/node/keys.ts`) read the files as they are; `FOGA_OPERATOR_KEY_FILE=<wallet>/signer.key` is a node's
  * environment, `--wallet <dir>` the CLI's shorthand for the same.
  */
 export const WALLET_SCHEMA = "foga.wallet/1";
 export const CELL_ROLES = ["owner", "operator", "guardian"] as const;
 export type WalletRole = (typeof CELL_ROLES)[number] | "signer";
+
+/** A single-key wallet answers for every cell role: owner, operator and guardian all resolve to the one signer. */
+function withSignerFallback<T>(map: Record<string, T>): Record<string, T> {
+  if (map.signer === undefined) return map;
+  const out = { ...map };
+  for (const role of CELL_ROLES) if (out[role] === undefined) out[role] = map.signer;
+  return out;
+}
 
 export interface WalletFile {
   schema: typeof WALLET_SCHEMA;
@@ -61,7 +71,9 @@ export function loadWallet(dir: string): WalletInfo | null {
     addresses[role] = new Wallet(readKeyFile(path)).address;
     files[role] = path;
   }
-  return { name: file.name, dir: abs, createdAt: file.createdAt, roles, addresses, files };
+  // `roles` stays the keys actually on disk (a single-key wallet is `["signer"]`); `addresses` and `files` resolve
+  // owner/operator/guardian to the signer, so every reader of a per-role address or key file works unchanged.
+  return { name: file.name, dir: abs, createdAt: file.createdAt, roles, addresses: withSignerFallback(addresses), files: withSignerFallback(files) };
 }
 
 /** The private key of one role of a wallet. */
@@ -73,7 +85,7 @@ export function walletKey(wallet: WalletInfo, role: WalletRole): string {
 
 export interface CreateWalletOptions {
   name?: string;
-  /** owner, operator and guardian (a cell's roles; default) or a single signer. */
+  /** The keys to make; the default is a single `signer`. `[...CELL_ROLES]` makes the separated owner/operator/guardian set. */
   roles?: WalletRole[];
 }
 
@@ -82,7 +94,7 @@ export function createWallet(dir: string, o: CreateWalletOptions = {}): WalletIn
   const abs = resolve(dir);
   if (existsSync(join(abs, "wallet.json"))) throw new Error(`${abs} already holds a wallet; foga wallet show prints it (a wallet is never overwritten)`);
   if (existsSync(abs) && readdirSync(abs).length) throw new Error(`${abs} exists and is not empty; choose another directory`);
-  const roles = o.roles ?? [...CELL_ROLES];
+  const roles = o.roles ?? ["signer"];
   mkdirSync(abs, { recursive: true, mode: 0o700 });
   const file: WalletFile = { schema: WALLET_SCHEMA, name: o.name ?? "default", createdAt: new Date().toISOString(), roles: {} };
   for (const role of roles) {
@@ -107,7 +119,7 @@ export function ensureWallet(dir: string, o: CreateWalletOptions = {}): EnsuredW
   try {
     return { wallet: createWallet(dir, o), created: true, ephemeral: false };
   } catch (e) {
-    const roles = o.roles ?? [...CELL_ROLES];
+    const roles = o.roles ?? ["signer"];
     const addresses: Record<string, string> = {};
     const files: Record<string, string> = {};
     for (const role of roles) {
@@ -115,7 +127,7 @@ export function ensureWallet(dir: string, o: CreateWalletOptions = {}): EnsuredW
       addresses[role] = w.address;
       files[role] = `memory:${w.privateKey}`;
     }
-    return { wallet: { name: o.name ?? "ephemeral", dir: resolve(dir), createdAt: new Date().toISOString(), roles, addresses, files }, created: true, ephemeral: true, reason: (e as Error).message };
+    return { wallet: { name: o.name ?? "ephemeral", dir: resolve(dir), createdAt: new Date().toISOString(), roles, addresses: withSignerFallback(addresses), files: withSignerFallback(files) }, created: true, ephemeral: true, reason: (e as Error).message };
   }
 }
 

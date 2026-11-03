@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { clientConfigs, clientLauncher, MARKER, runQuickstart } from "../src/demo/quickstart.js";
-import { anvilPath, portOpen } from "./helpers/anvil-cell.js";
+import { spawn } from "node:child_process";
+import { ROOT, anvilPath, cleanEnv, portOpen } from "./helpers/anvil-cell.js";
 
 /**
  * `foga quickstart` (3d): from nothing to a cell a client can connect to, in one call. The test runs it on its own
@@ -65,8 +66,8 @@ test("quickstart: anvil, world, cell, tenders, node; a client connects as the pr
     assert.equal(q.wallet.dir, walletPath);
     assert.equal(q.wallet.created, true, "the wallet was made on the first run");
     assert.equal(q.wallet.ephemeral, false);
-    assert.equal(q.keys.operator, join(walletPath, "operator.key"), "the configurations name the wallet's own key file");
-    assert.ok(lines.some((l) => /wallet: made .*owner 0x/.test(l)));
+    assert.equal(q.keys.operator, join(walletPath, "signer.key"), "a single-key wallet: the configurations name its one key file for the operator role");
+    assert.ok(lines.some((l) => /wallet: made .*identity 0x/.test(l)), "the one key is shown as the cell's identity");
     assert.equal(q.rpc, `http://127.0.0.1:${PORT}`);
     assert.equal(q.nodeUrl, `http://${LISTEN}`);
     assert.equal(q.tenders.length, 2);
@@ -152,6 +153,41 @@ test("quickstart: a wallet directory that cannot be written is no reason to stop
     assert.ok(lines.some((l) => /not kept/.test(l)));
   } finally {
     await q.stop();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("quickstart: a stop signal to the process alone ends the node and the chain, not only the process", { timeout: 300_000 }, async (t) => {
+  if (!anvilPath()) {
+    t.skip("anvil is not installed");
+    return;
+  }
+  // Ctrl-C in a terminal signals the whole process group, so anvil used to be stopped by the terminal rather than by the
+  // quickstart; a supervisor or an agent runtime signals the one process, and the chain must go with it all the same.
+  const dir = mkdtempSync(join(tmpdir(), "foga-qs-sig-"));
+  const port = 8575;
+  const listen = "127.0.0.1:8809";
+  const child = spawn(process.execPath, ["--import", "tsx", "src/cli.ts", "quickstart", "--dir", join(dir, "qs"), "--wallet", join(dir, "wallet"), "--port", String(port), "--listen", listen, "--no-tenders"], { cwd: ROOT, env: cleanEnv(`http://127.0.0.1:${port}`), stdio: ["ignore", "pipe", "pipe"] });
+  let err = "";
+  child.stderr.on("data", (d) => (err += String(d)));
+  const exited = new Promise<number | null>((r) => child.on("exit", (code) => r(code)));
+  try {
+    const started = Date.now();
+    while (!/stdio MCP server answers/.test(err)) {
+      if (Date.now() - started > 240_000 || child.exitCode !== null) throw new Error(`the quickstart did not come up:\n${err.slice(-2000)}`);
+      await sleep(500);
+    }
+    assert.ok(await portOpen(port), "anvil is up");
+    child.kill("SIGTERM");
+    const code = await Promise.race([exited, sleep(20_000).then(() => "timeout" as const)]);
+    assert.equal(code, 0, `the quickstart exits 0 on a requested stop:\n${err.slice(-1500)}`);
+    for (let i = 0; i < 20 && (await portOpen(port)); i++) await sleep(250);
+    assert.ok(!(await portOpen(port)), "anvil stopped with the quickstart");
+    const nodeUp = await fetch(`http://${listen}/healthz`).then(() => true, () => false);
+    assert.ok(!nodeUp, "the node stopped with the quickstart");
+    assert.ok(/stopping the node and the chain/.test(err) && !/the quickstart is over/.test(err), "a requested stop is not reported as the run ending early");
+  } finally {
+    if (child.exitCode === null) child.kill("SIGKILL");
     rmSync(dir, { recursive: true, force: true });
   }
 });
