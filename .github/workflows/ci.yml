@@ -138,7 +138,7 @@ jobs:
             for (const f of ["wallet.json", "owner.key", "operator.key", "guardian.key"]) if (!fs.existsSync(process.env.RUNNER_TEMP + "/wallet/" + f)) throw new Error("the wallet lacks " + f);
             const desktop = JSON.parse(fs.readFileSync(dir + "/mcp/claude_desktop_config.json", "utf8"));
             if (!desktop.mcpServers.foga.args.includes("mcp")) throw new Error("the client configuration does not start the stdio server");
-            if (desktop.mcpServers.foga.env.FOGA_OPERATOR_KEY_FILE !== require("path").resolve(process.env.RUNNER_TEMP, "wallet", "operator.key")) throw new Error("the client configuration does not name the wallet's operator key: " + desktop.mcpServers.foga.env.FOGA_OPERATOR_KEY_FILE);
+            if (desktop.mcpServers.foga.env.FOGA_OPERATOR_KEY_FILE !== require("path").resolve(process.env.RUNNER_TEMP, "wallet", "operator.key")) throw new Error("the client configuration does not name the operator key of the wallet: " + desktop.mcpServers.foga.env.FOGA_OPERATOR_KEY_FILE);
             const out = fs.readFileSync(process.env.RUNNER_TEMP + "/quickstart.out", "utf8");
             for (const re of [/a FOGA cell is live/, /Authorization: Bearer foga\.agent\./, /wallet +.*\(made now\)/, /documents .*committed on chain as URLs/, /A2A +POST http:\/\/127\.0\.0\.1:8797\/a2a/]) if (!re.test(out)) throw new Error("the summary lacks " + re + ":\n" + out.slice(0, 3000));
           '
