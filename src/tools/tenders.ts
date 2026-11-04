@@ -4,7 +4,7 @@ import { getAddress, toUtf8Bytes, hexlify } from "ethers";
 import { z } from "zod";
 import { accountRef, dataUri, dataUriJcs, keccakJcs, sha256Hex } from "../core/canonical.js";
 import { kindId, taskDescriptor } from "../core/ard.js";
-import { hashlock, nativeTerms } from "../core/tenders.js";
+import { hashlock, nativeTerms, SubmissionStatus } from "../core/tenders.js";
 import { runExtractIsolated, runProbeIsolated } from "../genesis/skill-runner.js";
 import type { ProbeInput } from "../genesis/probe.js";
 import type { Node } from "../node/node.js";
@@ -19,6 +19,15 @@ import type { ActCapability, ActContext, Intent } from "./types.js";
  * mode as calldata for its own account.
  */
 const ZERO32 = "0x" + "00".repeat(32);
+
+/**
+ * The skill worker's time budget: the configuration's (`skills.timeoutMs`), or a minute on a local chain and three
+ * on a public one — a shared endpoint answers a bounded log scan in seconds, not milliseconds, and a probe over a
+ * tender's lookback is several such scans.
+ */
+function skillTimeoutMs(node: Node): number {
+  return node.config.skills.timeoutMs ?? (node.world.network === "anvil" ? 60_000 : 180_000);
+}
 
 /** The text of a data: URI (base64 or percent-encoded), whatever its media type. */
 function decodeDataUriText(uri: string): string {
@@ -115,7 +124,7 @@ export const skill_run: ActCapability = {
         let report: unknown;
         if (input.skill === "foga-probe") {
           const probe = input.input as ProbeInput;
-          const run = await runProbeIsolated({ worldPath: node.worldPath, rpc: node.rpc, bundlePath: node.bundlePath, input: probe });
+          const run = await runProbeIsolated({ worldPath: node.worldPath, rpc: node.rpc, bundlePath: node.bundlePath, input: probe, timeoutMs: skillTimeoutMs(node) });
           answer = run.answer;
           report = run.report;
         } else if (input.skill === "finch-extract-verify") {
@@ -134,7 +143,7 @@ export const skill_run: ActCapability = {
             if (/[\\/]|\.\./.test(doc)) throw new Error("input.document must be a bare file name inside the input directory");
             documentPath = join(node.inputDir, doc);
           }
-          const run = await runExtractIsolated({ documentPath, fieldsPath: join(node.skillsDir, "finch-extract-verify", "fields.json"), packageHash: skill.packageHash, inputDir, skillsDir: node.skillsDir });
+          const run = await runExtractIsolated({ documentPath, fieldsPath: join(node.skillsDir, "finch-extract-verify", "fields.json"), packageHash: skill.packageHash, inputDir, skillsDir: node.skillsDir, timeoutMs: skillTimeoutMs(node) });
           answer = run.canonical;
           report = run.report;
         } else throw new Error(`no executor for skill ${input.skill}; the node runs foga-probe and finch-extract-verify`);
@@ -207,7 +216,12 @@ export const tender_settle: ActCapability = {
     if (view.facts.settleBy !== 0n && Number(view.facts.settleBy) <= now) gates.push(refused("policy", "past settleBy"));
     const jobId = input.jobId ?? `${tenderJobId(id, view.facts.completions)}:settle`;
     const intent: Intent = { target: k.tenders.address, value: 0n, data: k.tenders.encodeSettle(id, sid, proof), label: `settleFulfillment(${input.tokenId}, ${input.submissionId})` };
-    const before = await node.body.balance();
+    // What the settlement pays is measured on the tender — the escrow it releases less what it leaves as credit —
+    // not as the account's net balance change: between the read before and the read after, another flow on the
+    // account (a tender the cell is minting, a withdrawal landing, a watcher's settlement of another tender) would
+    // leak into a balance delta and the evidence would record a reward the chain paid in full as a fraction of it.
+    // A rejected settlement releases the escrow to the demander and pays the cell nothing.
+    const [escrowBefore, creditBefore] = await Promise.all([k.tenders.escrowBalanceOf(id), k.tenders.creditOf(id, node.body.address)]);
     return {
       job: { id: jobId, kind: "tender-settle", input: { tokenId: input.tokenId, submissionId: input.submissionId, proofHash: sha256Hex(proof) } },
       gates,
@@ -215,8 +229,11 @@ export const tender_settle: ActCapability = {
       steps: [{ name: "settle", kind: "plain", build: () => intent }],
       output: async (confirmed) => {
         const c = confirmed[0];
-        const [after, credit, s] = await Promise.all([node.body.balance(), k.tenders.creditOf(id, node.body.address), k.tenders.submissionOf(id, sid)]);
-        return { tokenId: input.tokenId, submissionId: input.submissionId, txHash: c.txHash, operationId: `job:${jobId}:settle`, jobId, paidWei: (after > before ? after - before : 0n).toString(), creditWei: credit.toString(), status: s.status };
+        const [escrowAfter, creditAfter, s] = await Promise.all([k.tenders.escrowBalanceOf(id), k.tenders.creditOf(id, node.body.address), k.tenders.submissionOf(id, sid)]);
+        const released = escrowBefore > escrowAfter ? escrowBefore - escrowAfter : 0n;
+        const credited = creditAfter > creditBefore ? creditAfter - creditBefore : 0n;
+        const paid = s.status === SubmissionStatus.Accepted && released > credited ? released - credited : 0n;
+        return { tokenId: input.tokenId, submissionId: input.submissionId, txHash: c.txHash, operationId: `job:${jobId}:settle`, jobId, paidWei: paid.toString(), creditWei: creditAfter.toString(), status: s.status };
       },
     };
   },

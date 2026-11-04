@@ -61,6 +61,27 @@ export const PresenceSchema = z.object({
       web: z.string().url().optional(),
     })
     .prefault({}),
+  /**
+   * The `services` block of the propagation manifest (docs/propagation.md): absent, the program maintainer's catalog
+   * and offers; `catalog: null` drops the block from this cell's manifest; a catalog and offers of one's own replace it.
+   */
+  services: z
+    .object({
+      catalog: z.string().url().nullable().optional(),
+      offers: z
+        .array(
+          z.object({
+            id: z.string().min(1).max(64),
+            name: z.string().min(1).max(120),
+            kind: z.enum(["free", "paid"]),
+            status: z.enum(["available", "planned"]).default("available"),
+            url: z.string().url(),
+            description: z.string().max(400).default(""),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
 });
 
 export const HeldSkillSchema = z.object({
@@ -79,6 +100,8 @@ export const SkillsSchema = z.object({
   held: z.record(z.string(), HeldSkillSchema).default({}),
   /** Skills the cell offers to run for others; a tender for a skill not listed here is refused (gate: skill). */
   offered: z.array(z.string()).default([]),
+  /** The skill worker's time budget per run (ms). Absent: a minute on a local chain, three on a public one. */
+  timeoutMs: z.number().int().positive().optional(),
 });
 
 export const BudgetSchema = z.object({

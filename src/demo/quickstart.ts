@@ -335,6 +335,19 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
     lines.push("task's skill and input, tender_submit with the run's resultHash and runReceipt; the node settles and withdraws. More tenders for the cell:");
     lines.push(`  FOGA_DEMANDER_KEY=<a funded key, anvil's first account by default> ${demanderCmd}`);
     if (launcher.fromCheckout) lines.push(`(This is a checkout: the configurations start ${launcher.command} ${launcher.args.join(" ")}; a published install would start npx -y ${PACKAGE_NAME}.)`);
+    // Next: what a cell should do once it runs — advice, kept out of the first run on purpose (docs/node.md, "Advice").
+    try {
+      const { adviseCell, formatAdvice } = await import("../node/advise.js");
+      const reader = await Node.open({ configPath, rpc, keys: {}, allowUnborn: true, log: () => {} });
+      try {
+        const next = formatAdvice(adviseCell(reader), { brief: true, config: configPath });
+        if (next) lines.push("", next);
+      } finally {
+        reader.close();
+      }
+    } catch {
+      // advice is never a reason for a quickstart to fail
+    }
     lines.push("");
     lines.push(o.exit ? "Started with --exit: stopping the node and the chain." : "Ctrl-C stops the node and the chain; the next quickstart starts over in the same directory.");
     const summary = lines.join("\n");

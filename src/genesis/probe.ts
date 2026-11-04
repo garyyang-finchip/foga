@@ -41,6 +41,20 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
   if (!block) throw new Error(`block ${input.block} not found`);
   const at = { blockTag: tag };
   const fromBlock = input.lookback === undefined ? 0 : Math.max(0, input.block - input.lookback);
+  // A bounded scan is asked in windows of 2000 blocks, the windows in parallel and their logs concatenated in block
+  // order — the same logs a single query returns, in the same order (the answer hash is over them, so this must not
+  // change), but each request small enough for a public endpoint, which caps the range of `eth_getLogs` and answers
+  // a 9000-block scan slowly or not at all: a skill run on Sepolia overran its worker's budget on exactly this. An
+  // unbounded scan (no lookback: a local chain) stays one query.
+  const WINDOW = 2000;
+  const logsOf = async (c: Contract, filter: Parameters<Contract["queryFilter"]>[0]) => {
+    const to = input.block;
+    if (input.lookback === undefined || to - fromBlock < WINDOW) return c.queryFilter(filter, fromBlock, to);
+    const windows: [number, number][] = [];
+    for (let a = fromBlock; a <= to; a += WINDOW) windows.push([a, Math.min(a + WINDOW - 1, to)]);
+    const parts = await Promise.all(windows.map(([a, b]) => c.queryFilter(filter, a, b)));
+    return parts.flat();
+  };
   const section = async (fn: () => Promise<Record<string, unknown>>): Promise<Record<string, unknown> | null> => {
     try {
       return await fn();
@@ -121,14 +135,14 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
 
   checks.erc8454 = await section(async () => {
     const units = world.contract("8454/AUFUnitRegistry");
-    const logs = await units.queryFilter(units.filters.UnitRegistered(null, subject), fromBlock, input.block);
+    const logs = await logsOf(units, units.filters.UnitRegistered(null, subject));
     return { unitsControlled: logs.map((l: any) => String(l.args.unitId)) };
   });
 
   checks.erc8338 = await section(async () => {
     const skills = world.contract("8338/SkillToken");
     const held = String(await skills.balanceOf(subject, at));
-    const received = await skills.queryFilter(skills.filters.Transfer(null, subject), fromBlock, input.block);
+    const received = await logsOf(skills, skills.filters.Transfer(null, subject));
     const ids = new Set<string>();
     for (const l of received as any[]) ids.add(String(l.args.tokenId));
     const tokens: Record<string, unknown>[] = [];
@@ -147,14 +161,14 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
   checks.erc8414 = await section(async () => {
     const tasks = world.contract("8414/TaskToken");
     const held = String(await tasks.balanceOf(subject, at));
-    const submitted = await tasks.queryFilter(tasks.filters.FulfillmentSubmitted(null, null, subject), fromBlock, input.block);
-    const accepted = await tasks.queryFilter(tasks.filters.FulfillmentAccepted(null, null, subject), fromBlock, input.block);
+    const submitted = await logsOf(tasks, tasks.filters.FulfillmentSubmitted(null, null, subject));
+    const accepted = await logsOf(tasks, tasks.filters.FulfillmentAccepted(null, null, subject));
     return { held, submissions: String(submitted.length), accepted: String(accepted.length) };
   });
 
   checks.erc8447 = await section(async () => {
     const swarms = world.contract("8447/SwarmRegistry");
-    const activated = await swarms.queryFilter(swarms.filters.MemberActivated(null, subject), fromBlock, input.block);
+    const activated = await logsOf(swarms, swarms.filters.MemberActivated(null, subject));
     const ids = [...new Set((activated as any[]).map((l) => String(l.args.swarmId)))].sort();
     const memberships: Record<string, unknown>[] = [];
     for (const swarmId of ids) memberships.push({ swarmId, status: String(await swarms.memberStatus(swarmId, subject, at)) });
@@ -163,13 +177,13 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
 
   checks.erc8436 = await section(async () => {
     const acdf = world.contract("8436/ACDFRegistry");
-    const filed = await acdf.queryFilter(acdf.filters.IssueFiled(null, null, null, subject), fromBlock, input.block);
+    const filed = await logsOf(acdf, acdf.filters.IssueFiled(null, null, null, subject));
     return { issuesFiled: String(filed.length) };
   });
 
   checks.erc8471 = await section(async () => {
     const adrf = world.contract("8471/ADRFDisputeRegistry");
-    const filed = await adrf.queryFilter(adrf.filters.CaseFiled(), fromBlock, input.block);
+    const filed = await logsOf(adrf, adrf.filters.CaseFiled());
     let asParty = 0;
     for (const l of filed as any[]) {
       if (String(l.args.claimant).toLowerCase() === low || String(l.args.respondent).toLowerCase() === low) asParty++;

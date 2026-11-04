@@ -60,7 +60,13 @@ export async function birthCell(o: BirthOptions): Promise<BornCell> {
   log(`cell ${o.name}: owner ${owner.address}, operator ${operator.address}, guardian ${guardian.address}${o.keys ? " (the wallet's keys)" : " (fresh keys)"}`);
 
   // --- funding by W, the standing scheme registered by W
-  const price = (await k.world.provider.getFeeData()).gasPrice ?? 1_000_000_000n;
+  // The reserve is priced at the chain's gas price, floored at 1 gwei. A public testnet can quote a price near zero
+  // (Sepolia has sat at a few wei), which would fund the roles with the flat amounts alone: the operator below the
+  // cell policy's gas floor (a quarter of the daily gas budget — the budget gate then refuses every tender) and the
+  // guardian with next to nothing for its suspend and resume. The floor keeps the funding meaningful on any chain;
+  // on a local chain, whose price is above it, nothing changes.
+  const quoted = (await k.world.provider.getFeeData()).gasPrice ?? 1_000_000_000n;
+  const price = quoted > 1_000_000_000n ? quoted : 1_000_000_000n;
   const gas = (units: bigint) => units * price * 2n;
   await k.transfer("fund.owner", "W", owner.address, parseEther("0.05") + gas(12_000_000n));
   await k.transfer("fund.operator", "W", operator.address, gas(20_000_000n) + parseEther("0.003"));

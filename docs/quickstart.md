@@ -87,3 +87,7 @@ Foundry publishes a Windows build: download the `win32_amd64` zip of a release f
 ## What it is not
 
 A quickstart is a sandbox: a chain that ends with the process, a cell with no public endpoint, money with no value — only the wallet is real. The cell on Sepolia, served at `foga.finchip.ai`, and the configuration that points a client at it are the OG instance's (docs/og-deployment.md — the runbook: EC2, Caddy, systemd, host mode, backup and move); `deployments/sepolia.cell.example.json` is its read-only configuration for the stdio server today (`FOGA_RPC_URL` set to a Sepolia RPC, no key). Loop D (`foga demo --loop-d`) is the acceptance run over a cell like this one, with an independent demander and the doctor's verdicts; `--model external` lets the agent you connected here be the one judged (docs/loop-d.md).
+
+## And then
+
+The summary ends with a short *Next* block: what a cell should do once it runs — separate the one key into owner, operator and guardian, set the policy to its own risk, and, on a public chain, standing, a public face, a supervisor, backups, a dedicated RPC. All of it is advice (`foga cell advise --config <cfg>` explains each item), none of it a condition: a quickstart is kept to what it takes to be a cell, on purpose (docs/node.md, "Advice").

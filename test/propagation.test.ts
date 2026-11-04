@@ -54,6 +54,14 @@ test("propagation: a free manifest from the configuration, served live and read 
     assert.deepEqual(m.skills.sort(), ["finch-extract-verify", "foga-probe"]);
     assert.equal(m.discovery.onchain.optional, true, "on-chain discoverability is opt-in");
     assert.ok(m.discovery.free.length >= 2, "there are free discovery routes");
+    // the covenants the world actually has, read off its contract keys — the local world attaches all eleven, no extension
+    assert.deepEqual(m.world.covenants, [...FOGA_COVENANTS], "the deployed local world attaches the ten covenants and ERC-8004");
+    assert.deepEqual(m.world.extensions, [], "nothing beyond the base set on this world");
+    // the services slot: the maintainer's catalog by default, visible and declinable, planned offers not for sale
+    assert.ok(m.services, "the services block is present by default");
+    assert.equal(m.services!.catalog, "https://foga.finchip.ai/services.json");
+    assert.ok(m.services!.offers.some((s) => s.id === "become-a-cell" && s.kind === "free" && s.status === "available"));
+    assert.ok(m.services!.offers.every((s) => s.kind === "free" || s.status === "planned"), "nothing paid is for sale yet");
 
     // --- served by the node (no public URL in this config: endpoint URLs are null, the manifest still answers)
     running = await createHttpServer({ node, catalog, version, log: () => {} }).listen("127.0.0.1:0");
@@ -64,6 +72,7 @@ test("propagation: a free manifest from the configuration, served live and read 
     assert.deepEqual(served.covenants, [...FOGA_COVENANTS]);
     const front = await (await fetch(`${url}/`)).json();
     assert.equal(front.endpoints.manifest, "/.well-known/foga-cell.json", "the front page points at the manifest");
+    assert.equal((await fetch(`${url}/services.json`)).status, 404, "no public URL: the pointer names the maintainer's host, this cell serves no catalog");
 
     // --- the public capability returns the same thing, and leaves no decision record (a read: no key, no chain, no cost)
     const kit = await catalog.invoke(node, "propagation_kit", {}, { ...PUBLIC_CALLER, entrance: "http" }, { mode: "act" });
@@ -86,6 +95,19 @@ test("propagation: a free manifest from the configuration, served live and read 
       assert.equal(m3.endpoints.mcp, "https://foga.finchip.ai/mcp");
       assert.equal(m3.endpoints.manifest, "https://foga.finchip.ai/.well-known/foga-cell.json");
       assert.equal(m3.endpoints.card, "https://foga.finchip.ai/.well-known/agent-card.json");
+      // the reference cell's public URL is the maintainer's host, so the services pointer is its own and it serves the catalog
+      const serving3 = await createHttpServer({ node: node3, catalog, version, log: () => {} }).listen("127.0.0.1:0");
+      try {
+        const res = await fetch(`${serving3.url}/services.json`);
+        assert.equal(res.status, 200);
+        const doc = await res.json();
+        assert.equal(doc.schema, "foga.services/1");
+        assert.equal(doc.catalog, m3.services!.catalog, "the document is at the URL the manifest points at");
+        assert.equal(doc.program.version, version);
+        assert.ok(doc.offers.some((s: { id: string }) => s.id === "become-a-cell"));
+      } finally {
+        await serving3.close();
+      }
     } finally {
       node3.close();
     }

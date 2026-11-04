@@ -28,6 +28,9 @@ export const CELL_USAGE = `
   foga cell migrate --config <cell.config.json> --to <new.config.json> [--store <new ops.sqlite>] [--operator <addr>] [--capital-wei <n>] [--no-sweep]
                                                  move the cell to a new revision-2 account (the owner's key); the new config and store are written beside
   foga cell status --config <cell.config.json>   cell_status as the operator
+  foga cell advise --config <cell.config.json> [--brief] [--as-json]
+                                                 what a running cell should do next — separate the roles, tune the policy, standing, a public face, a supervisor,
+                                                 backups, a dedicated RPC — only what applies to this cell; advice, never required; no chain read, no key
   foga cell docs build --config <cell.config.json> [--rpc <url>] [--out <dir>]
                                                  the cell's documents from its configuration and the chain (registration, AID document, ARD descriptor, AUF unit,
                                                  agent card, server.json, manifest) under runtime.http.documentsDir — what the node serves at /documents and /.well-known
@@ -167,6 +170,19 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
   const log = (line: string) => console.error(line);
   const wallet = walletFromFlags(flags);
 
+  if (cmd === "advise") {
+    const { adviseCell, formatAdvice } = await import("./node/advise.js");
+    const node = await Node.open({ configPath, rpc, keys: {}, allowUnborn: true, log: () => {} });
+    try {
+      const advice = adviseCell(node);
+      if (flags["as-json"]) return print(advice);
+      console.log(formatAdvice(advice, { brief: Boolean(flags.brief), config: configPath }));
+    } finally {
+      node.close();
+    }
+    return;
+  }
+
   if (cmd === "init") {
     const owner = keysFor("owner", false, wallet);
     const node = await Node.open({ configPath, rpc, keys: { owner }, allowUnborn: true, log });
@@ -174,6 +190,10 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
       const capital = str(flags, "capital-wei");
       const result = await cellInit(node, { capitalWei: capital ? BigInt(capital) : undefined, log });
       print(result);
+      // Born: say what a cell should do next, once, briefly — the first run stays minimal, the hardening is advice.
+      const { adviseCell, formatAdvice } = await import("./node/advise.js");
+      const next = formatAdvice(adviseCell(node), { brief: true, config: configPath });
+      if (next) console.error(`\n${next}`);
     } finally {
       node.close();
     }
@@ -386,6 +406,12 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
     const built = readBuilt(documentsDir(node));
     const signers = node.config.access.signers;
     log(`foga ${version}: serving cell ${node.config.name}${node.cell ? ` (${node.cell.address})` : ""} at ${running.url} — /mcp, /api/<capability>, /a2a, /.well-known/agent-card.json, /documents/*, /healthz; ${keys.operator ? "acting with the operator key" : "no operator key: reads and builds only"}; ${node.config.access.keys.length} API key(s) configured; signatures: ${signers.default} by default, ${signers.allow.length} allowed${signers.standing ? `, standing level ${signers.standing.minLevel}+ granted ${signers.standing.level}` : ""}; documents ${built ? `v${built.manifest.version}` : "not built (foga cell docs build)"}`);
+    {
+      // One line of advice at start-up (the full list is `foga cell advise`); nothing here is a condition of serving.
+      const { adviseCell } = await import("./node/advise.js");
+      const recommended = adviseCell(node).filter((a) => a.level === "recommended");
+      if (recommended.length) log(`advice: ${recommended.map((a) => a.id).join(", ")} — foga cell advise --config ${configPath} explains; nothing required`);
+    }
     const stopWatch = !flags["no-watch"] && keys.operator && node.cell ? startWatchLoop(new Watchers(node, catalog), node.config.runtime.pollSeconds * 1000, log) : () => {};
     const stop = () => {
       stopWatch();

@@ -6,7 +6,7 @@ import { A2AServer } from "../a2a/server.js";
 import { A2A_ERRORS, A2A_WELL_KNOWN } from "../a2a/types.js";
 import { buildMcpServer } from "../mcp/server.js";
 import { DOCUMENT_FILES, documentsDir, readManifest } from "../node/documents.js";
-import { buildPropagationManifest } from "../node/propagation.js";
+import { buildPropagationManifest, servicesCatalogOf } from "../node/propagation.js";
 import type { Node } from "../node/node.js";
 import type { Watchers } from "../node/watchers.js";
 import { PUBLIC_CALLER, type Caller, type Catalog, type Mode } from "../tools/index.js";
@@ -214,6 +214,16 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
     // the propagation manifest: free, built live from the configuration, answered even before any document is published
     if (method === "GET" && url.pathname === "/.well-known/foga-cell.json") {
       const text = Buffer.from(JSON.stringify(buildPropagationManifest(node, { version: o.version }), null, 2) + "\n");
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
+      res.end(text);
+      return;
+    }
+    // the services catalog, when the one this cell's manifest points at is its own (the reference cell: the maintainer's list);
+    // a static file at this path on the host, answered by the proxy before the node, is how the list changes without a release
+    if (method === "GET" && url.pathname === "/services.json") {
+      const doc = servicesCatalogOf(node, { version: o.version });
+      if (!doc) return json(res, 404, { ok: false, reason: "this cell's services pointer names another catalog; read it from the manifest at /.well-known/foga-cell.json" });
+      const text = Buffer.from(JSON.stringify(doc, null, 2) + "\n");
       res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
       res.end(text);
       return;

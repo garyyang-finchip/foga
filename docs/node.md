@@ -10,7 +10,7 @@ A node maintains one file, schema `foga.cell-config/1` (`src/node/config.ts`, va
 |---|---|---|
 | `identity` | the world file, the account and its roles (owner, operator, guardian, recovery), the ERC-8004 agent id, the binding, the ARD record and AUF unit ids, the document digest, the ASF specification (`safety`), the KYA scheme and issuers the cell cites (`standing`) | the operator (roles, world) and `foga cell init` / `migrate` (everything the chain decided) |
 | `presence` | name, description, image, homepage, the endpoints (MCP, A2A, web; derived from the public URL when absent), the `provider` the agent card names (organization, url) | the operator |
-| `skills` | the packages directory, the input directory a run may read documents from, the skills held (token, record, unit, package hash) and the ones offered | `skill_mint` |
+| `skills` | the packages directory, the input directory a run may read documents from, the skills held (token, record, unit, package hash) and the ones offered; `timeoutMs`, the skill worker's time budget per run (absent: a minute on a local chain, three on a public one, where a log scan is answered in seconds) | `skill_mint` |
 | `policy` | the budget (daily value, per-operation value, daily fees, concurrent commitments) and the tender policy (reward floor, deadline minima, acceptance authorities, counterparty level, discovery lookback) | the operator |
 | `runtime` | heartbeat cadence, poll interval, the HTTP server (`http`: listen address, allowed hosts and origins, public URL, rate limit, body cap, `documentsDir` — where the cell's documents are built and served from, `documents` by default; docs/documents.md), the runner's model (`model`: provider `stub` or `anthropic`, the model name, the day's call allowance, the tool calls and acts a tick may make; docs/loop-d.md) | the operator |
 | `access` | the API keys the HTTP entrance accepts (`keys`: each as its id, the SHA-256 of the key, a level and a visibility; docs/mcp.md) and what a wallet signature is granted (`signers`: a default level, an allow-list by address or ERC-8004 agent id, a KYA standing threshold, whether an act needs a request-bound envelope; docs/wallet.md) | `foga node key new`; the operator |
@@ -78,6 +78,12 @@ A **job** is the unit of business a caller asks for (a tender taken, a skill run
 | `model` | the anthropic adapter has its key and model name when the node is to run alive; host mode needs none |
 
 It is advisory: a `Fail` prints and the exit code is 0, because a node that cannot do one thing can still do the others and the catalog refuses at the gate anyway; `--strict` exits 5 on any `Fail` (CI, a deployment script). `--out` writes the report (`foga.preflight/1`), the same rows as JSON. It is the 3d-2 answer to "is this cell ready" that the memo's checklist asked for by hand: run it before `foga node serve` on a public chain, and after any change to the configuration, the keys or the documents.
+
+## Advice: what a running cell does next
+
+`foga cell advise --config <cfg> [--brief] [--as-json]` (`src/node/advise.ts`) says what a cell that already runs should do next, and only what applies to it: a single key filling owner, operator and guardian (separate them before the cell holds value or runs unattended — the serving key bounded, the owner cold, a guardian of its own), the owner key on the serving machine, a policy still at its defaults, no standing, no public URL, a node run in a terminal rather than as a service, no backup of the three files, a free public RPC; and, as optional, API keys for partners, the MCP registry listing, on-chain discovery. Each item says why and how. It reads the configuration and the world's network — no chain, no key, milliseconds, offline.
+
+The first run is kept to what it takes to be a cell: one key, the defaults, no public face. That is a decision (design memo, section 10), not an oversight — becoming a cell must never be a project — and this is its other half: after `foga quickstart`, after `foga cell init` on a public chain, and once at `foga node serve`, the recommended items are printed in brief with the command that explains them. Advice, never a gate: a cell is complete without any of it, and nothing here is a condition of serving.
 
 ## Acceptance
 

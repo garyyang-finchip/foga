@@ -4,14 +4,13 @@ The Finch OG Agent is one FOGA cell, run as a served node on a small Linux box (
 
 Nothing here is a local sandbox. The chain is Sepolia; the cell's state lives there, and the box holds only what is needed to serve and to sign: a configuration, a store, and one key.
 
-## What must be true before the node can act
+## How the cell came to be
 
-The OG cell (ERC-8004 agent 11255, name A-prime) took a **revision-1** body at the T9 succession of the 2c genesis (`deployments/sepolia.cell.example.json`). A revision-1 account has no operator allow-list, so a node holding the operator key will not act on it — it serves reads, dry runs and builds only, which is how the cell is reachable today. Two things change that, both in 3d-3d and coordinated so the box never holds more than it should:
+The OG cell was born on Sepolia by the path any cell takes; nothing about it is special to this box. On the box: `foga wallet new` (one key, the cell's identity, in a 0600 file; no network), `foga cell new` (the configuration: the world `deployments/sepolia.json`, the presence and the public face below), the owner address funded from a faucet, `foga cell init` (the birth — the revision-2 `FogaCellAccount` with its allow-list open to the operator, the ERC-8004 registration, the FOGA-Cell-v1 specification binding, the anchor), `skill_mint --offer` for `finch-extract-verify`, `foga cell docs publish` for its documents, then `foga node serve`. It is ERC-8004 agent 11261. The Finch OG Agent's earlier line on Sepolia, agent 11255 (name A-prime, `deployments/sepolia.cell.example.json`), is the revision-1 body the 2c genesis left at its T9 succession and stays as that evidence: a revision-1 account has no operator allow-list, so a node will not act on it, and rather than migrate it the OG was born complete. No key changed hands.
 
-- **The wallet.** The node signs with one key — the cell's operator. Claude makes (or reuses) the wallet and gives you the operator address to fund from a Sepolia faucet; the key file goes on the box, nothing else. A single-key wallet (`foga wallet new`) is enough: one key is owner, operator and guardian. The OG instance, running real (testnet) value at a public endpoint, is a fair place to want the keys separated instead — `foga wallet new --cell` makes the cold-owner / hot-operator / separate-guardian set, and then only the **operator** key goes on the serving box while the owner key stays offline. Either way the box carries one key, the operator's.
-- **The migration to a revision-2 account.** `foga cell migrate --config sepolia.cell.example.json --to og.config.json --wallet <wallet>` deploys a revision-2 `FogaCellAccount`, moves the ERC-8004 identity and the held skill to it, opens the operator's allow-list, and retires the old body naming its successor (docs/node.md, "Birth and migration"). Claude runs this with the wallet once you have funded the new owner and operator; it writes `og.config.json` and a fresh store. After it, the node acts. `foga node preflight --config og.config.json --wallet <wallet>` is the check that it is ready.
+The box holds one key, the signer's, which is owner, operator and guardian at once — the default, right for a first run. `foga cell advise --config og.config.json` says what comes next for this cell as for any other, and the first item is to separate the roles: `foga cell migrate --config og.config.json --to <new.config.json> --operator <a fresh operator address>` moves the cell to an account whose operator is not its owner (the identity, the skill and the documents follow; docs/node.md, "Birth and migration"), after which only the **operator** key stays on the serving box and the owner key goes offline. `foga node preflight --config og.config.json --wallet <wallet>` is the readiness check either way.
 
-Until the migration, deploy exactly as below but with the read-only configuration and no key in the environment — the node comes up serving reads and builds, which is a complete, useful public endpoint on its own.
+Without a key the same deployment serves reads, dry runs and builds — a complete, useful public endpoint on its own.
 
 ## The box
 
@@ -37,7 +36,7 @@ Everything else — the deployed contracts, the agent's on-chain documents, the 
 
 ## The configuration for serving
 
-Beyond what the migration writes, the serving node needs its public face set (`src/node/config.ts`, `runtime.http`):
+Beyond what `foga cell new` writes, the serving node needs its public face set (`src/node/config.ts`, `runtime.http`):
 
 ```json
 "runtime": {
@@ -56,7 +55,7 @@ Beyond what the migration writes, the serving node needs its public face set (`s
 }
 ```
 
-`publicUrl` is what the cell commits its documents under and what the agent card advertises; `allowedHosts` must name the public host, because the node binds the loopback and checks the `Host` header the proxy forwards (a request whose Host is not allowed is refused — this is the Origin/Host check the protocol asks for, not CORS). Then build and publish the documents once, so `/.well-known/*` and `/documents/*` answer and the chain holds their URIs: `foga cell docs publish --config /opt/foga/cell.config.json --wallet /opt/foga/wallet` (docs/documents.md). `foga node preflight` reports whether the public URL answers for the cell and whether the host is allowed.
+`publicUrl` at `https://foga.finchip.ai` also makes this the cell that serves the maintainer's services catalog: every manifest points at `https://foga.finchip.ai/services.json`, and the node answers it (`foga.services/1`) from what its build knows; to change the live list without a release, drop a `services.json` on the box and have Caddy serve that path ahead of the proxy (`handle /services.json { root * /opt/foga/www; file_server }` before the `reverse_proxy`). `publicUrl` is what the cell commits its documents under and what the agent card advertises; `allowedHosts` must name the public host, because the node binds the loopback and checks the `Host` header the proxy forwards (a request whose Host is not allowed is refused — this is the Origin/Host check the protocol asks for, not CORS). Then build and publish the documents once, so `/.well-known/*` and `/documents/*` answer and the chain holds their URIs: `foga cell docs publish --config /opt/foga/cell.config.json --wallet /opt/foga/wallet` (docs/documents.md). `foga node preflight` reports whether the public URL answers for the cell and whether the host is allowed.
 
 ## systemd and Caddy
 
@@ -75,7 +74,7 @@ sudo systemctl reload caddy
 
 DNS: an `A`/`AAAA` record for `foga.finchip.ai` at the box's address (Caddy then gets the certificate on first request). `docs.foga.finchip.ai` is a separate `CNAME` to GitHub Pages — the documentation site is not served from this box. The unit's environment is deliberately two lines (`deploy/og.env.example`): the operator key file and the RPC. A node refuses to start if its environment also carries an owner, guardian, deployer or mnemonic key (`src/node/keys.ts`), so keep it to those two.
 
-Without a key in `og.env` the node serves reads, dry runs and builds (the pre-migration state) — valid and public. With the operator key and a migrated account, the watchers run beside the server and the cell acts.
+Without a key in `og.env` the node serves reads, dry runs and builds — valid and public. With the operator key, the watchers run beside the server and the cell acts.
 
 ## Bring-up and verification
 
@@ -97,7 +96,7 @@ should answer a `TASK_STATE_COMPLETED` quote of the cell's offered skills and th
 
 ## The MCP registry listing
 
-Once `https://foga.finchip.ai/mcp` answers, the cell is listed in the MCP registry so clients and other agents discover it (docs/mcp.md, "The package"). `server.json` at the repository root is the npm-package manifest; the OG cell also writes its own `server.json` among its documents (`foga cell docs build`) with this cell's MCP URL as the remote. Publishing is the package owner's, from a checkout, and needs the remote reachable:
+With `https://foga.finchip.ai/mcp` answering, the cell was listed in the MCP registry as `io.github.garyyang-finchip/foga` so clients and other agents discover it (docs/mcp.md, "The package"). `server.json` at the repository root is the npm-package manifest; the OG cell also writes its own `server.json` among its documents (`foga cell docs build`) with this cell's MCP URL as the remote. Publishing is the package owner's, from a checkout, and needs the remote reachable:
 
 ```
 mcp-publisher login github            # a browser device-code flow; no long-lived credential on the box
@@ -126,3 +125,7 @@ A local chain would be a dry run; Sepolia is live, so this is the real submissio
 The cell is portable because it is three files and a public chain. To back up: copy `cell.config.json`, the store (`cell.ops.sqlite` and its `-wal`/`-shm` siblings — stop the service first, or copy them together while it is briefly stopped so the write-ahead log is consistent), and the key file (which is the identity — keep it somewhere a server backup does not reach). To restore or move to another box: install Node and Caddy as above, drop the three files in place, point `/etc/foga/og.env` at the key, and `systemctl enable --now foga-og`. Nothing on-chain changes — the same account, the same documents, the same agent id; the new box simply serves and signs for the cell that already exists on Sepolia. There is no database to migrate and no local chain to re-seed.
 
 To retire a box without moving the cell, stop and disable the service and keep the three files; the cell goes quiet (its anchor eventually STALE until a heartbeat) but loses nothing. Bringing it back up anywhere restores it, and the first watcher tick sends the heartbeat that makes the anchor ACTIVE again.
+
+## If the OG is off
+
+Nothing that makes a new cell passes through this box: the replication pointer names the npm package, `foga quickstart` needs the npm registry alone, a public-chain birth needs the registry, an RPC and the world's contracts on the chain. Off, the OG loses its own surface — `foga.finchip.ai`, its manifest and card, its place as a counterparty — and the package, the repository, the registry's package entry and the documentation site carry on (docs/extending.md). Once it is back, `foga cell advise --config <cfg>` is the checklist for this cell as for any other.

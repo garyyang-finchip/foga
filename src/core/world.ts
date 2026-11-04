@@ -42,6 +42,24 @@ export class World {
     return this.file.chainId;
   }
 
+  get network(): string {
+    return this.file.network;
+  }
+
+  /**
+   * The covenants this world has contracts for, as ERC ids ("ERC-8414"), read off the contract keys ("8414/TaskToken";
+   * "identity8004/…" is the ERC-8004 registry). Data, not a constant: a world that attaches an eleventh covenant under
+   * a new key advertises it here with no code change (docs/extending.md), and a world that lacks one does not claim it.
+   */
+  covenants(): string[] {
+    const ids = new Set<string>();
+    for (const key of [...Object.keys(this.file.contracts), ...this.dynamic.keys()]) {
+      const m = /^(?:identity)?(\d{4,5})$/.exec(key.split("/")[0]);
+      if (m) ids.add(`ERC-${m[1]}`);
+    }
+    return [...ids].sort((a, b) => Number(a.slice(4)) - Number(b.slice(4)));
+  }
+
   has(id: string): boolean {
     return Boolean(this.file.contracts[id] || this.dynamic.get(id));
   }

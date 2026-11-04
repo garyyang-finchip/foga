@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -177,6 +177,13 @@ export async function runLoopD(opts: LoopDOptions): Promise<LoopDEvidence> {
   const root = repoRoot();
   const dir = resolve(opts.dir);
   mkdirSync(dir, { recursive: true });
+  // One working directory holds one run: the cell's configuration and store, the orchestrator's and the demander's
+  // stores, the cases, the brief, the transcripts. A second run in the same directory would find the first run's
+  // keyed operations and replay them (a resumable kernel resumes) against a cell with fresh keys — the birth then
+  // fails on the first replayed answer. So a previous run's files are cleared first; the evidence (`--out`) lives
+  // elsewhere and is kept.
+  const cleared = cleanLoopDDir(dir);
+  if (cleared.length) log(`loop D: cleared the previous run's files in ${dir} (${cleared.join(", ")})`);
   const worldPath = resolve(opts.worldPath);
   const seed = opts.seed ?? 7;
   const cases = opts.cases ?? ALL_CASES;
@@ -617,4 +624,35 @@ export function defaultLoopDDir(): string {
   const dir = join(repoRoot(), "deployments", "loop-d");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+/** The files a Loop D run leaves in its working directory — its own and nothing else. */
+const LOOP_D_FILES = ["D.json", "D.ops.sqlite", "D.ops.sqlite-wal", "D.ops.sqlite-shm", "orchestrator.sqlite", "orchestrator.sqlite-wal", "orchestrator.sqlite-shm", "demander.sqlite", "demander.sqlite-wal", "demander.sqlite-shm", "agent-brief.md"];
+const LOOP_D_DIRS = ["transcripts", "documents"];
+
+/** Remove what a previous Loop D run left in `dir` (only the run's own files); returns the names removed. */
+export function cleanLoopDDir(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  const removed: string[] = [];
+  for (const name of LOOP_D_FILES) {
+    const p = join(dir, name);
+    if (existsSync(p)) {
+      rmSync(p, { force: true });
+      removed.push(name);
+    }
+  }
+  for (const name of readdirSync(dir)) {
+    if (/^cases-.*\.json$/.test(name)) {
+      rmSync(join(dir, name), { force: true });
+      removed.push(name);
+    }
+  }
+  for (const name of LOOP_D_DIRS) {
+    const p = join(dir, name);
+    if (existsSync(p)) {
+      rmSync(p, { recursive: true, force: true });
+      removed.push(`${name}/`);
+    }
+  }
+  return removed;
 }
