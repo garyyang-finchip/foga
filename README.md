@@ -113,6 +113,10 @@ npm run demo:genesis         # anvil + world deploy + doctor + genesis T0-T9 + d
 # 2. World and genesis only (Node >= 22 and Foundry's anvil, no Solidity build; the ZK paths are left out without their material):
 npm ci && npm run demo:genesis
 
+# 2b. The same show without a checkout, from the published package (Node >= 22.13 and anvil): a fresh chain, the 47 contracts,
+#     the genesis T0-T9 operation by operation, then the doctor's per-standard verdicts — about half a minute
+npx -y @finchip.ai/foga demo --genesis T9        # add --keep to leave the chain running afterwards
+
 # 3. Containers (Docker with Compose):
 docker compose up --build     # anvil + world + doctor + genesis; outputs land in ./deployments
 ```

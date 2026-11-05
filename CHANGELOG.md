@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- (nothing yet)
+
+## 0.6.1 — 2026-11-05 (the skill worker in an npm install)
+
+- **A skill ran from an npm install died on its first import** (`src/genesis/skill-runner.ts`). The worker that runs a skill is started under Node's permission model with read access to the package root, the world file and the skill's directories. In a checkout the dependencies live under the package root; in an npm or npx install they are hoisted beside it (`<prefix>/node_modules/ethers` next to `<prefix>/node_modules/@finchip.ai/foga`), outside the grant, and the worker exited with `ERR_ACCESS_DENIED` on `ethers/package.json` — so `foga demo --genesis` from `npx` stopped at T3, and a cell installed from npm refused every tender at execution (`skill worker (probe) exited with 1`), which only a checkout never saw. The worker is now also granted every ancestor `node_modules` of the package root (`dependencyDirs`), by real path as well; read-only, the worker still sees no key. Verified from the packed tarball installed into an empty directory: `foga demo --genesis T9` through the installed layout — T0–T9, 190 operations, the doctor Pass 216 / Fail 0.
 - **`@finchtech.ai/foga`, an alias package** (`alias/finchtech.ai`): the same program under a second npm scope — a launcher that runs `@finchip.ai/foga` at the pinned version, no code of its own — so `npx -y @finchtech.ai/foga quickstart` is `npx -y @finchip.ai/foga quickstart`. `npm run alias:sync` (`scripts/alias-sync.mjs`) keeps its version and pin at the main package's; it is published from its folder after each release.
 - The Sepolia Loop D evidence is in the repository as `deployments/loop-d.sepolia.example.json` (the `*.example.json` name the ignore rule keeps; the 0.6.0 entry named it without `.example`), the outside agent labelled `external-agent`; docs/loop-d.md names the file and what the doctor reads from it.
 

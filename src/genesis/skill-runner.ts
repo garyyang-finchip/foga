@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { repoRoot } from "../util/fs.js";
 import type { ExtractReport } from "./extract.js";
 import type { SkillJob } from "./skill-worker.js";
@@ -31,6 +32,33 @@ function workerPath(): string {
   return new URL(`./skill-worker${ext}`, here).pathname;
 }
 
+/**
+ * The `node_modules` directories the worker's imports resolve through. In a checkout they are under the package root;
+ * in an npm or npx install the dependencies are hoisted beside the package (`<prefix>/node_modules/ethers` next to
+ * `<prefix>/node_modules/@finchip.ai/foga`), outside it, and a worker allowed to read the package root alone died on
+ * its first import (`ERR_ACCESS_DENIED` on `ethers/package.json`). Every ancestor's `node_modules` is granted, by its
+ * real path as well when a link is involved; the grant is read-only and the worker still never sees a key.
+ */
+export function dependencyDirs(root: string = repoRoot()): string[] {
+  const out = new Set<string>();
+  let dir = resolve(root);
+  for (;;) {
+    const nm = join(dir, "node_modules");
+    if (existsSync(nm)) {
+      out.add(nm);
+      try {
+        out.add(realpathSync(nm));
+      } catch {
+        /* a dangling link: the literal path is enough */
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return [...out];
+}
+
 /** True under the development loader (tsx): Node's permission model cannot be combined with a custom loader. */
 function underLoader(): boolean {
   return process.execArgv.some((a) => /--import|--loader|--require|tsx/.test(a)) || /\.ts$/.test(workerPath());
@@ -57,7 +85,7 @@ export async function runIsolated<T>(job: SkillJob, opts: IsolationOptions = {})
   const args: string[] = [...process.execArgv, "--max-old-space-size=512"];
   if (!underLoader() && opts.readDirs?.length) {
     args.push("--permission");
-    for (const d of new Set([...opts.readDirs, dirname(workerPath())])) args.push(`--allow-fs-read=${resolve(d)}`);
+    for (const d of new Set([...opts.readDirs, dirname(workerPath()), ...dependencyDirs()])) args.push(`--allow-fs-read=${resolve(d)}`);
   }
   args.push(workerPath());
   return new Promise((resolvePromise, reject) => {
