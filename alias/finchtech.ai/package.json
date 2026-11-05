@@ -1,0 +1,36 @@
+{
+  "name": "@finchtech.ai/foga",
+  "version": "0.6.0",
+  "description": "FOGA, the Finch OG Agent toolchain, under the finchtech.ai scope. An alias of @finchip.ai/foga: the same binary at the same version, so `npx -y @finchtech.ai/foga quickstart` and `npx -y @finchip.ai/foga quickstart` are one command.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "foga": "bin/foga.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@finchip.ai/foga": "0.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/garyyang-finchip/foga.git",
+    "directory": "alias/finchtech.ai"
+  },
+  "homepage": "https://foga.finchip.ai",
+  "keywords": [
+    "foga",
+    "agent",
+    "mcp",
+    "a2a",
+    "erc-8004",
+    "erc-8338",
+    "erc-8414",
+    "ethereum"
+  ]
+}

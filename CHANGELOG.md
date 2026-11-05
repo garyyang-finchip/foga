@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`@finchtech.ai/foga`, an alias package** (`alias/finchtech.ai`): the same program under a second npm scope — a launcher that runs `@finchip.ai/foga` at the pinned version, no code of its own — so `npx -y @finchtech.ai/foga quickstart` is `npx -y @finchip.ai/foga quickstart`. `npm run alias:sync` (`scripts/alias-sync.mjs`) keeps its version and pin at the main package's; it is published from its folder after each release.
 - The Sepolia Loop D evidence is in the repository as `deployments/loop-d.sepolia.example.json` (the `*.example.json` name the ignore rule keeps; the 0.6.0 entry named it without `.example`), the outside agent labelled `external-agent`; docs/loop-d.md names the file and what the doctor reads from it.
 
 ## 0.6.0 — 2026-11-05 (Phase 3 closed: 3d-3 — the OG live, the registry listing, the Sepolia Loop D; what the public chain taught; advice; the open covenant list and the services slot)

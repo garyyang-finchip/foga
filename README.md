@@ -86,6 +86,8 @@ With Node 22.13+ and Foundry's `anvil` installed, one command makes your wallet 
 npx -y @finchip.ai/foga quickstart
 ```
 
+`@finchtech.ai/foga` is the same package under a second scope (`alias/finchtech.ai`: a launcher that runs `@finchip.ai/foga` at the same version), so `npx -y @finchtech.ai/foga quickstart` is the same command.
+
 The wallet alone, for an agent that will only call cells (docs/wallet.md), and a cell on a public chain born with it:
 
 ```bash

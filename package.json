@@ -70,7 +70,8 @@
     "test": "node --test --import tsx test/*.test.ts",
     "test:contracts": "cd contracts && forge test -vv",
     "zk:install": "npm --prefix prover ci",
-    "zk:predicate": "node prover/build-predicate.mjs"
+    "zk:predicate": "node prover/build-predicate.mjs",
+    "alias:sync": "node scripts/alias-sync.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
