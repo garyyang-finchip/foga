@@ -12,7 +12,7 @@ import { defaultCatalog, OPERATOR_CALLER } from "../tools/index.js";
 import { ensureWallet, ensuredKey, walletDir, type EnsuredWallet } from "../node/wallet.js";
 import { repoRoot } from "../util/fs.js";
 import { deployWorld } from "../world/deploy.js";
-import { ANVIL_INSTALL_HINT, anvilBinary, anvilVersion, launchAnvil, portInUse, portProblem, stopChild } from "./anvil.js";
+import { ANVIL_INSTALL_HINT, anvilBinary, anvilVersion, launchAnvil, nextFreePort, portInUse, portProblem, stopChild } from "./anvil.js";
 import { birthCell, type BornCell } from "./birth.js";
 import { mintCases, type DemandCase } from "./demander.js";
 import { cleanEnv, ownCli, waitForHttp } from "./loop-d.js";
@@ -106,27 +106,43 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
   const out = o.out ?? ((text: string) => console.log(text));
   const root = repoRoot();
   const dir = resolve(o.dir ?? defaultQuickstartDir());
-  const port = o.port ?? 8545;
-  const listen = o.listen === undefined ? "127.0.0.1:8787" : o.listen;
   const name = o.name ?? "quick";
-  const rpc = `http://127.0.0.1:${port}`;
   const walletPath = resolve(o.wallet ?? walletDir());
-  const nodeUrlPlanned = listen ? (() => {
-    const i = listen.lastIndexOf(":");
-    const host = listen.slice(0, i) || "127.0.0.1";
-    return `http://${host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host}:${listen.slice(i + 1)}`;
-  })() : null;
 
   // --- say what is wrong before touching anything
   const anvilBin = anvilBinary();
   const version = anvilVersion(anvilBin.path);
   if (!version) throw new Error(ANVIL_INSTALL_HINT);
-  const problem = await portProblem(port);
-  if (problem) throw new Error(problem);
+  // The default ports give way when something else holds them — a served cell on 8787 (the reference cell's own box,
+  // or a node of yours), another chain on 8545 — so the bare command works on any machine; the next free port up is
+  // taken and said so. A port asked for by name (--port, --listen) is not moved: that one is refused as before.
+  let port = o.port ?? 8545;
+  if (o.port === undefined && (await portInUse(port))) {
+    const next = await nextFreePort(port + 1);
+    if (next === null) throw new Error(`ports ${port}-${port + 20} are all in use; pass --port <n> for the chain`);
+    log(`quickstart: port ${port} is in use (another chain or node); anvil takes ${next} instead`);
+    port = next;
+  } else {
+    const problem = await portProblem(port);
+    if (problem) throw new Error(problem);
+  }
+  let listen = o.listen === undefined ? "127.0.0.1:8787" : o.listen;
   if (listen) {
     const lp = Number(listen.slice(listen.lastIndexOf(":") + 1));
-    if (await portInUse(lp)) throw new Error(`port ${lp} is in use; pass --listen <host:port> for the node (or --no-serve to run no node)`);
+    if (await portInUse(lp)) {
+      if (o.listen !== undefined) throw new Error(`port ${lp} is in use; pass --listen <host:port> for the node (or --no-serve to run no node)`);
+      const next = await nextFreePort(lp + 1);
+      if (next === null) throw new Error(`ports ${lp}-${lp + 20} are all in use; pass --listen <host:port> for the node (or --no-serve)`);
+      log(`quickstart: port ${lp} is in use (a served cell, perhaps); the node listens on ${next} instead`);
+      listen = `127.0.0.1:${next}`;
+    }
   }
+  const rpc = `http://127.0.0.1:${port}`;
+  const nodeUrlPlanned = listen ? (() => {
+    const i = listen.lastIndexOf(":");
+    const host = listen.slice(0, i) || "127.0.0.1";
+    return `http://${host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host}:${listen.slice(i + 1)}`;
+  })() : null;
   if (walletPath === dir || walletPath.startsWith(dir + sep)) throw new Error(`the wallet (${walletPath}) must live outside the quickstart directory (${dir}), which is cleared on every run`);
   if (existsSync(dir)) {
     const entries = readdirSync(dir);

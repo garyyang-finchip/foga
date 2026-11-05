@@ -66,6 +66,16 @@ export async function waitForRpc(rpc: string, timeoutMs: number, giveUp?: () => 
 }
 
 /** Why a port cannot be used for a new anvil: another RPC already answers there, or something else holds it. */
+/**
+ * The first port from `from` (inclusive) that nothing on 127.0.0.1 accepts connections on, trying `tries` ports in a
+ * row; null when all are taken. For the defaults a quickstart falls back on when its usual port is busy — the next
+ * one up rather than an ephemeral one, so the URL it prints is still one a person can remember.
+ */
+export async function nextFreePort(from: number, tries = 20): Promise<number | null> {
+  for (let p = from; p < from + tries; p++) if (!(await portInUse(p))) return p;
+  return null;
+}
+
 export async function portProblem(port: number): Promise<string | null> {
   if (!(await portInUse(port))) return null;
   const rpc = `http://127.0.0.1:${port}`;

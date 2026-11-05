@@ -4,6 +4,10 @@
 
 - (nothing yet)
 
+## 0.6.2 — 2026-11-05 (a quickstart's default ports give way)
+
+- **`foga quickstart` no longer stops on a busy default port** (`src/demo/quickstart.ts`, `nextFreePort` in `src/demo/anvil.ts`). On a machine that already serves a cell — the reference cell's own box, or a node of yours — 8787 is taken, and the bare `npx -y @finchip.ai/foga quickstart` refused to start (`port 8787 is in use; pass --listen`); the same for 8545 with another chain. When the port was not asked for by name, the quickstart now takes the next free port up (8788, 8546, …), says so on stderr, and prints the URLs it actually used; `--port` and `--listen` still pin a port and are still refused when it is busy. `test/ports.test.ts` covers the fallback offline; docs/quickstart.md says it.
+
 ## 0.6.1 — 2026-11-05 (the skill worker in an npm install)
 
 - **A skill ran from an npm install died on its first import** (`src/genesis/skill-runner.ts`). The worker that runs a skill is started under Node's permission model with read access to the package root, the world file and the skill's directories. In a checkout the dependencies live under the package root; in an npm or npx install they are hoisted beside it (`<prefix>/node_modules/ethers` next to `<prefix>/node_modules/@finchip.ai/foga`), outside the grant, and the worker exited with `ERR_ACCESS_DENIED` on `ethers/package.json` — so `foga demo --genesis` from `npx` stopped at T3, and a cell installed from npm refused every tender at execution (`skill worker (probe) exited with 1`), which only a checkout never saw. The worker is now also granted every ancestor `node_modules` of the package root (`dependencyDirs`), by real path as well; read-only, the worker still sees no key. Verified from the packed tarball installed into an empty directory: `foga demo --genesis T9` through the installed layout — T0–T9, 190 operations, the doctor Pass 216 / Fail 0.
