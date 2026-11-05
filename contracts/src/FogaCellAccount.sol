@@ -195,14 +195,15 @@ contract FogaCellAccount {
 
     // ---------------------------------------------------------------------------- execution
 
-    /// @notice Act as the cell. The operator (within its allow-list, expiry and daily value cap) or the owner may
-    ///         call; every call passes the safety gate and, for commitment-class selectors, the AID-state gate.
+    /// @notice Act as the cell. The owner or the operator (within its allow-list, expiry and daily value cap) may
+    ///         call; every call passes the safety gate and, for commitment-class selectors, the AID-state gate. The
+    ///         owner is asked first: an account whose owner is also its operator (one key in every role, as a
+    ///         one-key wallet births it) acts as its owner, so its asset moves are not refused as the operator's.
     function execute(address target, uint256 value, bytes calldata data) external returns (bytes memory ret) {
         bytes4 selector = data.length >= 4 ? bytes4(data[:4]) : bytes4(0);
-        if (msg.sender == operator) {
+        if (msg.sender != owner) {
+            if (msg.sender != operator) revert NotOperatorOrOwner();
             _checkOperatorScope(target, selector, value);
-        } else if (msg.sender != owner) {
-            revert NotOperatorOrOwner();
         }
         bool underDerisk = _gate(target, selector);
         bool ok;

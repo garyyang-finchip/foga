@@ -85,6 +85,24 @@ contract Target {
     }
 }
 
+/// An ERC-721-shaped asset: records a transferFrom / safeTransferFrom made by its holder.
+contract Asset {
+    mapping(uint256 => address) public ownerOf;
+
+    function mint(address to, uint256 id) external {
+        ownerOf[id] = to;
+    }
+
+    function transferFrom(address from, address to, uint256 id) public {
+        require(ownerOf[id] == from && msg.sender == from, "Asset: not the holder");
+        ownerOf[id] = to;
+    }
+
+    function safeTransferFrom(address from, address to, uint256 id) external {
+        transferFrom(from, to, id);
+    }
+}
+
 contract FogaCellAccountTest {
     Vm constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
@@ -385,6 +403,41 @@ contract FogaCellAccountTest {
         vm.prank(owner);
         acct.execute(address(target), 0, abi.encodeWithSelector(Target.deliver.selector, 1));
         require(acct.ACCOUNT_VERSION() == 2, "revision 2");
+    }
+
+    /// One key in every role (a one-key wallet's cell): the owner is asked first, so the key acts as the owner —
+    /// it moves the account's assets and is not held to the operator's allow-list, expiry or daily cap.
+    function testOwnerWhoIsAlsoTheOperatorActsAsTheOwner() public {
+        FogaCellAccount one = new FogaCellAccount(safety, owner, owner, guardian, address(0), _requirement());
+        vm.deal(address(one), 10 ether);
+        vm.prank(owner);
+        one.adoptBinding(_bindingInput(), 0);
+        Asset asset = new Asset();
+        asset.mint(address(one), 1);
+        asset.mint(address(one), 2);
+        vm.prank(owner);
+        one.execute(address(asset), 0, abi.encodeWithSelector(bytes4(0x23b872dd), address(one), address(0xB0B), uint256(1)));
+        require(asset.ownerOf(1) == address(0xB0B), "transferFrom by the owner who is also the operator");
+        vm.prank(owner);
+        one.execute(address(asset), 0, abi.encodeWithSelector(bytes4(0x42842e0e), address(one), address(0xB0B), uint256(2)));
+        require(asset.ownerOf(2) == address(0xB0B), "safeTransferFrom by the owner who is also the operator");
+        // nothing allow-listed, an expired operator and a cap below the value: the owner is not scoped
+        vm.warp(1000);
+        vm.prank(owner);
+        one.setOperator(owner, 999, 1 ether);
+        vm.prank(owner);
+        one.execute(address(target), 3 ether, abi.encodeWithSelector(Target.poke.selector));
+        require(target.hits() == 1, "the owner's call went through");
+        // the safety gate still judges the owner
+        safety.set(ASFLike.Verdict.NotSatisfied, ASFLike.Reason.Suspended, 0);
+        vm.prank(owner);
+        vm.expectRevert();
+        one.execute(address(target), 0, abi.encodeWithSelector(Target.poke.selector));
+        // and a stranger is still refused
+        safety.set(ASFLike.Verdict.Satisfied, ASFLike.Reason.None, 0);
+        vm.prank(stranger);
+        vm.expectRevert(FogaCellAccount.NotOperatorOrOwner.selector);
+        one.execute(address(target), 0, abi.encodeWithSelector(Target.poke.selector));
     }
 
     function testSweepByOwnerOrRecoveryOnly() public {

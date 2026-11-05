@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- (nothing yet)
+- **`FogaCellAccount.execute` asks for the owner first** (`contracts/src/FogaCellAccount.sol`, `artifacts/bundle.json` rebuilt). It asked `msg.sender == operator` first, so on an account whose owner is also its operator — every cell `foga wallet new` and `foga quickstart` birth, one key in every role — the owner's own calls were judged as the operator's: its asset moves reverted with `OperatorAssetSelector` (`foga cell migrate` stopped at `migrate.<id>.8004.transfer`, `identity_transfer` never passed its wallet check), and its other calls were held to the operator's allow-list, expiry and daily cap. The owner is now asked first: the one key acts as the owner, which is never scope-checked (docs/cell-account.md), and is still gated by the binding. The order costs gas the other way round: an operator's `execute` now reads `owner` first (about 2,140 gas more), an owner's no longer reads `operator` (about 2,130 less); the Loop D CLI test's fee cap is 0.02 ETH, its last mint having gone 0.14 % over 0.01 ETH. `ACCOUNT_VERSION` stays 2 and the account's interface is unchanged; accounts deployed before keep the old order and move a single-key cell's assets only after the owner rotates the operator to another key. `contracts/test/FogaCellAccount.t.sol` (18 tests) and `test/single-key.test.ts` (anvil) cover it.
+- `identity_transfer --mode simulate` no longer fails with `Cannot read properties of undefined (reading 'txHash')`: a simulation confirms nothing, and the output now says `txHash: ""` (`src/tools/admin.ts`).
 
 ## 0.6.2 — 2026-11-05 (a quickstart's default ports give way)
 
