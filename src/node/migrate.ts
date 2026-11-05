@@ -120,6 +120,15 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   op(`${P}.adopt`);
 
   // 5. the identity moves through the old account: the owner's act (an asset leaves the cell)
+  // FogaCellAccount checks `msg.sender == operator` before `msg.sender != owner` in `execute`, so when the old
+  // account was born with a single key (`owner == operator`) the owner's own call hits `_checkOperatorScope` and
+  // reverts with `OperatorAssetSelector`. Clearing the retiring account's operator during the asset-moving window
+  // and restoring it once the skills have moved keeps the old config reconcilable with `Node.open` on a replay.
+  const singleKeyOld = getAddress(await old.operator()) === getAddress(owner) || Boolean(k.store.get(`${P}.clearOperator`));
+  if (singleKeyOld) {
+    await old.admin(`${P}.clearOperator`, "setOperator", ["0x0000000000000000000000000000000000000000", 0, 0]);
+    op(`${P}.clearOperator`);
+  }
   await old.execute(`${P}.8004.transfer`, k.identity.address, k.identity.encodeTransfer(old.address, address, agentId), { by: "owner" });
   op(`${P}.8004.transfer`);
 
@@ -173,7 +182,7 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   for (const [name, h] of Object.entries(cfg.skills.held)) {
     const tokenId = BigInt(h.tokenId);
     const holder = await k.skills.ownerOf(tokenId);
-    if (getAddress(holder) === getAddress(old.address)) {
+    if (getAddress(holder) === getAddress(old.address) || k.store.get(`${P}.skill.${name}.transfer`)) {
       await old.execute(`${P}.skill.${name}.transfer`, k.skills.address, k.skills.encodeSafeTransfer(old.address, address, tokenId), { by: "owner" });
       op(`${P}.skill.${name}.transfer`);
     }
@@ -184,6 +193,10 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
       op(`${P}.skill.${name}.adopt`);
     }
     skills.push(name);
+  }
+  if (singleKeyOld) {
+    await old.admin(`${P}.restoreOperator`, "setOperator", [cfg.identity.operator, 0, BigInt(cfg.policy.budget.dailyValueWei)]);
+    op(`${P}.restoreOperator`);
   }
 
   // 9. the successor's own unit (the old unit stays the old body's)

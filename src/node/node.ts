@@ -96,13 +96,14 @@ export class Node {
         throw new Error(`the cell account ${cfg.identity.account} is a revision-${version} FogaCellAccount: it has no operator allow-list, so a node must not act on it. Move the cell to a revision-2 account first (foga cell migrate); reads and builds work without the operator key.`);
       }
       const [onchainOperator, onchainOwner] = await Promise.all([cell.operator(), cell.owner()]);
-      if (getAddress(onchainOperator) !== getAddress(cfg.identity.operator)) {
-        kernel.close();
-        throw new Error(`the account ${cfg.identity.account} names ${onchainOperator} as operator; the config names ${cfg.identity.operator}. Update the config (or rotate the operator) before running.`);
-      }
       if (getAddress(onchainOwner) !== getAddress(cfg.identity.owner)) {
         kernel.close();
         throw new Error(`the account ${cfg.identity.account} is owned by ${onchainOwner}; the config names ${cfg.identity.owner} as owner.`);
+      }
+      const zeroClearedByOwner = Boolean(opts.keys.owner && !opts.keys.operator && onchainOperator === "0x0000000000000000000000000000000000000000" && getAddress(cfg.identity.operator) === getAddress(cfg.identity.owner));
+      if (!zeroClearedByOwner && getAddress(onchainOperator) !== getAddress(cfg.identity.operator)) {
+        kernel.close();
+        throw new Error(`the account ${cfg.identity.account} names ${onchainOperator} as operator; the config names ${cfg.identity.operator}. Update the config (or rotate the operator) before running.`);
       }
       if (!known) kernel.store.setMeta("cellAccount", cfg.identity.account);
     } else if (!opts.allowUnborn) {

@@ -168,12 +168,21 @@ export const identity_transfer: ActCapability = {
       else gates.push(ok("policy", `agent ${agentId} held by the cell; moving to ${input.to}`));
     }
     const jobId = input.jobId ?? derivedJobId("identity-transfer", { agentId, to: input.to });
+    const singleKey = getAddress(await cell.operator()) === getAddress(node.config.identity.owner) || Boolean(k.store.get(`job:${jobId}:clearOperator`));
+    const transferStep = { name: "transfer", by: "owner" as const, route: "execute" as const, build: () => ({ target: k.identity.address, value: 0n, data: k.identity.encodeTransfer(cell.address, input.to, BigInt(agentId!)), label: `transferFrom(cell, ${input.to}, ${agentId})` }) };
+    const steps = singleKey
+      ? [
+          { name: "clearOperator", by: "owner" as const, route: "direct" as const, build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", ["0x0000000000000000000000000000000000000000", 0, 0n]), label: "setOperator(0x0)" }) },
+          transferStep,
+          { name: "restoreOperator", by: "owner" as const, route: "direct" as const, build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", [node.config.identity.operator, 0, BigInt(node.config.policy.budget.dailyValueWei)]), label: `setOperator(${node.config.identity.operator})` }) },
+        ]
+      : [transferStep];
     return {
       job: { id: jobId, kind: "admin", input: { agentId, to: input.to } },
       gates,
       valueWei: 0n,
-      steps: [{ name: "transfer", by: "owner", route: "execute", build: () => ({ target: k.identity.address, value: 0n, data: k.identity.encodeTransfer(cell.address, input.to, BigInt(agentId!)), label: `transferFrom(cell, ${input.to}, ${agentId})` }) }],
-      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: confirmed[0].txHash, jobId }),
+      steps,
+      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: (confirmed[singleKey ? 1 : 0] ?? confirmed[0])?.txHash ?? "", jobId }),
     };
   },
 };
