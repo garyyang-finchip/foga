@@ -69,13 +69,14 @@ export class Cell {
   }
 
   /** Act as the cell: `execute(target, value, data)` signed by the operator (default) or the owner; `binding` ties the operation to the request that asked for it (the node). */
-  async execute(key: string, target: string, data: string, opts: { value?: bigint; by?: "operator" | "owner"; binding?: OpBinding } = {}): Promise<Confirmed> {
+  async execute(key: string, target: string, data: string, opts: { value?: bigint; by?: "operator" | "owner"; binding?: OpBinding; retryFailed?: boolean } = {}): Promise<Confirmed> {
     const signer = opts.by === "owner" ? this.roles.owner : this.roles.operator;
     return this.kernel.tx.send({
       key,
       signer,
       kind: "execute",
       binding: opts.binding,
+      retryFailed: opts.retryFailed,
       build: () => ({ to: this.address, data: this.encodeExecute(target, opts.value ?? 0n, data) }),
     });
   }

@@ -2,9 +2,10 @@ import { getAddress } from "ethers";
 import { z } from "zod";
 import { BindingStateName, Restriction } from "../core/asf.js";
 import { keccakJcs } from "../core/canonical.js";
+import { ASIDE_ARGS, isAside, operatorSetting, ownerIsOperator, setOperatorArgs, type OperatorSetting } from "../node/operator-aside.js";
 import { ok, refused, type Gate } from "../node/policy.js";
 import { derivedJobId, zAddress, zBytes32, zJobId, zUint } from "./common.js";
-import type { ActCapability } from "./types.js";
+import type { ActCapability, ActStep } from "./types.js";
 
 /**
  * Admin capabilities: the owner's and the guardian's acts (design memo, Phase 3, section 3 — admin is CLI-only in
@@ -160,29 +161,54 @@ export const identity_transfer: ActCapability = {
     const k = node.kernel;
     const cell = node.body;
     const agentId = node.config.identity.agentId;
+    const owner = node.config.identity.owner;
+    const jobId = input.jobId ?? derivedJobId("identity-transfer", { agentId, to: input.to });
+    const opKey = (step: string) => `job:${jobId}:${step}`;
+    // a job that stopped part-way (the process ended) is continued, so what its own steps did is not refused again
+    const moved = k.store.get(opKey("transfer"))?.status === "confirmed";
     const gates: Gate[] = [];
     if (!agentId) gates.push(refused("input", "the configuration names no agentId"));
     else {
-      const owner = await k.identity.ownerOf(BigInt(agentId));
-      if (getAddress(owner) !== getAddress(cell.address)) gates.push(refused("policy", `agent ${agentId} is held by ${owner}, not by the cell`));
+      const holder = await k.identity.ownerOf(BigInt(agentId));
+      if (moved) gates.push(ok("policy", `agent ${agentId} moved to ${holder} by this job`));
+      else if (getAddress(holder) !== getAddress(cell.address)) gates.push(refused("policy", `agent ${agentId} is held by ${holder}, not by the cell`));
       else gates.push(ok("policy", `agent ${agentId} held by the cell; moving to ${input.to}`));
     }
-    const jobId = input.jobId ?? derivedJobId("identity-transfer", { agentId, to: input.to });
-    const singleKey = getAddress(await cell.operator()) === getAddress(node.config.identity.owner) || Boolean(k.store.get(`job:${jobId}:clearOperator`));
-    const transferStep = { name: "transfer", by: "owner" as const, route: "execute" as const, build: () => ({ target: k.identity.address, value: 0n, data: k.identity.encodeTransfer(cell.address, input.to, BigInt(agentId!)), label: `transferFrom(cell, ${input.to}, ${agentId})` }) };
-    const steps = singleKey
+    // the account's safety gate judges the owner's execute too. It is checked here, before anything is sent: on a
+    // single-key account the first step sets the operator aside, and the wallet check passes that step on its own
+    if (!moved) {
+      const status = await cell.status();
+      if (status.verdictName !== "Satisfied") gates.push(refused("safety", `the account is ${status.verdictName} under its binding [${status.reasonNames.join(",")}]: the owner's transfer would revert. The guardian resumes the binding first (foga cell guardian guardian_resume).`));
+    }
+    // a single-key account: the owner's transfer would be judged as the operator's, so the operator is set aside for it
+    // (operator-aside.ts). The setting found first is kept with the job, so a continued run puts back the same one.
+    const before = (node.store.getJob(jobId)?.input as { operatorBefore?: OperatorSetting } | undefined)?.operatorBefore ?? (await operatorSetting(cell));
+    const aside = ownerIsOperator(before, owner);
+    if (aside && !moved && k.store.get(opKey("clearOperator"))?.status === "confirmed" && ownerIsOperator(await operatorSetting(cell), owner)) {
+      gates.push(refused("policy", `the operator job ${jobId} set aside is back on the account; start the transfer as a new job (another jobId)`));
+    }
+    const setOperator = (label: string, args: [string, bigint, bigint]) => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", args), label });
+    const transfer: ActStep = { name: "transfer", by: "owner", route: "execute", build: () => ({ target: k.identity.address, value: 0n, data: k.identity.encodeTransfer(cell.address, input.to, BigInt(agentId!)), label: `transferFrom(cell, ${input.to}, ${agentId})` }) };
+    const steps: ActStep[] = aside
       ? [
-          { name: "clearOperator", by: "owner" as const, route: "direct" as const, build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", ["0x0000000000000000000000000000000000000000", 0, 0n]), label: "setOperator(0x0)" }) },
-          transferStep,
-          { name: "restoreOperator", by: "owner" as const, route: "direct" as const, build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", [node.config.identity.operator, 0, BigInt(node.config.policy.budget.dailyValueWei)]), label: `setOperator(${node.config.identity.operator})` }) },
+          { name: "clearOperator", by: "owner", route: "direct", build: () => setOperator("setOperator(0x0): the owner moves the asset, not the operator", ASIDE_ARGS) },
+          transfer,
+          { name: "restoreOperator", by: "owner", route: "direct", build: () => setOperator(`setOperator(${before.operator}, ${before.validUntil}, ${before.dailyValueCap})`, setOperatorArgs(before)) },
         ]
-      : [transferStep];
+      : [transfer];
     return {
-      job: { id: jobId, kind: "admin", input: { agentId, to: input.to } },
+      job: { id: jobId, kind: "admin", input: { agentId, to: input.to, ...(aside ? { operatorBefore: before } : {}) } },
       gates,
       valueWei: 0n,
       steps,
-      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: (confirmed[singleKey ? 1 : 0] ?? confirmed[0])?.txHash ?? "", jobId }),
+      // the transfer failed with the operator set aside: put it back rather than leave the account without one
+      undo: aside
+        ? async () => {
+            if (!isAside(await operatorSetting(cell))) return;
+            await k.tx.send({ key: opKey("restoreOperator"), signer: node.signerOf("owner"), kind: "direct", build: () => ({ to: cell.address, data: cell.iface.encodeFunctionData("setOperator", setOperatorArgs(before)) }) });
+          }
+        : undefined,
+      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: confirmed.find((c) => c.key === opKey("transfer"))?.txHash ?? "", jobId }),
     };
   },
 };

@@ -76,6 +76,12 @@ export interface ActPlan<O = unknown> {
   steps: ActStep[];
   /** Work done off chain when the act is allowed (a skill run); its result is part of the output. */
   work?: () => Promise<unknown>;
+  /**
+   * Best effort once a step has failed after others were confirmed: put back what those steps changed only for the
+   * act's sake (an operator set aside for the owner's asset move, say). A failure here is logged, and the job still
+   * fails with the step's own reason.
+   */
+  undo?: (confirmed: Confirmed[]) => Promise<unknown>;
   /** The output once the steps are confirmed (or, in simulate mode, once the plan passed). */
   output: (confirmed: Confirmed[], work: unknown) => O | Promise<O>;
   /** The calldata a third party would need to do the same from its own account (`build` mode). */

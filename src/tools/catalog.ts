@@ -215,6 +215,7 @@ export class Catalog {
       return { ok: true, output, decisionId: allowed.id, jobId, operations };
     } catch (e) {
       const reason = explain(e);
+      if (plan.undo && confirmed.length) await plan.undo(confirmed).catch((u: unknown) => node.log(`${cap.name}: job ${jobId} failed and could not be undone: ${explain(u)}`));
       const operationId = e instanceof OperationReverted || e instanceof OperationAmbiguous ? (e as { key?: string; op?: { key: string } }).key ?? (e as { op?: { key: string } }).op?.key ?? null : operations.at(-1) ?? null;
       node.store.updateJob(jobId, { status: "failed", error: reason });
       const decision = node.store.decide({ entrance: caller.entrance, caller: caller.id, capability: cap.name, mode, inputHash, verdict: "refused", gate: "execution", reason, jobId, operationId, model: opts.model ?? null });

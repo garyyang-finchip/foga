@@ -7,6 +7,7 @@ import { cellUnitDefinition } from "../core/units.js";
 import { operatorScope } from "../genesis/operator-scope.js";
 import { Cell } from "../kernel/cell.js";
 import { saveCellConfig, type CellConfig } from "./config.js";
+import { failedAsOperator, operatorSetting, restoreOperator, setOperatorAside } from "./operator-aside.js";
 import { NODE_SCOPE_GROUPS } from "./init.js";
 import { ROLE, type Node } from "./node.js";
 
@@ -59,6 +60,19 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   const P = `migrate.${agentId}`;
   const operations: string[] = [];
   const op = (key: string) => operations.push(key);
+
+  // 0. what the old account still has to do. Its executes pass its safety gate, so a binding that is not satisfied (a
+  // guardian's suspension, say) stops the move here, before anything is sent, rather than after the successor exists.
+  // The operator setting is recorded before anything changes it: the owner's asset moves may set it aside (below).
+  const held = async (holder: Promise<string>) => getAddress(await holder) === getAddress(old.address);
+  const assetsOnOld = (await held(k.identity.ownerOf(agentId))) || (await Promise.all(Object.values(cfg.skills.held).map((h) => held(k.skills.ownerOf(BigInt(h.tokenId)))))).some(Boolean);
+  if (assetsOnOld || (await k.aid.stateName(old.address)) !== "RETIRED") {
+    const status = await old.status();
+    if (status.verdictName !== "Satisfied") {
+      throw new Error(`the account ${old.address} is ${status.verdictName} under its binding [${status.reasonNames.join(",")}]: the owner's acts through it (moving the identity and the skills, retiring the anchor) would revert. Resume the binding first (foga cell guardian guardian_resume); this run sent nothing.`);
+    }
+  }
+  const saved = await k.memo(`${P}.operator.saved`, () => operatorSetting(old));
 
   // 1. the new body
   const requirement = (predicted: string) =>
@@ -119,85 +133,94 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   const { bindingId } = await next.adoptBinding(`${P}.adopt`, input, 0);
   op(`${P}.adopt`);
 
-  // 5. the identity moves through the old account: the owner's act (an asset leaves the cell)
-  // FogaCellAccount checks `msg.sender == operator` before `msg.sender != owner` in `execute`, so when the old
-  // account was born with a single key (`owner == operator`) the owner's own call hits `_checkOperatorScope` and
-  // reverts with `OperatorAssetSelector`. Clearing the retiring account's operator during the asset-moving window
-  // and restoring it once the skills have moved keeps the old config reconcilable with `Node.open` on a replay.
-  const singleKeyOld = getAddress(await old.operator()) === getAddress(owner) || Boolean(k.store.get(`${P}.clearOperator`));
-  if (singleKeyOld) {
-    await old.admin(`${P}.clearOperator`, "setOperator", ["0x0000000000000000000000000000000000000000", 0, 0]);
-    op(`${P}.clearOperator`);
-  }
-  await old.execute(`${P}.8004.transfer`, k.identity.address, k.identity.encodeTransfer(old.address, address, agentId), { by: "owner" });
-  op(`${P}.8004.transfer`);
-
-  // 6. the takeover: the new anchor binds the agent in every registry; the old one retires naming its successor
-  const bindCall = k.aid.encodeBind(k.identity.address, agentId);
-  await next.execute(`${P}.aid.bind`, k.aid.address, bindCall, { by: "owner" });
-  op(`${P}.aid.bind`);
-  await next.execute(`${P}.aid.heartbeat`, k.aid.address, k.aid.encodeHeartbeat(), { by: "owner" });
-  op(`${P}.aid.heartbeat`);
-  if (k.aid.backing) {
-    await next.execute(`${P}.aid.backing.bind`, k.aid.backing.address, bindCall, { by: "owner" });
-    op(`${P}.aid.backing.bind`);
-  }
-  await old.execute(`${P}.aid.retire`, k.aid.address, k.aid.encodeRetire(address), { by: "owner" });
-  op(`${P}.aid.retire`);
-  if (k.aid.backing) {
-    await old.execute(`${P}.aid.backing.retire`, k.aid.backing.address, k.aid.encodeRetire(address), { by: "owner" });
-    op(`${P}.aid.backing.retire`);
-  }
-
-  // 7. the new record and document
-  const registration = {
-    type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
-    name: cfg.presence.name,
-    description: cfg.presence.description,
-    services: [],
-    x402Support: false,
-    active: true,
-    supportedTrust: ["reputation"],
-    "x-foga": { cell: cfg.name, anchor: accountRef(chainId, address), predecessor: accountRef(chainId, old.address), binding: bindingId },
+  // 5. the identity moves through the old account: the owner's act (an asset leaves the cell). On a single-key account
+  // the owner is also the operator and its asset moves would be judged as the operator's (operator-aside.ts): the
+  // operator is set aside until the skills have moved, and put back as it was — on the way out of a failure too.
+  const aside = await setOperatorAside(old, `${P}.clearOperator`, owner, assetsOnOld);
+  if (aside) op(aside);
+  // an asset move that failed before only because the owner was judged as the operator (an earlier run, before the
+  // operator was set aside) sent nothing; it is sent now rather than answered with that failure
+  const ownerMove = (key: string) => {
+    const retryFailed = failedAsOperator(old, key);
+    if (retryFailed) log(`  ${key}: failed before as the operator's call (OperatorAssetSelector); sent again with the operator set aside`);
+    return { by: "owner" as const, retryFailed };
   };
-  const descriptor = agentDescriptor({ chainId, anchor: address, slug: `cell-${cfg.name.toLowerCase()}`, name: cfg.presence.name, description: cfg.presence.description, url: cfg.presence.homepage, capabilities: ["erc8414:fulfiller", "erc8338:holder"], registration: { registry: `eip155:${chainId}:${k.identity.address.toLowerCase()}`, agentId: agentId.toString() } });
-  const ard = await next.execute(`${P}.ard.register`, k.ard.address, k.ard.encodeRegister(kindId("agent"), address, 0n, descriptor), { by: "owner" });
-  op(`${P}.ard.register`);
-  const recordId = k.ard.recordIdFromReceipt(ard.receipt);
-  const doc: AIDDocument = {
-    version: "aid-document/v1",
-    aid: accountRef(chainId, address),
-    did: `did:aid:${accountRef(chainId, address)}`,
-    binding: { registry: k.identity.address, agentId: Number(agentId) },
-    livenessWindow: cfg.identity.livenessWindow ?? Number(node.world.file.params.aid.defaultLivenessWindow),
-    facets: [{ facetType: "aid:core/identity/v1", provenance: "SELF", issuer: accountRef(chainId, address), validUntil: 0, digest: keccakJcs(registration), access: { mode: "PUBLIC" }, resolver: { kind: "erc8004-identity", chainId, registry: k.identity.address, agentId: Number(agentId) } }],
-  };
-  const commitment = AID.documentCommitment(doc);
-  await next.execute(`${P}.aid.document`, k.aid.address, k.aid.encodeSetDocumentURI(commitment.uri, commitment.digest), { by: "owner" });
-  op(`${P}.aid.document`);
-  // the registration file stays the one the agent carries; setAgentURI to a served URL is the documents step (3d)
-
-  // 8. the skills follow: each token moves through the old account (owner), each record is recommitted by the new controller
   const skills: string[] = [];
-  for (const [name, h] of Object.entries(cfg.skills.held)) {
-    const tokenId = BigInt(h.tokenId);
-    const holder = await k.skills.ownerOf(tokenId);
-    if (getAddress(holder) === getAddress(old.address) || k.store.get(`${P}.skill.${name}.transfer`)) {
-      await old.execute(`${P}.skill.${name}.transfer`, k.skills.address, k.skills.encodeSafeTransfer(old.address, address, tokenId), { by: "owner" });
-      op(`${P}.skill.${name}.transfer`);
+  let recordId: string;
+  let commitment: ReturnType<typeof AID.documentCommitment>;
+  try {
+    await old.execute(`${P}.8004.transfer`, k.identity.address, k.identity.encodeTransfer(old.address, address, agentId), ownerMove(`${P}.8004.transfer`));
+    op(`${P}.8004.transfer`);
+
+    // 6. the takeover: the new anchor binds the agent in every registry; the old one retires naming its successor
+    const bindCall = k.aid.encodeBind(k.identity.address, agentId);
+    await next.execute(`${P}.aid.bind`, k.aid.address, bindCall, { by: "owner" });
+    op(`${P}.aid.bind`);
+    await next.execute(`${P}.aid.heartbeat`, k.aid.address, k.aid.encodeHeartbeat(), { by: "owner" });
+    op(`${P}.aid.heartbeat`);
+    if (k.aid.backing) {
+      await next.execute(`${P}.aid.backing.bind`, k.aid.backing.address, bindCall, { by: "owner" });
+      op(`${P}.aid.backing.bind`);
     }
-    const recordId = h.recordId ?? k.ard.recordIdOf(k.skills.address, tokenId);
-    const rec = await k.ard.recordOf(recordId);
-    if (rec.kind !== "0x" + "00".repeat(32)) {
-      await next.execute(`${P}.skill.${name}.adopt`, k.ard.address, k.ard.encodeRecommit(recordId, { descriptorHash: rec.descriptorHash, descriptorURI: rec.descriptorURI, urn: rec.urn }), { by: "owner" });
-      op(`${P}.skill.${name}.adopt`);
+    await old.execute(`${P}.aid.retire`, k.aid.address, k.aid.encodeRetire(address), { by: "owner" });
+    op(`${P}.aid.retire`);
+    if (k.aid.backing) {
+      await old.execute(`${P}.aid.backing.retire`, k.aid.backing.address, k.aid.encodeRetire(address), { by: "owner" });
+      op(`${P}.aid.backing.retire`);
     }
-    skills.push(name);
+
+    // 7. the new record and document
+    const registration = {
+      type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+      name: cfg.presence.name,
+      description: cfg.presence.description,
+      services: [],
+      x402Support: false,
+      active: true,
+      supportedTrust: ["reputation"],
+      "x-foga": { cell: cfg.name, anchor: accountRef(chainId, address), predecessor: accountRef(chainId, old.address), binding: bindingId },
+    };
+    const descriptor = agentDescriptor({ chainId, anchor: address, slug: `cell-${cfg.name.toLowerCase()}`, name: cfg.presence.name, description: cfg.presence.description, url: cfg.presence.homepage, capabilities: ["erc8414:fulfiller", "erc8338:holder"], registration: { registry: `eip155:${chainId}:${k.identity.address.toLowerCase()}`, agentId: agentId.toString() } });
+    const ard = await next.execute(`${P}.ard.register`, k.ard.address, k.ard.encodeRegister(kindId("agent"), address, 0n, descriptor), { by: "owner" });
+    op(`${P}.ard.register`);
+    recordId = k.ard.recordIdFromReceipt(ard.receipt);
+    const doc: AIDDocument = {
+      version: "aid-document/v1",
+      aid: accountRef(chainId, address),
+      did: `did:aid:${accountRef(chainId, address)}`,
+      binding: { registry: k.identity.address, agentId: Number(agentId) },
+      livenessWindow: cfg.identity.livenessWindow ?? Number(node.world.file.params.aid.defaultLivenessWindow),
+      facets: [{ facetType: "aid:core/identity/v1", provenance: "SELF", issuer: accountRef(chainId, address), validUntil: 0, digest: keccakJcs(registration), access: { mode: "PUBLIC" }, resolver: { kind: "erc8004-identity", chainId, registry: k.identity.address, agentId: Number(agentId) } }],
+    };
+    commitment = AID.documentCommitment(doc);
+    await next.execute(`${P}.aid.document`, k.aid.address, k.aid.encodeSetDocumentURI(commitment.uri, commitment.digest), { by: "owner" });
+    op(`${P}.aid.document`);
+    // the registration file stays the one the agent carries; setAgentURI to a served URL is the documents step (3d)
+
+    // 8. the skills follow: each token moves through the old account (owner), each record is recommitted by the new controller
+    for (const [name, h] of Object.entries(cfg.skills.held)) {
+      const tokenId = BigInt(h.tokenId);
+      const holder = await k.skills.ownerOf(tokenId);
+      if (getAddress(holder) === getAddress(old.address) || k.store.get(`${P}.skill.${name}.transfer`)?.status === "confirmed") {
+        await old.execute(`${P}.skill.${name}.transfer`, k.skills.address, k.skills.encodeSafeTransfer(old.address, address, tokenId), ownerMove(`${P}.skill.${name}.transfer`));
+        op(`${P}.skill.${name}.transfer`);
+      }
+      const recordId = h.recordId ?? k.ard.recordIdOf(k.skills.address, tokenId);
+      const rec = await k.ard.recordOf(recordId);
+      if (rec.kind !== "0x" + "00".repeat(32)) {
+        await next.execute(`${P}.skill.${name}.adopt`, k.ard.address, k.ard.encodeRecommit(recordId, { descriptorHash: rec.descriptorHash, descriptorURI: rec.descriptorURI, urn: rec.urn }), { by: "owner" });
+        op(`${P}.skill.${name}.adopt`);
+      }
+      skills.push(name);
+    }
+  } catch (e) {
+    // stopped with the operator set aside: put it back before giving up, so the old account is not left without one
+    // (a node holding the operator key would refuse to open it); a resumed run sets it aside again
+    await restoreOperator(old, `${P}.restoreOperator`, saved).catch((u: unknown) => log(`  could not put the operator back on ${old.address} (${u instanceof Error ? u.message : String(u)}); foga cell owner operator_rotate --operator ${saved.operator} does it by hand`));
+    throw e;
   }
-  if (singleKeyOld) {
-    await old.admin(`${P}.restoreOperator`, "setOperator", [cfg.identity.operator, 0, BigInt(cfg.policy.budget.dailyValueWei)]);
-    op(`${P}.restoreOperator`);
-  }
+  const restored = await restoreOperator(old, `${P}.restoreOperator`, saved);
+  if (restored) op(restored);
 
   // 9. the successor's own unit (the old unit stays the old body's)
   const unit = await next.execute(`${P}.auf.unit`, k.units.registryAddress, k.units.encodeRegisterUnit(address, cellUnitDefinition({ chainId, cell: address, name: cfg.presence.name }), []), { by: "owner" });

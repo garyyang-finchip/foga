@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAddress, Wallet } from "ethers";
+import { getAddress, Wallet, ZeroAddress } from "ethers";
 import { buildSkillPackage, readSkillDir, type SkillPackage } from "../core/pack/skillpack.js";
 import { Cell } from "../kernel/cell.js";
 import { Kernel } from "../kernel/kernel.js";
@@ -100,10 +100,17 @@ export class Node {
         kernel.close();
         throw new Error(`the account ${cfg.identity.account} is owned by ${onchainOwner}; the config names ${cfg.identity.owner} as owner.`);
       }
-      const zeroClearedByOwner = Boolean(opts.keys.owner && !opts.keys.operator && onchainOperator === "0x0000000000000000000000000000000000000000" && getAddress(cfg.identity.operator) === getAddress(cfg.identity.owner));
-      if (!zeroClearedByOwner && getAddress(onchainOperator) !== getAddress(cfg.identity.operator)) {
+      // a single-key account whose operator the owner has set aside for an asset move (operator-aside.ts): the owner, the
+      // guardian and a reader open it as it is (the owner's run finishes the move and puts the operator back); a process
+      // holding the operator key does not, since the account would refuse every call it makes
+      const setAside = getAddress(onchainOperator) === ZeroAddress && getAddress(cfg.identity.operator) === getAddress(cfg.identity.owner);
+      if (getAddress(onchainOperator) !== getAddress(cfg.identity.operator) && !(setAside && !opts.keys.operator)) {
         kernel.close();
-        throw new Error(`the account ${cfg.identity.account} names ${onchainOperator} as operator; the config names ${cfg.identity.operator}. Update the config (or rotate the operator) before running.`);
+        throw new Error(
+          setAside
+            ? `the account ${cfg.identity.account} has its operator set aside (0x0): an owner's asset move on this single-key account (foga cell migrate, identity_transfer) stopped before putting it back. Run that command again with the owner key to finish it, or put the operator back: foga cell owner operator_rotate --config ${opts.configPath} --operator ${cfg.identity.operator}.`
+            : `the account ${cfg.identity.account} names ${onchainOperator} as operator; the config names ${cfg.identity.operator}. Update the config (or rotate the operator) before running.`,
+        );
       }
       if (!known) kernel.store.setMeta("cellAccount", cfg.identity.account);
     } else if (!opts.allowUnborn) {

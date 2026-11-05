@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- (nothing yet)
+- **A cell born from a one-key wallet can move its assets** (`src/node/operator-aside.ts`, `src/node/migrate.ts`, `src/tools/admin.ts`). `FogaCellAccount` (revision 2) asks `msg.sender == operator` before `msg.sender == owner` in `execute`, so on an account whose owner is also its operator — every cell `foga wallet new` and `foga quickstart` make — the owner's own `transferFrom` / `safeTransferFrom` was judged as the operator's and reverted with `OperatorAssetSelector`: `foga cell migrate` stopped at `migrate.<id>.8004.transfer`, and `identity_transfer` never passed its wallet check. The owner now sets the operator aside (`setOperator(0)`) for its asset moves and afterwards puts back the setting it read from the chain first — operator, expiry and daily cap — also on the way out of a failure (`ActPlan.undo` in the catalog). What is sent is decided from the chain under keyed operations: a resumed run sets the operator aside again only when it is back and assets are left to move, and restores only while it is still aside. A binding that is not satisfied refuses the move before anything is sent (`cell migrate` before it deploys the successor, `identity_transfer` at a `safety` gate, simulate included). A migration that failed before with `OperatorAssetSelector` resumes from its store: that transfer never reached the chain and is sent again. `Node.open` opens a single-key account whose operator is aside for the owner, the guardian and readers, and tells a process holding the operator key how to finish the move or put the operator back. `test/single-key.test.ts` covers it on anvil.
 
 ## 0.6.2 — 2026-11-05 (a quickstart's default ports give way)
 
