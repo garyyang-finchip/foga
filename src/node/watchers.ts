@@ -1,6 +1,7 @@
 import type { Catalog } from "../tools/catalog.js";
 import type { Caller } from "../tools/types.js";
 import type { Node } from "./node.js";
+import { settlementDead } from "./runner.js";
 
 /** The node acting for itself: the watchers propose nothing to a model and need no key beyond the operator's. */
 export const WATCHER_CALLER: Caller = { id: "watcher", entrance: "runner", level: "act", visibility: "operator" };
@@ -68,12 +69,16 @@ export class Watchers {
     const withdrawn: TickReport["withdrawn"] = [];
     const jobs = k.store.jobs(null, 1000);
     const runs = jobs.filter((j) => j.kind === "skill-run" && j.status === "done");
+    const settleRefusals = k.store.decisions({ capability: "tender_settle", verdict: "refused", limit: 500 });
     for (const job of jobs.filter((j) => j.kind === "tender" && j.status === "done")) {
       const result = job.result as { tokenId?: string; submissionId?: string } | null;
       if (!result?.tokenId || result.submissionId === undefined) continue;
       const tokenId = BigInt(result.tokenId);
       const sub = await k.tenders.submissionOf(tokenId, BigInt(result.submissionId)).catch(() => null);
       if (!sub) continue;
+      // a settlement the chain refused for good — the verifier holds another answer than this submission's — is not
+      // asked again every tick; the refusal stands in the decisions, and the tender's credit (none) is still watched
+      if (sub.status === 0 && settleRefusals.some((d) => d.jobId === `${job.id}:settle` && settlementDead(d))) continue;
       if (sub.status === 0) {
         const run = runs.find((r) => (r.result as { resultHash?: string } | null)?.resultHash?.toLowerCase() === sub.resultHash.toLowerCase());
         const answer = (run?.result as { answer?: string } | null)?.answer;

@@ -59,8 +59,13 @@ const JOURNAL_SEQ_FACT = "runner.journal.seq";
  */
 export const TRANSIENT_REFUSAL_MS = 60_000;
 
+/** A settlement the chain will never take: the verifier holds a different answer than this submission's. */
+export function settlementDead(d: { gate: string; reason: string }): boolean {
+  return /verification failed/i.test(d.reason);
+}
+
 export function refusalLapsed(d: { gate: string; reason: string; at: string }, nowMs: number): boolean {
-  const transient = d.gate === "budget" || d.gate === "safety" || (d.gate === "verifier" && /no committed answer/.test(d.reason));
+  const transient = d.gate === "budget" || d.gate === "safety" || (d.gate === "verifier" && /no committed answer/.test(d.reason)) || (d.gate === "wallet" && !settlementDead(d));
   if (!transient) return false;
   const at = Date.parse(d.at);
   return Number.isFinite(at) && nowMs - at >= TRANSIENT_REFUSAL_MS;
@@ -111,6 +116,7 @@ export class Runner {
     const status = statusR.ok ? (statusR.output as { safety: { verdict: string; reasons: string[] }; skills: { held: string[]; offered: string[] } }) : null;
     const decisions = node.store.decisions({ limit: 5000 });
     const runnerPrechecks = decisions.filter((d) => d.caller === RUNNER_CALLER.id && d.capability === "tender_precheck");
+    const runnerSettles = decisions.filter((d) => d.capability === "tender_settle");
     const jobs = node.store.jobs(null, 5000);
     const runs = jobs.filter((j) => j.kind === "skill-run" && j.status === "done");
     const held = await node.heldSkills().catch(() => []);
@@ -129,8 +135,21 @@ export class Runner {
         let reason: string | undefined;
         const failedJob = jobs.find((j) => j.status === "failed" && ((j.kind === "skill-run" && String((j.input as { tokenId?: string } | null)?.tokenId) === t.tokenId) || (j.kind === "tender" && j.id.startsWith(`tender:${t.tokenId}:`))));
         if (mine && mine.status === 1) st = "settled";
-        else if (mine && mine.status === 0) st = "submitted";
-        else if (failedJob) {
+        else if (mine && mine.status === 0) {
+          // a pending submission the cell has tried to settle: a refusal the chain will not take back (the committed
+          // answer is not this one) ends the matter, and a refusal that may pass holds the tender back for a while, so
+          // the runner's one tender a tick is not the same dead one forever while others wait (the Sepolia tender 48)
+          const lastSettle = runnerSettles.filter((d) => d.jobId?.startsWith(`tender:${t.tokenId}:`)).at(-1);
+          if (lastSettle?.verdict === "refused" && settlementDead(lastSettle)) {
+            st = "failed";
+            gate = lastSettle.gate;
+            reason = lastSettle.reason;
+          } else if (lastSettle?.verdict === "refused" && !refusalLapsed(lastSettle, Date.now())) {
+            st = "refused";
+            gate = lastSettle.gate;
+            reason = lastSettle.reason;
+          } else st = "submitted";
+        } else if (failedJob) {
           st = "failed";
           gate = "execution";
           reason = `${failedJob.kind} ${failedJob.id} failed: ${(failedJob.error ?? "no reason recorded").slice(0, 200)}`;
