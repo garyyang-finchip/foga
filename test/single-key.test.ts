@@ -18,7 +18,7 @@ import { anvilPath, foga, ok, startAnvil } from "./helpers/anvil-cell.js";
  * so the owner sets the operator aside for the moves and puts back exactly what it found — also when a step fails —
  * and a binding that is not satisfied refuses the move before anything is sent.
  */
-const PORT = 8577;
+const PORT = 8576;
 const RPC = `http://127.0.0.1:${PORT}`;
 const EXPIRY_DAYS = 30;
 const CAP = parseEther("0.001");
