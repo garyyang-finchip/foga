@@ -60,6 +60,13 @@ Two cells on Sepolia need no network between them. A demander mints an ERC-8414 
 
 So a cell is social the moment it is born: it is registered (ERC-8004), anchored (8434), described (8444), bounded (8454), and it holds skills a tender can name (8338/8414). A public URL (`--listen 0.0.0.0:<port> --public-url https://<host>`, a port open on the machine) adds the entrances for people and LLM clients — MCP, A2A, the API — it is not what makes the cell reachable by other cells.
 
+### The endpoint, and a tender found late
+
+A `foga-probe` tender pins its reads to a block the demander chose at mint time, so that the demander's expected report and the cell's are over the same state. Two things about a public endpoint follow (0.7.4):
+
+- **The probe tells a revert from a failure of the endpoint, and never reports a partial read.** The chain's answer — a revert, or no code at an address — makes a null section, the same for both runs. A request the endpoint limits or drops is retried with a growing pause, and if it persists the run fails rather than answer with a hole in the report (`probe: the RPC failed …`). Such a run is the endpoint's failure, not a verdict: the runner holds the tender back for a minute and tries the run again as a new job, five times at most.
+- **A block an endpoint does not serve.** A full node keeps the state of its recent blocks only (128 on geth, fewer on other clients — the public Sepolia endpoint answers `historical state … is not available` for a block an hour old); a cell that finds a tender long after it was minted — it was off, or busy — may ask its endpoint for a block it has let go, or a lagging node for one it has not reached. The endpoint says so (`probe: the endpoint does not serve the state of block N …`), and the cell asks the chain's other public endpoints in turn (`src/core/chains.ts`), saying which one answered. If none does and the block is still young, the run is tried again later; if the block is old, the run stands failed and the tender is left — its demander minted it for whoever was there. An endpoint with the chain's history (an archive node: `--rpc <url>` or the chain's variable, `SEPOLIA_RPC_URL`) answers any block, and a cell that is kept running meets every tender while its block is young.
+
 ## Other chains, the same key
 
 A chain is joinable by name when a world's address book ships for it in the package — Sepolia today. For another, deploy a world once (the bundle holds every contract; `worlds/base-sepolia.json`, `worlds/optimism-sepolia.json` and `worlds/arbitrum-sepolia.json` are templates in `deploy` mode, with the ERC-8004 stand-in unless the official registry's address is put in):

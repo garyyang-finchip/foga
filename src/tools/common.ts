@@ -2,6 +2,7 @@ import { getAddress } from "ethers";
 import { z } from "zod";
 import { accountSubject } from "../core/kya.js";
 import { parseDataUri, sha256Hex, jcs } from "../core/canonical.js";
+import { PROBE_RPC_FAILURE } from "../genesis/probe.js";
 import type { Node } from "../node/node.js";
 import type { TenderFacts } from "../node/policy.js";
 
@@ -159,6 +160,29 @@ export function derivedJobId(prefix: string, parts: Record<string, unknown>): st
 /** The job of a tender's n-th completion by this cell: the second legitimate completion of a tender is another job. */
 export function tenderJobId(tokenId: bigint, completions: bigint): string {
   return `tender:${tokenId}:c${completions}`;
+}
+
+/** How many times a skill run the endpoint failed (PROBE_RPC_FAILURE) is attempted before the failure stands. */
+export const RUN_ATTEMPTS = 5;
+
+/** A failed run whose failure was the endpoint's, not a verdict on the request: the probe could not read the chain. */
+export function transientRunFailure(job: { status: string; error: string | null }): boolean {
+  return job.status === "failed" && (job.error ?? "").includes(PROBE_RPC_FAILURE);
+}
+
+/**
+ * The job id of a skill run: the same request is the same job — except after a run the endpoint failed, which was no
+ * verdict on the request; the next attempt is a new job (base:r2, :r3 … up to RUN_ATTEMPTS), so the catalog does not
+ * answer it with the old failure. A run that failed on its merits, and the attempt past the limit, meet that failure.
+ */
+export function runJobId(node: Node, base: string): string {
+  let id = base;
+  for (let n = 2; n <= RUN_ATTEMPTS; n++) {
+    const prior = node.store.getJob(id);
+    if (!prior || !transientRunFailure(prior)) return id;
+    id = `${base}:r${n}`;
+  }
+  return id;
 }
 
 export const GateSchema = z.object({ gate: z.string(), ok: z.boolean(), reason: z.string() });

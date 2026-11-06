@@ -97,7 +97,9 @@ export async function mintCases(opts: DemanderOptions): Promise<{ demander: stri
     const below = opts.belowFloorWei ?? 100_000_000_000_000n; // 0.0001 ETH
     const root = repoRoot();
     const head = await k.blockNumber();
-    const probeBlock = Math.max(1, head - Math.floor(rnd() * Math.min(head - 1, 50)));
+    // a block behind the head, but not far: a public endpoint keeps the state of its recent blocks only (a geth full
+    // node 128, other clients fewer), and the cell's probe comes a tick or two after the mint; the window was 50 blocks
+    const probeBlock = Math.max(1, head - Math.floor(rnd() * Math.min(head - 1, 20)));
     const probeInput: ProbeInput = { subject: opts.cell, block: probeBlock, lookback: 9000, kya: { schemeId: opts.schemeId, issuers: opts.issuers } };
     const probeAnswer = (await runProbe(k.world, probeInput)).answer;
     const fixture = join(root, "scenarios", "fixtures", "sample-filing.txt");

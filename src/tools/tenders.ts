@@ -4,12 +4,13 @@ import { getAddress, toUtf8Bytes, hexlify } from "ethers";
 import { z } from "zod";
 import { accountRef, dataUri, dataUriJcs, keccakJcs, sha256Hex } from "../core/canonical.js";
 import { kindId, taskDescriptor } from "../core/ard.js";
+import { chainById } from "../core/chains.js";
 import { hashlock, nativeTerms, SubmissionStatus } from "../core/tenders.js";
 import { runExtractIsolated, runProbeIsolated } from "../genesis/skill-runner.js";
-import type { ProbeInput } from "../genesis/probe.js";
+import { PROBE_RPC_FAILURE, PROBE_STATE_GONE, RECENT_BLOCKS, blocksBehind, type ProbeInput } from "../genesis/probe.js";
 import type { Node } from "../node/node.js";
 import { ok, refused, safetyGate, skillGate, tenderGates, type Gate } from "../node/policy.js";
-import { GateSchema, TaskDocumentSchema, TenderOutputSchema, derivedJobId, readTender, tenderJobId, tenderOutput, zAddress, zAs, zBool, zBytes32, zHex, zJobId, zUint, type TenderView } from "./common.js";
+import { GateSchema, TaskDocumentSchema, TenderOutputSchema, derivedJobId, readTender, runJobId, tenderJobId, tenderOutput, zAddress, zAs, zBool, zBytes32, zHex, zJobId, zUint, type TenderView } from "./common.js";
 import type { ActCapability, ActContext, Intent } from "./types.js";
 
 /**
@@ -27,6 +28,38 @@ const ZERO32 = "0x" + "00".repeat(32);
  */
 function skillTimeoutMs(node: Node): number {
   return node.config.skills.timeoutMs ?? (node.world.network === "anvil" ? 60_000 : 180_000);
+}
+
+/**
+ * The probe through the node's endpoint — and, when that endpoint does not serve the state of the task's block
+ * (PROBE_STATE_GONE: it has not reached the block, or, a full node keeping the state of its recent blocks only, has
+ * let it go — the tender was minted a while ago), through the chain's other public endpoints in turn (core/chains.ts),
+ * one of which may be an archive. A read of public chain state at a pinned block is the same wherever it is read; the
+ * node says which endpoint answered. When none does: a block still young (RECENT_BLOCKS behind the head or less) is
+ * one the endpoints have not caught up with, a transient failure the runner tries again later (PROBE_RPC_FAILURE); an
+ * older one is left — the run stands failed and an archive endpoint (--rpc) is the remedy. Any other failure ends the
+ * attempt as it is: the endpoint's to retry (PROBE_RPC_FAILURE) or the run's to stand.
+ */
+async function probeThroughEndpoints(node: Node, probe: ProbeInput): Promise<{ answer: string; report: unknown }> {
+  const others = (chainById(node.chainId)?.rpc ?? []).filter((u) => u !== node.rpc);
+  const refusals: string[] = [];
+  let behind: number | null = null;
+  for (const [i, rpc] of [node.rpc, ...others].entries()) {
+    try {
+      const run = await runProbeIsolated({ worldPath: node.worldPath, rpc, bundlePath: node.bundlePath, input: probe, timeoutMs: skillTimeoutMs(node) });
+      if (i > 0) node.log(`skill_run: foga-probe at block ${probe.block} read through ${rpc}; ${node.rpc} does not serve that block's state`);
+      return run;
+    } catch (e) {
+      if (!(e instanceof Error) || !e.message.includes(PROBE_STATE_GONE)) throw e;
+      const b = blocksBehind(e.message);
+      if (b !== null && (behind === null || b < behind)) behind = b;
+      refusals.push(`${rpc}: ${e.message.slice(0, 200)}`);
+      if (i < others.length) node.log(`skill_run: ${rpc} does not serve the state of block ${probe.block}; asking ${others[i]}`);
+    }
+  }
+  const asked = `${1 + others.length} endpoint${others.length ? "s" : ""}`;
+  if (behind !== null && behind <= RECENT_BLOCKS) throw new Error(`${PROBE_RPC_FAILURE}: ${asked} did not serve the state of block ${probe.block} yet (${behind} blocks behind the head; tried again later) — ${refusals.join("; ")}`);
+  throw new Error(`${PROBE_STATE_GONE} ${probe.block} on ${asked} (${behind ?? "many"} blocks behind the head): a full node keeps the state of its recent blocks only; a tender found this late is read from an archive endpoint (--rpc <url>) or left to a cell that was there — ${refusals.join("; ")}`);
 }
 
 /** The text of a data: URI (base64 or percent-encoded), whatever its media type. */
@@ -110,7 +143,8 @@ export const skill_run: ActCapability = {
     const held = await node.heldSkills();
     const gates: Gate[] = [skillGate(node.config, { skill: input.skill, packageHash: null }, held.map((h) => ({ name: h.name, packageHash: h.packageHash })))];
     const skill = held.find((h) => h.name === input.skill);
-    const jobId = input.jobId ?? derivedJobId(`skill-run:${input.skill}`, { input: input.input, tokenId: input.tokenId ?? null });
+    // the same request is the same job; after a run the endpoint failed, the next attempt is a new one (common.ts)
+    const jobId = input.jobId ?? runJobId(node, derivedJobId(`skill-run:${input.skill}`, { input: input.input, tokenId: input.tokenId ?? null }));
     const cell = node.body.address;
     return {
       job: { id: jobId, kind: "skill-run", input: { skill: input.skill, input: input.input, tokenId: input.tokenId ?? null } },
@@ -124,7 +158,7 @@ export const skill_run: ActCapability = {
         let report: unknown;
         if (input.skill === "foga-probe") {
           const probe = input.input as ProbeInput;
-          const run = await runProbeIsolated({ worldPath: node.worldPath, rpc: node.rpc, bundlePath: node.bundlePath, input: probe, timeoutMs: skillTimeoutMs(node) });
+          const run = await probeThroughEndpoints(node, probe);
           answer = run.answer;
           report = run.report;
         } else if (input.skill === "finch-extract-verify") {

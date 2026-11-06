@@ -17,10 +17,47 @@ import { JsonRpcProvider, toQuantity, type JsonRpcApiProviderOptions, type Netwo
  * its earlier version, a swarm read as still active — which is what the first Sepolia replays did.
  */
 const BLOCK_PARAM: Record<string, number> = { eth_call: 1, eth_estimateGas: 1, eth_getBalance: 1, eth_getCode: 1, eth_getTransactionCount: 1, eth_getStorageAt: 2 };
-// what the clients of a public cluster say when asked about a block they do not (yet) have the state of: geth ("header
-// not found", "missing trie node"), erigon and reth ("block not found"), nethermind ("historical state ... is not
-// available", which it also says for a block one behind its own head), besu ("Block not found"), and a few gateways
-const BEHIND = /header not found|unknown block|block not found|missing trie node|cannot query|beyond|out of range|unknown header|no state|historical state|state (is )?not available|not available|pruned|too old|invalid block|resource not found/i;
+/**
+ * What the clients of a public cluster say when asked about a block they do not have the state of — not yet (a node
+ * behind the rest: geth "header not found", erigon and reth "block not found", nethermind "historical state ... is not
+ * available", which it also says for a block one behind its own head, besu "Block not found") or not any more (a full
+ * node keeps the state of its recent blocks only: geth "missing trie node", nethermind "historical state", gateways
+ * "pruned", "too old").
+ */
+export const STATE_UNAVAILABLE = /header not found|unknown block|block not found|missing trie node|cannot query|beyond|out of range|unknown header|no state|historical state|state (is )?not available|not available|pruned|too old|invalid block|resource not found|distance to target block/i;
+const BEHIND = STATE_UNAVAILABLE;
+
+/** The words of an RPC failure, the node's own first: ethers wraps them (a call's as CALL_EXCEPTION, "missing revert data") and keeps them in info.error. */
+export function rpcErrorText(e: unknown): string {
+  const err = e as { info?: { error?: { message?: string } }; error?: { message?: string }; shortMessage?: string; message?: string } | null;
+  return [err?.info?.error?.message, err?.error?.message, err?.shortMessage, err?.message].filter(Boolean).join(" | ");
+}
+
+/**
+ * True when the chain answered — the call reverted — and false when the transport did not deliver an answer. ethers
+ * makes every JSON-RPC error of an eth_call a CALL_EXCEPTION, so the code alone says nothing: a revert is told by its
+ * return data (a custom error's selector, a reason string), by ethers having decoded one, or by the node's own words
+ * (geth, erigon, reth and anvil say "execution reverted", nethermind "VM execution error", besu "Execution reverted");
+ * a node that lacks the block's state, a rate limit, a timeout and a dropped connection say none of that.
+ */
+export function isRevertError(e: unknown): boolean {
+  const err = e as { code?: string | number; data?: unknown; revert?: unknown; reason?: unknown; info?: { error?: { message?: string } }; error?: { message?: string } } | null;
+  if (!err || typeof err !== "object") return false;
+  if (err.data || err.revert || (err.code === "CALL_EXCEPTION" && err.reason)) return true;
+  const words = String(err.info?.error?.message ?? err.error?.message ?? "");
+  return /revert|VM execution error|invalid opcode/i.test(words);
+}
+
+/**
+ * True when the chain answered the call, whatever it said — a revert, or return data that is not the shape the ABI
+ * asked for (ethers' BAD_DATA with the value: "0x" from an account without that code at that block) — and false when
+ * the transport delivered no answer. A probe records the former as the section's null and retries the latter.
+ */
+export function chainAnswered(e: unknown): boolean {
+  if (isRevertError(e)) return true;
+  const err = e as { code?: string | number; value?: unknown } | null;
+  return Boolean(err && typeof err === "object" && err.code === "BAD_DATA" && err.value !== undefined);
+}
 
 export interface PinnedReadEvent {
   method: string;
@@ -63,10 +100,9 @@ export class PinnedProvider extends JsonRpcProvider {
         return await super.send(method, pinned);
       } catch (e: any) {
         // ethers wraps a node's error (a call's as CALL_EXCEPTION, "missing revert data"); the node's own words are in info.error
-        const text = [e?.info?.error?.message, e?.error?.message, e?.shortMessage, e?.message].filter(Boolean).join(" | ");
+        const text = rpcErrorText(e);
         // a contract's revert is an answer, not a lag: it is never retried
-        const reverted = /execution reverted/i.test(text) || Boolean(e?.data) || Boolean(e?.revert);
-        if (reverted) throw e;
+        if (isRevertError(e)) throw e;
         const behind = BEHIND.test(text);
         if (behind && Date.now() < deadline) {
           await new Promise((r) => setTimeout(r, Math.min(2_000, 250 * attempt)));

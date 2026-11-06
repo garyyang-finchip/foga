@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { jcs, sha256Hex } from "../core/canonical.js";
 import type { Catalog } from "../tools/catalog.js";
+import { RUN_ATTEMPTS, transientRunFailure } from "../tools/common.js";
 import type { Caller } from "../tools/types.js";
 import { chooseTender } from "./model/stub.js";
 import { ModelError, type ContentBlock, type ModelAdapter, type ModelMessage, type Situation, type SituationTender, type ToolSpec } from "./model/types.js";
@@ -71,6 +72,13 @@ export function refusalLapsed(d: { gate: string; reason: string; at: string }, n
   return Number.isFinite(at) && nowMs - at >= TRANSIENT_REFUSAL_MS;
 }
 
+/** A skill run the endpoint failed is held back as long as a transient refusal, then the tender reads as open again and the run is a new job. */
+export function runFailureLapsed(job: { status: string; error: string | null; updatedAt: string }, nowMs: number): boolean {
+  if (!transientRunFailure(job)) return false;
+  const at = Date.parse(job.updatedAt);
+  return Number.isFinite(at) && nowMs - at >= TRANSIENT_REFUSAL_MS;
+}
+
 export class Runner {
   private readonly maxToolCalls: number;
   private readonly maxActs: number;
@@ -133,7 +141,13 @@ export class Runner {
         let st: SituationTender["status"] = "open";
         let gate: string | undefined;
         let reason: string | undefined;
-        const failedJob = jobs.find((j) => j.status === "failed" && ((j.kind === "skill-run" && String((j.input as { tokenId?: string } | null)?.tokenId) === t.tokenId) || (j.kind === "tender" && j.id.startsWith(`tender:${t.tokenId}:`))));
+        const failedRuns = jobs.filter((j) => j.status === "failed" && j.kind === "skill-run" && String((j.input as { tokenId?: string } | null)?.tokenId) === t.tokenId);
+        const failedTender = jobs.find((j) => j.status === "failed" && j.kind === "tender" && j.id.startsWith(`tender:${t.tokenId}:`));
+        // a run the endpoint failed (the probe could not read the chain: PROBE_RPC_FAILURE) is no verdict on the tender:
+        // it is held back for a while and tried again as a new job (tools/common.ts), up to RUN_ATTEMPTS; a run that
+        // failed on its merits, a failed submission, or the attempt past the limit ends the matter
+        const lastRun = failedRuns.length ? failedRuns.reduce((a, b) => (Date.parse(b.updatedAt) > Date.parse(a.updatedAt) ? b : a)) : null;
+        const failedJob = failedTender ?? failedRuns.find((j) => !transientRunFailure(j)) ?? (failedRuns.length >= RUN_ATTEMPTS ? lastRun : null);
         if (mine && mine.status === 1) st = "settled";
         else if (mine && mine.status === 0) {
           // a pending submission the cell has tried to settle: a refusal the chain will not take back (the committed
@@ -153,6 +167,10 @@ export class Runner {
           st = "failed";
           gate = "execution";
           reason = `${failedJob.kind} ${failedJob.id} failed: ${(failedJob.error ?? "no reason recorded").slice(0, 200)}`;
+        } else if (lastRun && !runFailureLapsed(lastRun, Date.now())) {
+          st = "refused";
+          gate = "execution";
+          reason = `${lastRun.kind} ${lastRun.id} failed at the endpoint (attempt ${failedRuns.length} of ${RUN_ATTEMPTS}); tried again after a pause: ${(lastRun.error ?? "no reason recorded").slice(0, 200)}`;
         } else {
           const last = runnerPrechecks.filter((d) => d.jobId === `precheck:${t.tokenId}`).at(-1);
           if (last?.verdict === "allowed") st = "eligible";
