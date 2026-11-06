@@ -28,6 +28,25 @@ export interface ProbeReport {
 }
 
 const ZERO = "0x0000000000000000000000000000000000000000";
+const PROBE_RETRIES = 6;
+const PROBE_RETRY_MS = 500;
+
+function describe(e: unknown): string {
+  const err = e as { shortMessage?: string; message?: string; code?: string };
+  return (err.shortMessage ?? err.message ?? String(e)).slice(0, 160);
+}
+
+/**
+ * True for a failure of the transport rather than of the call: anything but a revert. ethers names a revert
+ * CALL_EXCEPTION; a node that lags the pinned block, a rate limit, a dropped connection, a timeout and a malformed
+ * answer come back as SERVER_ERROR, NETWORK_ERROR, TIMEOUT, UNKNOWN_ERROR or BAD_DATA, or as a JSON-RPC error without
+ * a revert (-32602 for a range beyond the node's head, -32005 and 429 for limits).
+ */
+export function transientRpcError(e: unknown): boolean {
+  const err = e as { code?: string | number; info?: { error?: { code?: number } } };
+  if (err.code === "CALL_EXCEPTION") return false;
+  return true;
+}
 
 /**
  * The `foga-probe` skill: eleven sections (ERC-8004 plus the ten), every read pinned to `input.block`, every
@@ -55,11 +74,23 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
     const parts = await Promise.all(windows.map(([a, b]) => c.queryFilter(filter, a, b)));
     return parts.flat();
   };
+  // A section is null when the chain says so — a call that reverts for this subject (a scheme that does not exist, a
+  // contract that refuses the question): both runs of the probe see the same revert, and the report is the same. A
+  // transport failure is not that: a public endpoint is a cluster whose nodes lag each other, and a log scan up to
+  // the pinned block is refused by a node that has not reached it ("block range extends beyond current head block"),
+  // rate-limited, or dropped. Turned into null, such a failure made the demander's expected report and the cell's
+  // differ by one section, the hashes differ, and a right answer fail verification. So a transport failure is
+  // retried with a pause, and if it persists the probe fails — a skill run refused at execution is tried again
+  // later; a report with a hole in it is never an answer.
   const section = async (fn: () => Promise<Record<string, unknown>>): Promise<Record<string, unknown> | null> => {
-    try {
-      return await fn();
-    } catch {
-      return null;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (!transientRpcError(e)) return null;
+        if (attempt >= PROBE_RETRIES) throw new Error(`probe: the RPC failed ${attempt + 1} times (${describe(e)}); no report is made from a partial read`);
+        await new Promise((r) => setTimeout(r, PROBE_RETRY_MS * 2 ** attempt));
+      }
     }
   };
 

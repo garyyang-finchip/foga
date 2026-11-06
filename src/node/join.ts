@@ -81,6 +81,8 @@ export interface JoinResult {
 
 export const JOIN_MARKER = "join.json";
 export const DEFAULT_SKILLS = ["foga-probe", "finch-extract-verify"];
+/** The stub's daily call cap: free, so effectively none (one tick a block for a month). */
+export const STUB_DAILY_CALLS = 1_000_000;
 const PUBLIC_MIN = parseEther("0.03");
 const PUBLIC_COMFORTABLE = parseEther("0.05");
 
@@ -182,10 +184,21 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
     // that prices gas; the cap is raised to what the quickstart uses, and the operator's gas floor (a quarter of it)
     // stays under the funding gate below
     cfg.policy.budget.dailyGasWei = parseEther("0.02").toString();
+    // the daily model-call cap guards a paid model; the stub is a decision table that costs nothing, and a cell run
+    // with it must not fall silent after its twentieth tick of the day
+    if (o.run === "stub") cfg.runtime.model = { ...cfg.runtime.model, provider: "stub", dailyCalls: STUB_DAILY_CALLS };
     cfg.runtime.http.listen = o.listen ?? "127.0.0.1:8787";
     if (o.publicUrl) cfg.runtime.http.publicUrl = o.publicUrl.replace(/\/+$/, "");
     saveCellConfig(configPath, cfg);
     log(`join: cell ${name} configured in ${dir} (world ${worldFile.worldId}, ${Object.keys(worldFile.contracts).length} contracts)`);
+  }
+  if (o.run === "stub") {
+    const loaded = loadCellConfig(configPath);
+    if (loaded.config.runtime.model.dailyCalls < STUB_DAILY_CALLS) {
+      loaded.config.runtime.model = { ...loaded.config.runtime.model, provider: "stub", dailyCalls: STUB_DAILY_CALLS };
+      saveCellConfig(configPath, loaded.config);
+      log(`join: the stub costs nothing; the daily model-call cap is ${STUB_DAILY_CALLS}`);
+    }
   }
   if (o.publicUrl) {
     const loaded = loadCellConfig(configPath);
@@ -308,6 +321,22 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
   let endedWith: (why: string) => void = () => {};
   const ended = new Promise<string>((r) => (endedWith = r));
   let stopping = false;
+  const stop = async () => {
+    stopping = true;
+    if (child) {
+      const { stopChild } = await import("../demo/anvil.js");
+      await stopChild(child);
+      child = null;
+    }
+    endedWith("stopped");
+  };
+  // a stop signal while the node is coming up takes the node with it (the cell stays)
+  const onSignal = () => {
+    log("join: stopping the node; the cell stays");
+    void stop().finally(() => process.exit(0));
+  };
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
   if (listen) {
     const i = listen.lastIndexOf(":");
     const host = listen.slice(0, i) || "127.0.0.1";
@@ -325,15 +354,6 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
     const health = (await (await fetch(`${nodeUrl}/healthz`)).json()) as { ok: boolean; version?: string };
     if (!health.ok) throw new Error("the node's /healthz is not ok");
   } else endedWith("no node");
-  const stop = async () => {
-    stopping = true;
-    if (child) {
-      const { stopChild } = await import("../demo/anvil.js");
-      await stopChild(child);
-      child = null;
-    }
-    endedWith("stopped");
-  };
 
   // --- the card and the configurations: what the cell is, and how anyone connects
   const reader = await Node.open({ configPath, rpc, keys: {}, allowUnborn: true, log: () => {} });

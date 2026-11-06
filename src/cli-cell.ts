@@ -480,7 +480,7 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
       while (!stop && done < ticks) {
         try {
           const w = await watchers.tick();
-          log(`${w.at} block ${w.block}: anchor ${w.anchor}, heartbeat ${w.heartbeat.sent ? "sent" : "not sent"} (${w.heartbeat.reason}); ${w.discovered.length} new tender(s); ${w.settled.length} settled, ${w.withdrawn.length} withdrawn; safety ${w.safety.verdict}${w.safety.changed ? " (changed)" : ""}`);
+          log(`${w.at} block ${w.block}: anchor ${w.anchor}, heartbeat ${w.heartbeat.sent ? "sent" : "not sent"} (${w.heartbeat.reason}); ${w.discovered.length} new tender(s); ${w.settled.filter((x) => x.outcome === "settled").length} settled${w.settled.some((x) => x.outcome !== "settled") ? ` (${w.settled.filter((x) => x.outcome !== "settled").map((x) => `${x.tokenId}: ${x.outcome}`).join("; ")})` : ""}, ${w.withdrawn.length} withdrawn; safety ${w.safety.verdict}${w.safety.changed ? " (changed)" : ""}`);
         } catch (e) {
           log(`watch: ${(e as Error).message}`);
         }
@@ -519,7 +519,7 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
     while (!stop) {
       try {
         const r = await watchers.tick();
-        console.error(`${r.at} block ${r.block}: anchor ${r.anchor}, heartbeat ${r.heartbeat.sent ? "sent" : "not sent"} (${r.heartbeat.reason}); ${r.discovered.length} new tender(s); ${r.settled.length} settled, ${r.withdrawn.length} withdrawn; safety ${r.safety.verdict}${r.safety.changed ? " (changed)" : ""}`);
+        console.error(`${r.at} block ${r.block}: anchor ${r.anchor}, heartbeat ${r.heartbeat.sent ? "sent" : "not sent"} (${r.heartbeat.reason}); ${r.discovered.length} new tender(s); ${r.settled.filter((x) => x.outcome === "settled").length} settled${r.settled.some((x) => x.outcome !== "settled") ? ` (${r.settled.filter((x) => x.outcome !== "settled").map((x) => `${x.tokenId}: ${x.outcome}`).join("; ")})` : ""}, ${r.withdrawn.length} withdrawn; safety ${r.safety.verdict}${r.safety.changed ? " (changed)" : ""}`);
       } catch (e) {
         console.error(`tick failed: ${(e as Error).message}`);
       }

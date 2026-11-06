@@ -1,6 +1,6 @@
 {
   "name": "@finchtech.ai/foga",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "FOGA, the Finch OG Agent toolchain, under the finchtech.ai scope. An alias of @finchip.ai/foga: the same binary at the same version, so `npx -y @finchtech.ai/foga quickstart` and `npx -y @finchip.ai/foga quickstart` are one command.",
   "license": "Apache-2.0",
   "type": "module",
@@ -15,7 +15,7 @@
     "node": ">=22.13"
   },
   "dependencies": {
-    "@finchip.ai/foga": "0.7.1"
+    "@finchip.ai/foga": "0.7.2"
   },
   "repository": {
     "type": "git",

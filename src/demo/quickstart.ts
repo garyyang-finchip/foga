@@ -182,6 +182,19 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
     await stopChild(anvil);
     endedWith?.("stopped");
   };
+  // A stop signal during the bring-up — before the caller has installed its own handlers — must still take the
+  // children with it: anvil runs in its own process group and would otherwise outlive a quickstart killed mid-way,
+  // holding its port against the next one.
+  const onSignal = () => {
+    log("quickstart: stopping the node and the chain");
+    void stop().finally(() => process.exit(0));
+  };
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  const offSignals = () => {
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
+  };
   try {
     const worldPath = join(dir, "world.json");
     log("quickstart: deploying the local world (the ten reference implementations and the FOGA contracts)");
@@ -393,6 +406,8 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
   } catch (e) {
     await stop();
     throw e;
+  } finally {
+    offSignals();
   }
 }
 

@@ -15,3 +15,13 @@ test("runner: a verifier refusal for a not-yet-committed answer lapses; a mismat
   for (const gate of ["policy", "skill", "input", "permission", "conflict", "execution", "wallet"]) assert.equal(refusalLapsed({ gate, reason: "x", at: earlier }, now), false, `${gate} stands`);
   assert.equal(refusalLapsed({ gate: "budget", reason: "x", at: "not a date" }, now), false, "no timestamp, no lapse");
 });
+
+import { transientRpcError } from "../src/genesis/probe.js";
+
+/** The probe's rule for a failed read: a revert is the chain's answer (a null section); anything else is the transport's, retried, never a report. */
+test("probe: a revert makes a null section; a transport failure is transient", () => {
+  assert.equal(transientRpcError({ code: "CALL_EXCEPTION", reason: "KYA: unknown scheme" }), false);
+  for (const code of ["SERVER_ERROR", "NETWORK_ERROR", "TIMEOUT", "UNKNOWN_ERROR", "BAD_DATA"]) assert.equal(transientRpcError({ code }), true, code);
+  assert.equal(transientRpcError({ code: "UNKNOWN_ERROR", info: { error: { code: -32602, message: "block range extends beyond current head block" } } }), true, "a lagging node");
+  assert.equal(transientRpcError(new Error("fetch failed")), true);
+});

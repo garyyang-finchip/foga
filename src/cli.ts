@@ -533,15 +533,7 @@ async function main(): Promise<void> {
       await result.stop();
       return;
     }
-    let asked = false;
-    const stopping = () => {
-      if (asked) return;
-      asked = true;
-      console.error("join: stopping the node; the cell stays");
-      result.stop().finally(() => process.exit(0));
-    };
-    process.on("SIGINT", stopping);
-    process.on("SIGTERM", stopping);
+    // Ctrl-C / SIGTERM: runJoin installed the handler (the node stops, the cell stays)
     const why = await result.ended;
     if (why === "stopped") return;
     fail(`${why}; start it again with the same command`);
