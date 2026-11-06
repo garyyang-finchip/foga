@@ -49,6 +49,23 @@ const JOURNAL_SEQ_FACT = "runner.journal.seq";
  * model says reaches the chain except through the catalog, and nothing it says is kept except by hash. The watchers
  * (heartbeat, settlement, withdrawal, discovery) do not pass through the model; they run beside the runner.
  */
+/**
+ * How long a refusal at a gate that depends on what others do, or on time, is held against a tender before the
+ * runner looks again. A tender is minted and its answer committed in the hashlock verifier in two transactions, so a
+ * pre-check that lands between them is refused at the verifier ("no committed answer for this tender yet") — true
+ * then, false a block later; the budget's day rolls; a safety verdict changes with the guardian. Such a refusal
+ * lapses after this long and the tender reads as open again, to be pre-checked afresh (a read: no cost, no act).
+ * A refusal at a gate the situation cannot change — policy, skill, input, a verifier mismatch — stands.
+ */
+export const TRANSIENT_REFUSAL_MS = 60_000;
+
+export function refusalLapsed(d: { gate: string; reason: string; at: string }, nowMs: number): boolean {
+  const transient = d.gate === "budget" || d.gate === "safety" || (d.gate === "verifier" && /no committed answer/.test(d.reason));
+  if (!transient) return false;
+  const at = Date.parse(d.at);
+  return Number.isFinite(at) && nowMs - at >= TRANSIENT_REFUSAL_MS;
+}
+
 export class Runner {
   private readonly maxToolCalls: number;
   private readonly maxActs: number;
@@ -120,7 +137,7 @@ export class Runner {
         } else {
           const last = runnerPrechecks.filter((d) => d.jobId === `precheck:${t.tokenId}`).at(-1);
           if (last?.verdict === "allowed") st = "eligible";
-          else if (last) {
+          else if (last && !refusalLapsed(last, Date.now())) {
             st = "refused";
             gate = last.gate;
             reason = last.reason;
