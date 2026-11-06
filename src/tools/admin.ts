@@ -173,7 +173,7 @@ export const identity_transfer: ActCapability = {
       gates,
       valueWei: 0n,
       steps: [{ name: "transfer", by: "owner", route: "execute", build: () => ({ target: k.identity.address, value: 0n, data: k.identity.encodeTransfer(cell.address, input.to, BigInt(agentId!)), label: `transferFrom(cell, ${input.to}, ${agentId})` }) }],
-      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: confirmed[0].txHash, jobId }),
+      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: confirmed[0]?.txHash ?? "", jobId }),
     };
   },
 };

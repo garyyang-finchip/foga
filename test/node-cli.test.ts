@@ -129,7 +129,9 @@ test("Loop D cases a-g through the CLI on anvil: birth, skills, two tenders take
     assert.equal(created.code, 0, `cell new failed:\n${created.stderr.slice(-2000)}`);
     const cfg = JSON.parse(readFileSync(configPath, "utf8"));
     cfg.identity.standing = { schemeId, issuers: [W.address] };
-    cfg.policy.budget = { dailyValueWei: parseEther("0.002").toString(), perOperationValueWei: parseEther("0.001").toString(), dailyGasWei: parseEther("0.01").toString(), maxConcurrentCommitments: 2 };
+    // the fee cap leaves room for the run's own fees (an operator execute reads the owner first: about 2.1k gas more each,
+    // which took the last mint 0.14 % over a 0.01 ETH cap); case g is refused on value, not on fees
+    cfg.policy.budget = { dailyValueWei: parseEther("0.002").toString(), perOperationValueWei: parseEther("0.001").toString(), dailyGasWei: parseEther("0.02").toString(), maxConcurrentCommitments: 2 };
     cfg.policy.tenders = { minRewardWei: parseEther("0.0005").toString(), minSubmitWindowSeconds: 600, minSettleWindowSeconds: 600, acceptance: ["hashlock"], counterpartyMinLevel: 0, lookbackBlocks: 9000 };
     writeFileSync(configPath, JSON.stringify(cfg, null, 2));
     const born = ok(foga(["cell", "init", "--config", configPath], { FOGA_OWNER_KEY: owner.privateKey }), "cell init");
