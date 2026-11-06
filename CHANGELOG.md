@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **A simulation changes nothing** (`src/tools/admin.ts`). `operator_rotate` and `binding_present` wrote the cell's configuration from their output, and a simulation calls the output with nothing confirmed: `--mode simulate` saved the new operator or binding to the file, then failed reading the transaction hash of an empty list. The configuration then named what the chain did not — `cell status` refused to open the cell (operator mismatch), and `guardian_suspend` looked up a binding that does not exist (`UnknownBinding`), so the guardian could not suspend the cell until the file was mended by hand. The configuration is now written only once the transaction is confirmed, and a simulation of these and of `guardian_suspend` / `guardian_resume` answers with an empty `txHash`. `test/simulate-admin.test.ts` covers it on anvil.
+- (nothing yet)
 
 ## 0.7.4 — 2026-11-06 (the probe tells a revert from an endpoint that did not answer; a run the endpoint failed is tried again; a block an endpoint no longer serves)
 
