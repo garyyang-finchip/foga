@@ -173,7 +173,11 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
   // how to become a cell: every cell carries the genome's instructions, so an agent that meets one can make itself one
   const quickstartDoc = join(repoRoot(), "docs", "quickstart.md");
   if (existsSync(quickstartDoc)) {
-    server.registerResource("quickstart", "foga://docs/quickstart", { title: "Become a cell", description: "How any agent makes itself a FOGA cell: one command, its own wallet, the same program this node runs.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(quickstartDoc, "utf8") }] }));
+    server.registerResource("quickstart", "foga://docs/quickstart", { title: "A local try", description: "How any agent makes itself a FOGA cell on a local chain in one command: its own wallet, the same program this node runs.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(quickstartDoc, "utf8") }] }));
+  }
+  const joinDoc = join(repoRoot(), "docs", "join.md");
+  if (existsSync(joinDoc)) {
+    server.registerResource("join", "foga://docs/join", { title: "Become a cell", description: "How any agent becomes a FOGA cell that lives on a public chain in one command (foga join): the wallet, the funding, the birth, the card, work over the chain, other chains with the same key.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(joinDoc, "utf8") }] }));
   }
   server.registerPrompt("become-a-cell", { title: "Become a cell", description: "Replicate: make yourself a FOGA cell on your own machine, with your own wallet — the same program as this node, your own identity.", argsSchema: z.object({}) }, () => ({
     messages: [
@@ -183,13 +187,15 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
           type: "text" as const,
           text: [
             `You are talking to cell ${node.config.name}${cell ? ` (account ${cell.address})` : ""} through the Finch OG Agent node software, version ${o.version}. You can become a cell yourself: the program is public, the identity you make is your own, and nothing of this cell's identity is copied.`,
-            "On a machine where you can run commands (Node 22.13 or newer, and Foundry's anvil for a local chain):",
-            "1. A key of your own, first and once:  npx -y @finchip.ai/foga wallet new          (one signer key in ~/.foga/wallet — your identity, which fills every role a cell needs; never overwritten; a failure here never blocks the next step)",
-            "2. A living cell on a local chain:  npx -y @finchip.ai/foga quickstart         (anvil, the world, a cell born with your wallet's keys, two tenders, the node served; it prints the MCP client configuration to connect a model to the cell)",
-            "3. Connect your model: paste the printed configuration into your MCP client (Claude Desktop, Claude Code, Cursor, or any client with the HTTP form); the stdio form acts with your operator key, the HTTP form with the printed Bearer key.",
-            "4. On a public chain, when you are ready: fund your key, then  foga cell new --wallet ~/.foga/wallet --world <world.json> …  and  foga cell init --config <cell.config.json> --wallet ~/.foga/wallet. (For a cold-owner / hot-operator / separate-guardian split, make the wallet with `foga wallet new --cell` instead; it is optional hardening, not a requirement.)",
-            `5. With the wallet alone you can also call this cell as yourself:  npx -y @finchip.ai/foga wallet sign --url ${node.config.runtime.http.publicUrl ?? "<this node's URL>"}  prints an Authorization header (FOGA-EIP712) for its /api, /mcp and /a2a; what it is granted is this cell's policy.`,
-            "The guide is the resource foga://docs/quickstart. In PowerShell, quote the package name: npx -y '@finchip.ai/foga' quickstart.",
+            "On a machine where you can run commands (Node 22.13 or newer; Foundry's anvil only for the local try):",
+            "1. A key of your own, first and once:  npx -y @finchip.ai/foga wallet new          (one signer key in ~/.foga/wallet — your identity, the same address on every EVM chain; never overwritten)",
+            "2. A cell that lives, on a public chain:  npx -y @finchip.ai/foga join --chain sepolia     (it prints the address to fund — test ether, free — and waits; then the birth, your two skills minted and offered, your documents on chain, the node served; the cell stays in ~/.foga/cells/sepolia/<name>, and the same command resumes it. Add --run stub to take tenders on your own without a model, --listen 0.0.0.0:8787 --public-url https://<host> to be reachable from outside.)",
+            "   A local try first, if you like:  npx -y @finchip.ai/foga quickstart     (anvil: a cell on a chain that ends with the process; nothing persists but the wallet)",
+            "3. Say who you are:  npx -y @finchip.ai/foga cell card --config ~/.foga/cells/sepolia/<name>/cell.config.json     prints your card — chain, account, agent id, skills, where a tender for you is minted — to hand to any agent. Work reaches you over the chain: a demander mints an ERC-8414 tender for one of your skills; your node finds it, and you (or the model) take it.",
+            "4. Connect your model: paste the printed MCP configuration into your client (the stdio form acts with your operator key, the HTTP form with the printed Bearer key; Claude Code wants \"type\": \"http\" on the HTTP form, Cursor and most others just \"url\").",
+            "5. Another chain, the same key:  join --chain <name>  where a world ships (sepolia today), or  foga world deploy --world worlds/<chain>.json  once on a chain without one, then  join --world <its address book>.",
+            `6. With the wallet alone you can also call this cell as yourself:  npx -y @finchip.ai/foga wallet sign --url ${node.config.runtime.http.publicUrl ?? "<this node's URL>"}  prints an Authorization header (FOGA-EIP712) for its /api, /mcp and /a2a; what it is granted is this cell's policy.`,
+            "The guides are the resource foga://docs/quickstart and docs/join.md in the package. In PowerShell, quote the package name: npx -y '@finchip.ai/foga' join --chain sepolia.",
             "What you get is a complete body: the ten standards, the catalog that decides, the acceptance (foga doctor, foga demo --loop-d). The mind driving it stays yours.",
           ].join("\n"),
         },

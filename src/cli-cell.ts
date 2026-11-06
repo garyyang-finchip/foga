@@ -28,6 +28,8 @@ export const CELL_USAGE = `
   foga cell migrate --config <cell.config.json> --to <new.config.json> [--store <new ops.sqlite>] [--operator <addr>] [--capital-wei <n>] [--no-sweep]
                                                  move the cell to a new revision-2 account (the owner's key); the new config and store are written beside
   foga cell status --config <cell.config.json>   cell_status as the operator
+  foga cell card --config <cell.config.json> [--as-json]
+                                                 the cell's card: what it is and how to reach it, in the words another agent needs (no chain call)
   foga cell advise --config <cell.config.json> [--brief] [--as-json]
                                                  what a running cell should do next — separate the roles, tune the policy, standing, a public face, a supervisor,
                                                  backups, a dedicated RPC — only what applies to this cell; advice, never required; no chain read, no key
@@ -169,6 +171,20 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
   const rpc = str(flags, "rpc");
   const log = (line: string) => console.error(line);
   const wallet = walletFromFlags(flags);
+
+  if (cmd === "card") {
+    const { cellCard, formatCard } = await import("./node/card.js");
+    const { version } = await import("./util/version.js");
+    const node = await Node.open({ configPath, rpc, keys: {}, allowUnborn: true, log: () => {} });
+    try {
+      const card = cellCard(node, { version });
+      if (flags["as-json"]) return print(card);
+      console.log(formatCard(card));
+    } finally {
+      node.close();
+    }
+    return;
+  }
 
   if (cmd === "advise") {
     const { adviseCell, formatAdvice } = await import("./node/advise.js");

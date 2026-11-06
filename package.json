@@ -1,6 +1,6 @@
 {
   "name": "@finchip.ai/foga",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/garyyang-finchip/foga.git"
@@ -52,7 +52,8 @@
     "server.json",
     "README.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "deployments/sepolia.example.json"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

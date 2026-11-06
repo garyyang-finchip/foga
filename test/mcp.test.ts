@@ -233,7 +233,7 @@ test("MCP over Streamable HTTP and stdio, and the HTTP API, on a born cell", { t
     const badArgs = await call(pub, "tender_inspect", { tokenId: "x" });
     assert.ok(badArgs.isError, "bad input is a tool error");
     const resources = await pub.listResources();
-    assert.deepEqual(resources.resources.map((r) => r.uri).sort(), ["foga://cell/status", "foga://docs/compatibility-matrix", "foga://docs/quickstart", "foga://policy", "foga://spec/foga-cell-v1", "foga://world"]);
+    assert.deepEqual(resources.resources.map((r) => r.uri).sort(), ["foga://cell/status", "foga://docs/compatibility-matrix", "foga://docs/join", "foga://docs/quickstart", "foga://policy", "foga://spec/foga-cell-v1", "foga://world"]);
     const replicate = await pub.readResource({ uri: "foga://docs/quickstart" });
     assert.match(String((replicate.contents[0] as { text?: string }).text), /Quickstart \(foga quickstart\)/, "every cell carries the genome's instructions");
     const policy = await pub.readResource({ uri: "foga://policy" });
@@ -244,7 +244,7 @@ test("MCP over Streamable HTTP and stdio, and the HTTP API, on a born cell", { t
     const prompts = await pub.listPrompts();
     assert.deepEqual(prompts.prompts.map((p) => p.name).sort(), ["become-a-cell", "spread-the-cell", "take-tender"]);
     const become = await pub.getPrompt({ name: "become-a-cell", arguments: {} });
-    assert.match(String((become.messages[0].content as { text?: string }).text), /wallet new[\s\S]*quickstart[\s\S]*cell init[\s\S]*wallet sign --url/, "the replicate prompt: wallet first, then the quickstart, then a public chain, and the signed credential for this cell");
+    assert.match(String((become.messages[0].content as { text?: string }).text), /wallet new[\s\S]*join --chain sepolia[\s\S]*quickstart[\s\S]*cell card[\s\S]*wallet sign --url/, "the replicate prompt: wallet first, then the join (the cell that lives), the local try, the card, and the signed credential for this cell");
     const prompt = await pub.getPrompt({ name: "take-tender", arguments: { tokenId: a } });
     assert.match((prompt.messages[0].content as { text: string }).text, new RegExp(`tender_precheck \\{"tokenId":"${a}"\\}`));
 

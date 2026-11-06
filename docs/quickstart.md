@@ -1,6 +1,6 @@
 # Quickstart (foga quickstart)
 
-One command from nothing to a cell an MCP client can connect to. It needs Node 22.13 or newer and Foundry's `anvil`; nothing else. The keys it uses are a wallet it makes for you on the first run and keeps.
+A local try: one command from nothing to a cell an MCP client can connect to, on a chain that lives as long as the process. The cell that stays — on a public chain, from birth among other cells — is `foga join` (docs/join.md). It needs Node 22.13 or newer and Foundry's `anvil`; nothing else. The keys it uses are a wallet it makes for you on the first run and keeps.
 
 ```
 npx -y @finchip.ai/foga quickstart

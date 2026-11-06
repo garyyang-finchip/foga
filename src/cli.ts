@@ -54,6 +54,11 @@ usage:
                                                  one command to a live cell: the wallet (made on the first run, reused after), anvil, the local world, a cell born with
                                                  the wallet's keys and its two skills, two tenders, the node serving HTTP and MCP, and the MCP client configurations
                                                  printed with every path filled in (~/.foga/quickstart)
+  foga join [--chain sepolia | --world <deployed.json>] [--rpc <url>] [--name <cell>] [--dir <dir>] [--wallet <dir>]
+            [--listen <host:port> | --no-serve] [--public-url <url>] [--run stub|anthropic] [--no-wait] [--min-wei <n>] [--capital-wei <n>] [--exit]
+                                                 one command to a cell that lives on a public chain: the wallet (made once, the same address on every chain), the
+                                                 chain's world from the package, a wait for the identity to be funded, the birth, the skills minted and offered, the
+                                                 documents on chain, the node served (or run with a model); resumable, in ~/.foga/cells/<network>/<name>, never cleared
   foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga demo --loop-d [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery] [--port <n>] [--keep]
                                                  the above, then Loop D: a new cell born, a demander minting cases a-g, the node with a model (or served for an
@@ -498,6 +503,48 @@ async function main(): Promise<void> {
     const why = await result.ended;
     if (why === "stopped") return; // a stop that was asked for: both children are gone
     fail(`${why}; the quickstart is over`);
+  }
+
+  if (group === "join") {
+    const { runJoin } = await import("./node/join.js");
+    const run = str(flags, "run");
+    if (run && run !== "stub" && run !== "anthropic") fail("--run must be stub or anthropic");
+    let result;
+    try {
+      result = await runJoin({
+        chain: str(flags, "chain"),
+        world: str(flags, "world"),
+        rpc: str(flags, "rpc"),
+        name: str(flags, "name"),
+        dir: str(flags, "dir"),
+        wallet: str(flags, "wallet"),
+        listen: flags["no-serve"] ? null : str(flags, "listen"),
+        publicUrl: str(flags, "public-url"),
+        run: (run as "stub" | "anthropic" | undefined) ?? null,
+        wait: !flags["no-wait"],
+        minWei: str(flags, "min-wei") ? BigInt(str(flags, "min-wei")!) : undefined,
+        capitalWei: str(flags, "capital-wei") ? BigInt(str(flags, "capital-wei")!) : undefined,
+        exit: Boolean(flags.exit),
+      });
+    } catch (e) {
+      fail((e as Error).message);
+    }
+    if (flags.exit || !result.nodeUrl) {
+      await result.stop();
+      return;
+    }
+    let asked = false;
+    const stopping = () => {
+      if (asked) return;
+      asked = true;
+      console.error("join: stopping the node; the cell stays");
+      result.stop().finally(() => process.exit(0));
+    };
+    process.on("SIGINT", stopping);
+    process.on("SIGTERM", stopping);
+    const why = await result.ended;
+    if (why === "stopped") return;
+    fail(`${why}; start it again with the same command`);
   }
 
   if (group === "demo") {

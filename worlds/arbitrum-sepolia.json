@@ -1,0 +1,48 @@
+{
+  "schema": "foga.world-config/1",
+  "name": "arbitrum-sepolia",
+  "network": "arbitrum-sepolia",
+  "chainId": 421614,
+  "rpc": "${ARBITRUM_SEPOLIA_RPC_URL}",
+  "mode": "deploy",
+  "deployer": {
+    "privateKeyEnv": "FOGA_DEPLOYER_PK",
+    "note": "The key that deploys the 47 contracts and administers the escrow it deploys; fund it first (a deployment is about 0.5-1.6 ETH of gas at the chain's price). No default on a public chain."
+  },
+  "identity8004": {
+    "mode": "stub",
+    "note": "Deploys the Identity8004Stub so the world is complete on its own. Where the official ERC-8004 registry is live on this chain, switch to {\"mode\": \"address\", \"address\": \"0x\u2026\"} before deploying, as worlds/sepolia.json does."
+  },
+  "params": {
+    "skillToken": {
+      "name": "FOGA Skill",
+      "symbol": "FSKL"
+    },
+    "taskToken": {
+      "name": "FOGA Task",
+      "symbol": "FTSK"
+    },
+    "aid": {
+      "defaultLivenessWindow": 7776000,
+      "maxLivenessWindow": 31536000
+    },
+    "kya": {
+      "issuerSetRoot": "0x1de029c3b70d5efa4af25f0d1ffb02831eb7c0d9f5a02f3c781d216e2c54b5e8",
+      "epochLength": 2592000,
+      "epochGrace": 1
+    },
+    "ard": {
+      "kindURIs": {
+        "skill": "kind:skill",
+        "task": "kind:task",
+        "agent": "kind:agent",
+        "registry": "kind:registry"
+      }
+    }
+  },
+  "notes": [
+    "A template: `foga world deploy --world worlds/arbitrum-sepolia.json --rpc <url> --out deployments/arbitrum-sepolia.json` deploys the full stack (mode deploy, every contract from the bundle) with FOGA_DEPLOYER_PK; the address book it writes is what `foga join --world deployments/arbitrum-sepolia.json` takes. One key is one address on every EVM chain, so the wallet that joined Sepolia joins here unchanged.",
+    "AID liveness windows (90 d / 365 d) and the KYA Groth16 adapter parameters (issuer set root of the upstream kya_public_v1 prover, 30 d epochs, 1 epoch grace) mirror the upstream Sepolia reference deployments so the upstream provers and resolvers work unchanged.",
+    "ARD kind URIs mirror the upstream evidence script (kind:<name>)."
+  ]
+}

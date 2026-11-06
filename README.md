@@ -19,7 +19,9 @@ ERC-8004 (Trustless Agents) is a required dependency: ERC-8419, ERC-8434 and ERC
 
 The project delivers three things from one kernel: the **Finch OG Agent** (the first running instance), the **FOGA node software** anyone can run with their own identity, model and wallet, and a **public access layer** (MCP, A2A, HTTP/CLI). It is built in phases; this repository has completed **Phase 2c: the genesis on a public chain**, on top of the Phase 2 genesis (T0–T9) and the Phase 1 world layer.
 
-## Status: Phase 3 done (0.6.0, 2026-11-05) — the OG live at foga.finchip.ai, the MCP registry listing, the Sepolia Loop D with an outside agent; 3d-2 (the wallet, signed callers, the documents on chain, preflight, A2A, Sourcify), 3d-1 (quickstart, an outside agent's Loop D), 3c (Loop D with a model), 3b (MCP and HTTP), 3a (the kernel as a node) all done
+## Status: 3e-1 (0.7.0, 2026-11-06) — `foga join`: a cell that lives on a public chain in one command, its card, work over the chain; Phase 3 done (0.6.0, 2026-11-05) — the OG live at foga.finchip.ai, the MCP registry listing, the Sepolia Loop D with an outside agent; 3d-2 (the wallet, signed callers, the documents on chain, preflight, A2A, Sourcify), 3d-1 (quickstart, an outside agent's Loop D), 3c (Loop D with a model), 3b (MCP and HTTP), 3a (the kernel as a node) all done
+
+**3e-1 (0.7.0, 2026-11-06).** Phase 3 left a cell born on a public chain four commands and three prerequisites away, and the one-command path (`quickstart`) on a chain that dies with its process; this slice is the one-command path to the cell that stays. `foga join --chain sepolia` (`src/node/join.ts`, docs/join.md) makes or reuses the wallet, takes the chain's address book from the package (`deployments/sepolia.example.json` now ships), waits for the identity to be funded (the address, the amount, the faucets printed; it goes on by itself when the ether lands), births the cell, mints and offers its skills, commits its documents, and serves the node — or runs it with the stub (`--run stub`), so the cell takes the tenders it is eligible for with no model and no person; every step is the kernel's, so the same command resumes a join interrupted anywhere and sends nothing twice. The cell lives in `~/.foga/cells/<network>/<name>` with the address book and the skill packages copied beside it, independent of where the package is installed. `foga cell card` (`src/node/card.ts`) is the cell's self-description — chain, account, agent id, skills with token ids, where a tender for it is minted, the entrances when it has a public face — in the words another agent needs, with no chain call; `become-a-cell` and the new resource `foga://docs/join` lead with the join. Work is over the chain: `test/join.test.ts` has a stranger mint two tenders for a joined cell run with the stub, and both are taken, accepted by the hashlock verifier and settled with nobody touching either side — two cells need no network between them. A chain table (`src/core/chains.ts`) names what is joinable; `worlds/base-sepolia.json`, `optimism-sepolia.json` and `arbitrum-sepolia.json` are deploy templates, and the same key is the same address on every one of them. The quickstart's two default ports and the join's give way to the next free port when taken. docs/mcp.md carries the HTTP-form entry per client (Claude Code's `"type": "http"`, Cursor's `url`, Windsurf's `serverUrl`, …). 109 tests.
 
 **3d-3 (0.6.0, 2026-11-05).** Phase 3 closes with the reference cell served and the last acceptance run on the public chain. The OG was born fresh on Sepolia by the path any cell takes (`wallet new`, `cell new`, `cell init`, `docs publish`, `node serve` — one key, no migration; docs/og-deployment.md): agent 11261, its skill offered, its documents on chain, its fifteen contracts Sourcify-verified; it is served in host mode under systemd behind Caddy at `foga.finchip.ai` and listed in the MCP registry as `io.github.garyyang-finchip/foga`. Loop D with an outside agent ran on Sepolia and every invariant row passed (docs/loop-d.md, "On a public chain"); what the public chain taught is fixed in this release — a working directory is one run, role funding is priced with a floor, the settlement figure is the tender's own, a log scan is windowed. `foga cell advise` (`src/node/advise.ts`) tells a running cell what to do next — separate the one key into owner, operator and guardian first — and the recommended items print after a quickstart, a birth and at serve; the first run stays minimal on purpose. The covenant list is read off the world (an eleventh covenant appears with no code change) and the manifest carries a `services` slot — the maintainer's catalog, declinable, served by the reference cell at `/services.json` — docs/extending.md. 107 tests.
 
@@ -80,22 +82,31 @@ What is next: 3d-3 closes Phase 3 — the OG instance's move to a revision-2 acc
 
 ## Quick start
 
-With Node 22.13+ and Foundry's `anvil` installed, one command makes your wallet (on the first run; `~/.foga/wallet`, reused after), births a cell with it on a local chain, publishes the cell's documents and prints the MCP client configuration to connect to it (docs/quickstart.md; in PowerShell quote the name: `npx -y '@finchip.ai/foga' quickstart`):
+**Become a cell that lives** — on Sepolia, in one command (Node 22.13+; no Foundry; docs/join.md):
+
+```bash
+npx -y @finchip.ai/foga join --chain sepolia
+```
+
+It makes your wallet on the first run (`~/.foga/wallet`: one key, your identity, the same address on every EVM chain), prints the address to fund with test ether and waits for it, then births the cell (the account, the ERC-8004 identity, the anchor, the record, the unit), mints and offers its two skills, commits its documents on chain, serves the node, and prints the cell's **card** — what it is and how to reach it, for any agent. The cell stays in `~/.foga/cells/sepolia/<name>`; the same command resumes it. `--run stub` makes it take the tenders it is eligible for on its own; `--listen 0.0.0.0:8787 --public-url https://<host>` opens the entrances to the outside. Work reaches a cell over the chain — a demander mints an ERC-8414 tender for a skill it offers — so two cells need no network between them; the chain is the handshake.
+
+**A local try** — a chain that ends with the process, a cell on it, the whole thing in 25 seconds (needs Foundry's `anvil`; docs/quickstart.md):
 
 ```bash
 npx -y @finchip.ai/foga quickstart
 ```
 
-`@finchtech.ai/foga` is the same package under a second scope (`alias/finchtech.ai`: a launcher that runs `@finchip.ai/foga` at the same version), so `npx -y @finchtech.ai/foga quickstart` is the same command.
+`@finchtech.ai/foga` is the same package under a second scope (`alias/finchtech.ai`: a launcher that runs `@finchip.ai/foga` at the same version), so either name runs either command. In PowerShell quote the name: `npx -y '@finchip.ai/foga' join --chain sepolia`.
 
-The wallet alone, for an agent that will only call cells (docs/wallet.md), and a cell on a public chain born with it:
+The pieces by hand, for a cell shaped differently (docs/wallet.md, docs/node.md):
 
 ```bash
 npx -y @finchip.ai/foga wallet new                       # ~/.foga/wallet: one key (your identity, every role); prints the address to fund. --cell for the separated owner/operator/guardian set
-foga cell new --wallet ~/.foga/wallet --name mine --world deployments/sepolia.json --store mine.sqlite --out mine.json
+foga cell new --wallet ~/.foga/wallet --name mine --world deployments/sepolia.example.json --store mine.sqlite --out mine.json --rpc <url>
 foga cell init --config mine.json --wallet ~/.foga/wallet
 foga node preflight --config mine.json --wallet ~/.foga/wallet
 foga node serve --config mine.json --wallet ~/.foga/wallet
+foga cell card --config mine.json                        # who you are, for any agent
 ```
 
 From a checkout, three ways in, from most to least demanding:
@@ -186,7 +197,7 @@ zk/                  circuits/ (kya_predicate_count_v1.circom) and build/ (verif
 docker/, docker-compose.yml
 deploy/              the OG host assets: foga-og.service (systemd, host mode), Caddyfile, og.env.example (docs/og-deployment.md)
 site/                 the documentation site for GitHub Pages (docs.foga.finchip.ai): index.html, llms.txt, CNAME
-docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node, mcp, loop-d, quickstart, wallet, documents, a2a, og-deployment; examples/ (client configurations)
+docs/                design memo, compatibility matrix, version lock, build, world, doctor, cell account, kernel, genesis, zk, node, mcp, loop-d, quickstart, join, wallet, documents, a2a, propagation, extending, og-deployment; examples/ (client configurations)
 scenarios/skills/    the two ERC-8338 skill packages of the genesis: foga-probe, finch-extract-verify
 scenarios/fixtures/  the pinned document finch-extract-verify works on in T5 and T7
 scripts/             install-solc.sh, install-foundry.sh, relay.mjs, pack-smoke.mjs (the npm tarball run from a clean install)
