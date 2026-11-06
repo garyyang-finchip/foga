@@ -37,9 +37,12 @@ export const operator_rotate: ActCapability = {
       valueWei: 0n,
       steps: [{ name: "setOperator", by: "owner", route: "direct", build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", [input.operator, input.validUntil, BigInt(input.dailyValueCapWei)]), label: `setOperator(${input.operator})` }) }],
       output: (confirmed) => {
-        node.config.identity.operator = getAddress(input.operator);
-        node.saveConfig();
-        return { operator: getAddress(input.operator), previous: getAddress(previous), txHash: confirmed[0].txHash, jobId };
+        // the configuration follows the chain: only a confirmed setOperator changes it (a simulation confirms nothing)
+        if (confirmed.length) {
+          node.config.identity.operator = getAddress(input.operator);
+          node.saveConfig();
+        }
+        return { operator: getAddress(input.operator), previous: getAddress(previous), txHash: confirmed[0]?.txHash ?? "", jobId };
       },
     };
   },
@@ -79,7 +82,7 @@ export const guardian_suspend: ActCapability = {
       gates,
       valueWei: 0n,
       steps: [{ name: "suspend", by: "guardian", route: "direct", build: () => ({ target: k.asf.bindingRegistryAddress, value: 0n, data: k.asf.encodeSuspend(bindingId!, mask, responseRef, reasonRef), label: `suspend(${bindingId!.slice(0, 10)}…, ${mask})` }) }],
-      output: async (confirmed) => ({ bindingId: bindingId!, restrictions: mask, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0].txHash, jobId }),
+      output: async (confirmed) => ({ bindingId: bindingId!, restrictions: mask, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0]?.txHash ?? "", jobId }),
     };
   },
 };
@@ -112,7 +115,7 @@ export const guardian_resume: ActCapability = {
       gates,
       valueWei: 0n,
       steps: [{ name: "resume", by: "guardian", route: "direct", build: () => ({ target: k.asf.bindingRegistryAddress, value: 0n, data: k.asf.encodeResume(bindingId!, keccakJcs({ kind: "reason", summary: input.reason })), label: `resume(${bindingId!.slice(0, 10)}…)` }) }],
-      output: async (confirmed) => ({ bindingId: bindingId!, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0].txHash, jobId }),
+      output: async (confirmed) => ({ bindingId: bindingId!, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0]?.txHash ?? "", jobId }),
     };
   },
 };
@@ -137,9 +140,12 @@ export const binding_present: ActCapability = {
       valueWei: 0n,
       steps: [{ name: "present", by: "owner", route: "direct", build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("presentBindings", [input.bindingIds]), label: "presentBindings" }) }],
       output: async (confirmed) => {
-        node.config.identity.bindingId = input.bindingIds[0];
-        node.saveConfig();
-        return { bindingIds: input.bindingIds, verdict: (await cell.status()).verdictName, txHash: confirmed[0].txHash, jobId };
+        // the configuration follows the chain: only a confirmed presentBindings changes it (a simulation confirms nothing)
+        if (confirmed.length) {
+          node.config.identity.bindingId = input.bindingIds[0];
+          node.saveConfig();
+        }
+        return { bindingIds: input.bindingIds, verdict: (await cell.status()).verdictName, txHash: confirmed[0]?.txHash ?? "", jobId };
       },
     };
   },
