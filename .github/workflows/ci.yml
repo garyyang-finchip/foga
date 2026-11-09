@@ -83,7 +83,7 @@ jobs:
           node -e '
             const r = require(process.env.RUNNER_TEMP + "/sourcify/report.json");
             if (r.missing.length) throw new Error("contracts without a matching build-info: " + JSON.stringify(r.missing));
-            if (r.summary["dry-run"] !== 48) throw new Error("expected 48 dry-run requests, got " + JSON.stringify(r.summary));
+            if (r.summary["dry-run"] !== 56) throw new Error("expected 56 dry-run requests, got " + JSON.stringify(r.summary));
           '
 
       - name: Genesis T0-T9 with both ZK paths required, crashed after the submit of T3 (exit 75 expected)
