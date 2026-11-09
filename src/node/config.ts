@@ -237,8 +237,16 @@ export const MaintenanceSchema = z.object({
   controller: z.enum(["guardian", "none"]).default("guardian"),
   /** The controller's rights: 1 floor, 2 demand, 4 revoke operators (7 = all). */
   controllerRights: z.number().int().min(0).max(7).default(7),
-  /** Cycles run by the watcher on their own (0.8.x, second slice); off: a cycle runs when commanded (foga meditate run). */
-  auto: z.boolean().default(false),
+  /**
+   * Cycles run by the watcher on its own (0.8.2): a layer DUE or OVERDUE under the requirements, or a drift of the runtime
+   * or memory-skills document from the registered one; bounded by the check pace, the cooldown, one cycle at a time and
+   * the budget. Off: a cycle runs when commanded (foga meditate run).
+   */
+  auto: z.boolean().default(true),
+  /** How often the watcher consults the registry and the documents (seconds of wall time; reads only). */
+  checkEverySeconds: z.number().int().min(0).default(600),
+  /** No automatic cycle within this long of the last cycle's record, DUE or drift notwithstanding; an OVERDUE layer passes it. */
+  cooldownSeconds: z.number().int().min(0).default(3600),
   /** Where the maintenance documents live (state, cycle records, policy, salts), relative to the configuration's directory. */
   dir: z.string().default("meditation"),
   /** Gas one cycle report is budgeted at through the account (the fee reserve; the estimate sets the real limit). */

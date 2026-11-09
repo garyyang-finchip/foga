@@ -131,6 +131,9 @@ export async function preflight(node: Node, o: PreflightOptions = {}): Promise<P
           const c = cycleFact(node, lock.cycleId);
           row("maintenance", "no cycle is left half-way", "Warn", `cycle ${lock.cycleId} is ${c?.phase ?? "unknown"} (report ${node.store.get(`job:${lock.cycleId}:report`)?.status ?? "not sent"}); the next foga meditate run reconciles it`);
         }
+        const m = cfg.maintenance;
+        const w = node.store.getFact<{ nextCheckAt?: number; lastAction?: string }>("watch.maintenance");
+        row("maintenance", "the watcher runs the cycles that fall due", m.auto ? "Pass" : "Warn", m.auto ? `on: checks every ${m.checkEverySeconds} s, cooldown ${m.cooldownSeconds} s${w?.lastAction ? `; last: ${w.lastAction}` : "; not checked yet (it checks on the node's ticks)"}` : "off (maintenance.auto false): a layer that falls due stays due until foga meditate run");
       }
     } catch (e) {
       row("maintenance", "the cell is enrolled in the maintenance registry", "NotTested", (e as Error).message);

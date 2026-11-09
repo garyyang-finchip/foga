@@ -89,12 +89,12 @@ export function policyDocument(node: Node): PolicyDocument {
       maxInterval: [...p.maxInterval] as [number, number, number, number],
     },
     triggers: {
-      scheduled: "the node's watcher, when maintenance.auto is on (0.8.x); off, nothing is scheduled",
-      event: ["a program upgrade", "a skill minted or offered", "a policy change", "a failed self-check"],
-      commanded: "the operator (foga meditate run) or a controller demand",
+      scheduled: node.config.maintenance.auto ? `the node's watcher: a layer DUE or OVERDUE under the requirements, checked every ${node.config.maintenance.checkEverySeconds} s, no two cycles within ${node.config.maintenance.cooldownSeconds} s unless a layer is OVERDUE` : "off (maintenance.auto false): nothing is scheduled",
+      event: node.config.maintenance.auto ? ["the runtime document drifted from the registered one (a program or dependency upgrade, a role rotation, a changed public face)", "the memory-skills document drifted (a skill minted, updated or offered)"] : ["none while maintenance.auto is off"],
+      commanded: "the operator (foga meditate run), or the watcher answering a controller's demand",
       self: "not used by this program",
     },
-    budgets: { maxCycleDuration: 600, cooldownAfterCycle: 3600, gasPerReport: node.config.maintenance.gasPerReport },
+    budgets: { maxCycleDuration: 600, cooldownAfterCycle: node.config.maintenance.cooldownSeconds, gasPerReport: node.config.maintenance.gasPerReport },
     layers: {
       "0": { routine: ["check the program, its dependencies and the account's roles and allow-list against the configuration", "record the runtime as it is"], adoption: "the runtime document follows what runs; a program or dependency change is an update the operator made, registered here; a missing allow-list entry is a candidate for the owner" },
       "1": { routine: ["rebuild every held skill package and check its commitment on chain", "check and compact the operation store (integrity check, write-ahead log checkpoint)"], adoption: "a skill set that changed is registered; a package that no longer matches its token is a finding and a candidate, never a repair made here" },

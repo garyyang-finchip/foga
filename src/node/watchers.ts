@@ -1,5 +1,6 @@
 import type { Catalog } from "../tools/catalog.js";
 import type { Caller } from "../tools/types.js";
+import { formatMaintenanceWatch, maintenanceTick, type MaintenanceWatch } from "./meditation-watch.js";
 import type { Node } from "./node.js";
 import { settlementDead } from "./runner.js";
 
@@ -15,6 +16,15 @@ export interface TickReport {
   withdrawn: { tokenId: string; outcome: string }[];
   safety: { verdict: string; reasons: string[]; changed: boolean };
   anchor: string;
+  /** The cell's own upkeep (ERC-8490, 0.8.2): what the maintenance watcher found and did this tick. */
+  maintenance: MaintenanceWatch;
+}
+
+/** One line for the log, the same at every entrance. */
+export function formatTick(r: TickReport): string {
+  const settled = r.settled.filter((x) => x.outcome === "settled").length;
+  const refusals = r.settled.filter((x) => x.outcome !== "settled");
+  return `${r.at} block ${r.block}: anchor ${r.anchor}, heartbeat ${r.heartbeat.sent ? "sent" : "not sent"} (${r.heartbeat.reason}); ${r.discovered.length} new tender(s); ${settled} settled${refusals.length ? ` (${refusals.map((x) => `${x.tokenId}: ${x.outcome}`).join("; ")})` : ""}, ${r.withdrawn.length} withdrawn; safety ${r.safety.verdict}${r.safety.changed ? " (changed)" : ""}${formatMaintenanceWatch(r.maintenance)}`;
 }
 
 /**
@@ -22,7 +32,8 @@ export interface TickReport {
  * keep the anchor alive, notice new tenders, finish what it committed to once the chain lets it (settle a pending
  * submission whose answer it holds, withdraw credited reward), and record a change of its safety state. Each duty
  * goes through the catalog like any caller, so it passes the same gates and leaves the same records. `tick` runs
- * every duty once; the serve loop (3b) calls it on the poll interval.
+ * every duty once; the serve loop (3b) calls it on the poll interval. Since 0.8.2 the duties include the cell's own
+ * upkeep: a maintenance cycle when a layer is due or a document drifted (meditation-watch.ts), on its own pace.
  */
 export class Watchers {
   constructor(
@@ -102,6 +113,15 @@ export class Watchers {
       k.store.journal("safety-changed", { from: last?.verdict ?? null, to: status.verdictName, reasons: status.reasonNames, restrictions: status.restrictions, block });
     }
 
-    return { at: new Date().toISOString(), block, heartbeat, discovered, settled, withdrawn, safety: { verdict: status.verdictName, reasons: status.reasonNames, changed }, anchor };
+    // 5. upkeep: a maintenance cycle when a required layer is due or a document drifted, bounded by pace, cooldown and budget
+    let maintenance: MaintenanceWatch;
+    try {
+      maintenance = await maintenanceTick(node, this.catalog, WATCHER_CALLER);
+    } catch (e) {
+      maintenance = { checked: true, action: "refused", reason: `the maintenance watcher failed: ${(e as Error).message}`, due: [], drift: [], nextCheckAt: null };
+      k.store.journal("maintenance-watch", { action: "failed", reason: (e as Error).message });
+    }
+
+    return { at: new Date().toISOString(), block, heartbeat, discovered, settled, withdrawn, safety: { verdict: status.verdictName, reasons: status.reasonNames, changed }, anchor, maintenance };
   }
 }

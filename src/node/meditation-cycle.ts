@@ -258,10 +258,12 @@ export async function executeCycle(node: Node, c: CycleFact, persist = true): Pr
 
   // the completion time: the registry's clock now, and later than every scoped layer's last completion (the registry
   // refuses a completion that is not later than the recorded one; two cycles in one block would collide otherwise)
-  const checkpoints = await k.meditation.checkpoints(c.subject);
-  const clock = await k.meditation.clock();
+  const [checkpoints, clock, head, requirements] = await Promise.all([k.meditation.checkpoints(c.subject), k.meditation.clock(), k.meditation.headOf(c.subject), k.meditation.requirementsOf(c.subject)]);
   let endedAt = Math.max(c.startedAt, clock);
   for (const r of results) if (r.completed && checkpoints[r.layer].lastCompletedAt >= endedAt) endedAt = checkpoints[r.layer].lastCompletedAt + 1;
+  // the planning hint: with the watcher on, when it will next find a required layer DUE — the earliest coming deadline
+  // less the due window, and not before the cooldown has passed; 0 when cycles run on command alone
+  const nextPlannedAt = node.config.maintenance.auto ? plannedNext(node, { endedAt, completed: completedLayers, checkpoints, enrolledAt: head.enrolledAt, requirements }) : 0;
 
   const record: CycleRecordDocument = {
     schema: CYCLE_RECORD_SCHEMA,
@@ -275,7 +277,7 @@ export async function executeCycle(node: Node, c: CycleFact, persist = true): Pr
     budgetsUsed: { duration: Math.max(1, Math.round((Date.now() - started) / 1000)), program: node.config.name },
     layers: results.map((r) => ({ layer: r.layer, scope: true as const, completed: r.completed, checks: r.checks, observations: r.observations, candidates: r.candidates, changes: r.changes, evaluation: r.evaluation, adoption: r.adoption })),
     outcome,
-    nextPlannedAt: 0,
+    nextPlannedAt,
     restoresVersion: 0,
     preState: { stateVersion: Number(c.pre.stateVersion), root: c.pre.root, commitments: c.pre.commitments },
     postState: { commitments: postCommitments, root: stateRoot(postCommitments), salts: layers.map((l) => ({ layer: l, salt: salts[l] })) },
@@ -292,6 +294,19 @@ export async function executeCycle(node: Node, c: CycleFact, persist = true): Pr
   if (!persist) return c;
   writeJson(join(maintenanceDir(node), CYCLES_DIR, `${c.id}.json`), record);
   return saveCycle(node, c);
+}
+
+/** The next time a required layer falls DUE, as the watcher will see it: the earliest deadline less the due window, after the cooldown. */
+export function plannedNext(node: Node, p: { endedAt: number; completed: number; checkpoints: { lastCompletedAt: number }[]; enrolledAt: number; requirements: { requiredLayers: number; dueWindow: number; maxInterval: number[] } }): number {
+  let earliest = 0;
+  for (let i = 0; i < 4; i++) {
+    if ((p.requirements.requiredLayers & (1 << i)) === 0 || !p.requirements.maxInterval[i]) continue;
+    const completedAt = (p.completed & (1 << i)) !== 0 ? p.endedAt : p.checkpoints[i].lastCompletedAt || p.enrolledAt;
+    const deadline = completedAt + p.requirements.maxInterval[i];
+    if (!earliest || deadline < earliest) earliest = deadline;
+  }
+  if (!earliest) return 0;
+  return Math.max(earliest - p.requirements.dueWindow, p.endedAt + node.config.maintenance.cooldownSeconds);
 }
 
 export function serializeReport(r: CycleReportStruct): Record<string, unknown> {
@@ -517,7 +532,7 @@ export interface MaintenanceStatusView {
   requirements: { supportedLayers: number; requiredLayers: number; dueWindow: number; pulseInterval: number; maxInterval: number[] } | null;
   policy: { policyHash: string; policyURI: string; disclosure: number } | null;
   asOf: number | null;
-  local: { stateVersion: string | null; rootMatchesChain: boolean | null; policyHashMatchesChain: boolean | null; lastCycle: string | null; inProgress: { cycleId: string; phase: string; reportOperation: string | null } | null; dir: string };
+  local: { stateVersion: string | null; rootMatchesChain: boolean | null; policyHashMatchesChain: boolean | null; lastCycle: string | null; inProgress: { cycleId: string; phase: string; reportOperation: string | null } | null; dir: string; watcher?: { auto: boolean; checkEverySeconds: number; cooldownSeconds: number; nextCheckAt: number | null; lastAction: string | null } };
 }
 
 const iso = (t: number) => (t ? new Date(t * 1000).toISOString().replace(/\.\d{3}Z$/, "Z") : "-");
@@ -542,6 +557,7 @@ export function formatMaintenanceStatus(s: MaintenanceStatusView): string {
   if (s.signal) lines.push(`signal: ${s.signal.status}${s.signal.lastSignalAt ? `, last ${iso(s.signal.lastSignalAt)}` : ""}${s.signal.silentSince ? `, silent since ${iso(s.signal.silentSince)}` : ""}`);
   lines.push("");
   lines.push(`local: registered documents at version ${s.local.stateVersion ?? "(none kept)"}${s.local.rootMatchesChain === null ? "" : s.local.rootMatchesChain ? " (root matches the chain)" : " (ROOT DIFFERS from the chain: the documents kept here are not what is registered)"}; policy ${s.local.policyHashMatchesChain === null ? "not kept" : s.local.policyHashMatchesChain ? "matches the chain" : "DIFFERS from the chain (foga meditate policy records the configuration's)"}; last cycle ${s.local.lastCycle ?? "none"}${s.local.inProgress ? `; in progress: ${s.local.inProgress.cycleId} (${s.local.inProgress.phase}${s.local.inProgress.reportOperation ? `, report ${s.local.inProgress.reportOperation}` : ""})` : ""}; documents under ${s.local.dir}`);
+  if (s.local.watcher) lines.push(s.local.watcher.auto ? `watcher: on — checks every ${s.local.watcher.checkEverySeconds} s, cooldown ${s.local.watcher.cooldownSeconds} s${s.local.watcher.nextCheckAt ? `, next check ${iso(s.local.watcher.nextCheckAt)}` : ""}${s.local.watcher.lastAction ? `, last: ${s.local.watcher.lastAction}` : ""}` : "watcher: off (maintenance.auto false) — cycles run on command");
   lines.push(s.meaning);
   return lines.join("\n") + "\n";
 }

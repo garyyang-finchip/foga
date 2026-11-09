@@ -9,7 +9,7 @@ import { DOCUMENT_FILES, documentsDir, readManifest } from "../node/documents.js
 import { publicMaintenanceFile } from "../node/meditation.js";
 import { buildPropagationManifest, servicesCatalogOf } from "../node/propagation.js";
 import type { Node } from "../node/node.js";
-import type { Watchers } from "../node/watchers.js";
+import { formatTick, type Watchers } from "../node/watchers.js";
 import { PUBLIC_CALLER, type Caller, type Catalog, type Mode } from "../tools/index.js";
 import { resolveCaller } from "./access.js";
 import { NonceCache } from "./signed.js";
@@ -315,7 +315,7 @@ export function startWatchLoop(watchers: Watchers, intervalMs: number, log: (lin
     running = true;
     try {
       const r = await watchers.tick();
-      log(`${r.at} block ${r.block}: anchor ${r.anchor}, heartbeat ${r.heartbeat.sent ? "sent" : "not sent"} (${r.heartbeat.reason}); ${r.discovered.length} new tender(s); ${r.settled.filter((x) => x.outcome === "settled").length} settled${r.settled.some((x) => x.outcome !== "settled") ? ` (${r.settled.filter((x) => x.outcome !== "settled").map((x) => `${x.tokenId}: ${x.outcome}`).join("; ")})` : ""}, ${r.withdrawn.length} withdrawn; safety ${r.safety.verdict}${r.safety.changed ? " (changed)" : ""}`);
+      log(formatTick(r));
     } catch (e) {
       log(`watch: ${(e as Error).message}`);
     } finally {

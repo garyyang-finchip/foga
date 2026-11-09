@@ -8,6 +8,7 @@ import { contentHash, stateRoot } from "../src/core/amm.js";
 import { createHttpServer } from "../src/http/server.js";
 import { Node } from "../src/node/node.js";
 import { preflight } from "../src/node/preflight.js";
+import { Watchers } from "../src/node/watchers.js";
 import { defaultCatalog, OPERATOR_CALLER, PUBLIC_CALLER } from "../src/tools/index.js";
 import { anvilPath, bornCell, foga, ok, startAnvil, waitForHttp } from "./helpers/anvil-cell.js";
 
@@ -444,6 +445,115 @@ test("ERC-8490: enrollment at birth, commanded cycles, version semantics, demand
     const forced = foga(RPC, ["meditate", "pulse", "--config", oldConfig, "--force"], { FOGA_OPERATOR_KEY: cell.keys.operator.privateKey });
     assert.equal(forced.code, 0, forced.stderr.slice(-2000));
     assert.equal(forced.json.output.signal, "NOT_TRACKED");
+
+    // --- the watcher (the second slice): a cycle when a layer is due or a document drifted, and not otherwise; the cooldown, which an
+    // OVERDUE layer passes; one cycle at a time; the budget
+    const cfgW = JSON.parse(readFileSync(oldConfig, "utf8"));
+    cfgW.maintenance.checkEverySeconds = 0;
+    cfgW.maintenance.cooldownSeconds = 600;
+    cfgW.policy.budget.dailyGasWei = "50000000000000000"; // this cell has reported many times today already; the budget gate is tested below on its own
+    writeFileSync(oldConfig, JSON.stringify(cfgW, null, 2));
+    const chainNow = async () => (await k.blockNumber(), k.meditation.clock());
+    let nodeW = await Node.open({ configPath: oldConfig, rpc: RPC, keys: { operator: cell.keys.operator.privateKey }, log: () => {} });
+    let watchers = new Watchers(nodeW, catalog);
+    try {
+      await k.advanceTime(700, "past the cooldown of the last commanded cycle");
+      await nodeW.kernel.blockNumber();
+      let t = await watchers.tick();
+      assert.equal(t.maintenance.checked, true);
+      assert.equal(t.maintenance.action, "skipped", JSON.stringify(t.maintenance));
+      assert.match(t.maintenance.reason, /nothing due, no drift/);
+      // the runtime layer falls DUE: inside its due window
+      const cp0 = await (await k.blockNumber(), k.meditation).checkpointOf(E, 0);
+      const req = await (await k.blockNumber(), k.meditation).requirementsOf(E);
+      await k.advanceTime(cp0.lastCompletedAt + req.maxInterval[0] - req.dueWindow + 60 - (await chainNow()), "into the runtime layer's due window");
+      await nodeW.kernel.blockNumber();
+      assert.equal((await (await k.blockNumber(), k.meditation).layerStatus(E, 0)).statusName, "DUE");
+      t = await watchers.tick();
+      assert.equal(t.maintenance.action, "ran", JSON.stringify(t.maintenance));
+      assert.equal(t.maintenance.trigger, "scheduled");
+      assert.deepEqual(t.maintenance.layers, [0]);
+      assert.equal(t.maintenance.outcome, "completed");
+      assert.equal((await (await k.blockNumber(), k.meditation).layerStatus(E, 0)).statusName, "FRESH");
+      const cycleFactW = nodeW.store.getFact<any>(`meditation.cycle.${t.maintenance.cycleId}`);
+      assert.ok(cycleFactW.record.nextPlannedAt > 0, "with the watcher on, the report carries a planning hint");
+      assert.match(cycleFactW.triggerDetail, /^watcher: runtime DUE/);
+      // nothing due now, and the cooldown holds: a drift (a skill minted: layer 1) waits for it
+      t = await watchers.tick();
+      assert.equal(t.maintenance.action, "skipped");
+      const minted = await catalog.invoke(nodeW, "skill_mint", { skill: "foga-probe" }, OPERATOR_CALLER, { mode: "act" });
+      assert.equal(minted.ok, true, JSON.stringify(minted));
+      await nodeW.kernel.blockNumber();
+      t = await watchers.tick();
+      assert.equal(t.maintenance.action, "skipped", JSON.stringify(t.maintenance));
+      assert.match(t.maintenance.reason, /cooldown/);
+      assert.deepEqual(t.maintenance.drift, [1]);
+      await k.advanceTime(601, "past the cooldown");
+      await nodeW.kernel.blockNumber();
+      t = await watchers.tick();
+      assert.equal(t.maintenance.action, "ran", JSON.stringify(t.maintenance));
+      assert.equal(t.maintenance.trigger, "event");
+      assert.deepEqual(t.maintenance.layers, [1]);
+      // an OVERDUE layer (a controller's demand past its deadline) passes the cooldown, and the trigger says commanded
+      const guardianW = await Node.open({ configPath: oldConfig, rpc: RPC, keys: { guardian: cell.keys.guardian.privateKey }, log: () => {} });
+      try {
+        const dem = await catalog.invoke(guardianW, "meditate_demand", { layers: "2", dueInSeconds: 120 }, OPERATOR_CALLER, { mode: "act" });
+        assert.equal(dem.ok, true, JSON.stringify(dem));
+      } finally {
+        guardianW.close();
+      }
+      await k.advanceTime(130, "past the demand's deadline, inside the cooldown");
+      await nodeW.kernel.blockNumber();
+      assert.equal((await (await k.blockNumber(), k.meditation).layerStatus(E, 2)).statusName, "OVERDUE");
+      t = await watchers.tick();
+      assert.equal(t.maintenance.action, "ran", JSON.stringify(t.maintenance));
+      assert.equal(t.maintenance.trigger, "commanded");
+      assert.deepEqual(t.maintenance.layers, [2]);
+      assert.equal((await (await k.blockNumber(), k.meditation).demandOf(E, 2)).demandedAt, 0);
+      // one cycle at a time: a report in flight blocks the watcher
+      const Z2 = "meditate:in-flight-2";
+      const anyFact = nodeW.store.getFact<any>(`meditation.cycle.${t.maintenance.cycleId}`);
+      nodeW.store.setFact(`meditation.cycle.${Z2}`, { ...anyFact, id: Z2, phase: "executed", result: null });
+      nodeW.store.prepare(`job:${Z2}:report`, "execute", "operator", {});
+      nodeW.store.markSent(`job:${Z2}:report`, "0x" + "ef".repeat(32), 999, 0n);
+      nodeW.store.setFact("meditation.lock", { cycleId: Z2 });
+      t = await watchers.tick();
+      assert.equal(t.maintenance.action, "pending", JSON.stringify(t.maintenance));
+      nodeW.store.setFact("meditation.lock", null);
+    } finally {
+      nodeW.close();
+    }
+    // the budget: a daily gas allowance the report's reserve cannot fit under is a refusal, journaled, not a crash
+    cfgW.policy.budget.dailyGasWei = "1";
+    writeFileSync(oldConfig, JSON.stringify(cfgW, null, 2));
+    nodeW = await Node.open({ configPath: oldConfig, rpc: RPC, keys: { operator: cell.keys.operator.privateKey }, log: () => {} });
+    watchers = new Watchers(nodeW, catalog);
+    try {
+      const cp0 = await (await k.blockNumber(), k.meditation).checkpointOf(E, 0);
+      const req = await (await k.blockNumber(), k.meditation).requirementsOf(E);
+      await k.advanceTime(Math.max(1, cp0.lastCompletedAt + req.maxInterval[0] + 10 - (await chainNow())), "past the runtime layer's deadline");
+      await nodeW.kernel.blockNumber();
+      const t = await watchers.tick();
+      assert.equal(t.maintenance.action, "refused", JSON.stringify(t.maintenance));
+      assert.match(t.maintenance.reason, /budget/);
+      assert.ok(nodeW.store.journalEntries().some((j) => j.event === "maintenance-watch" && j.detail?.action === "refused"));
+      // and the watcher off: nothing is checked
+      cfgW.policy.budget.dailyGasWei = "5000000000000000";
+      cfgW.maintenance.auto = false;
+      writeFileSync(oldConfig, JSON.stringify(cfgW, null, 2));
+    } finally {
+      nodeW.close();
+    }
+    nodeW = await Node.open({ configPath: oldConfig, rpc: RPC, keys: { operator: cell.keys.operator.privateKey }, log: () => {} });
+    try {
+      const t = await new Watchers(nodeW, catalog).tick();
+      assert.equal(t.maintenance.checked, false);
+      assert.match(t.maintenance.reason, /off/);
+      const st = await catalog.invoke(nodeW, "meditate_status", {}, PUBLIC_CALLER);
+      assert.equal((st as { output: any }).output.local.watcher.auto, false);
+    } finally {
+      nodeW.close();
+    }
     k.close();
   } finally {
     anvil.kill();

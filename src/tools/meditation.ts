@@ -98,16 +98,18 @@ export const meditate_status: ReadCapability = {
       requirements: z.unknown().nullable(),
       policy: z.unknown().nullable(),
       asOf: z.number().nullable(),
-      local: z.object({ stateVersion: z.string().nullable(), rootMatchesChain: z.boolean().nullable(), policyHashMatchesChain: z.boolean().nullable(), lastCycle: z.string().nullable(), inProgress: z.object({ cycleId: z.string(), phase: z.string(), reportOperation: z.string().nullable() }).nullable(), dir: z.string() }),
+      local: z.object({ stateVersion: z.string().nullable(), rootMatchesChain: z.boolean().nullable(), policyHashMatchesChain: z.boolean().nullable(), lastCycle: z.string().nullable(), inProgress: z.object({ cycleId: z.string(), phase: z.string(), reportOperation: z.string().nullable() }).nullable(), dir: z.string(), watcher: z.object({ auto: z.boolean(), checkEverySeconds: z.number(), cooldownSeconds: z.number(), nextCheckAt: z.number().nullable(), lastAction: z.string().nullable() }) }),
     })
     .passthrough(),
   async handler({ node }, input) {
     const k = node.kernel;
     const dir = maintenanceDir(node);
+    const w = node.store.getFact<{ nextCheckAt?: number; lastAction?: string }>("watch.maintenance");
+    const watcher = { auto: node.config.maintenance.auto, checkEverySeconds: node.config.maintenance.checkEverySeconds, cooldownSeconds: node.config.maintenance.cooldownSeconds, nextCheckAt: w?.nextCheckAt ?? null, lastAction: w?.lastAction ?? null };
     const meaning = "FRESH, DUE and OVERDUE are the registry's timeliness of each layer's last completed routine against the policy's interval (and a controller's floor or demand); a completed routine is what the cycle record says it is, not a certificate of correctness.";
-    if (!k.meditation.available) return { registry: null, subject: null, enrolled: false, meaning: "this world has no ERC-8490 registry; maintenance is not registered on chain", head: null, layers: null, signal: null, requirements: null, policy: null, asOf: null, local: { stateVersion: null, rootMatchesChain: null, policyHashMatchesChain: null, lastCycle: null, inProgress: null, dir } };
+    if (!k.meditation.available) return { registry: null, subject: null, enrolled: false, meaning: "this world has no ERC-8490 registry; maintenance is not registered on chain", head: null, layers: null, signal: null, requirements: null, policy: null, asOf: null, local: { stateVersion: null, rootMatchesChain: null, policyHashMatchesChain: null, lastCycle: null, inProgress: null, dir, watcher } };
     const subject = input.subject ? getAddress(input.subject) : node.cell ? getAddress(node.cell.address) : null;
-    if (!subject) return { registry: k.meditation.address, subject: null, enrolled: false, meaning, head: null, layers: null, signal: null, requirements: null, policy: null, asOf: null, local: { stateVersion: null, rootMatchesChain: null, policyHashMatchesChain: null, lastCycle: null, inProgress: null, dir } };
+    if (!subject) return { registry: k.meditation.address, subject: null, enrolled: false, meaning, head: null, layers: null, signal: null, requirements: null, policy: null, asOf: null, local: { stateVersion: null, rootMatchesChain: null, policyHashMatchesChain: null, lastCycle: null, inProgress: null, dir, watcher } };
     const s = await k.meditation.summary(subject);
     const mine = node.cell && subject.toLowerCase() === node.cell.address.toLowerCase();
     const state = mine ? readState(node) : undefined;
@@ -135,6 +137,7 @@ export const meditate_status: ReadCapability = {
         lastCycle: mine ? (node.store.getFact<string>("meditation.lastCycle") ?? null) : null,
         inProgress,
         dir,
+        watcher,
       },
     };
   },
