@@ -110,6 +110,21 @@ curl -s https://foga.finchip.ai/.well-known/foga-cell.json | jq .maintenance
 
 The cycle's record lands under `<configuration directory>/meditation/cycles/` (`maintenance.dir`) and is served at `https://foga.finchip.ai/documents/maintenance/cycles/<id>.json`, where anyone recomputes the hash the registry holds. `foga node preflight` gains a `maintenance` area. A cell joined with `foga join` is extended the same way, with its own configuration (`~/.foga/cells/sepolia/<name>/cell.config.json`) and wallet (`~/.foga/wallet`), after stopping the join and before starting it again (the join never overwrites the world file it finds). Since 0.8.2 the served node runs the cycles that fall due by itself (`maintenance.auto`, docs/meditation.md "Automatic cycles"); the tick line in `journalctl -u foga-og` says what the watcher found. A cell upgraded from 0.8.0/0.8.1 has a new policy document hash (the watcher's pace and cooldown are part of it): `foga meditate policy --config <cfg> --wallet <wallet>` records it as policy v2 (the owner's key; optional — the on-chain fields are unchanged).
 
+## The cell's information flows (0.9.0)
+
+ERC-8489 enters the same way (docs/flows.md), with one step more because a market is a shared context: the maintainer bootstraps the chain once — FOGA's two paradigms registered in the family `foga`, the default tender market opened, through the reference cell's account, whose owner key is the box's one key — before any cell on that chain can open a channel or join the market. The seven upstream registries are in the packaged Sepolia world, and the OG's own world file (`deployments/sepolia.json`, written before the covenant) has none of them, so the bootstrap adds them to that file first (a `.before-8489.bak` beside it); FOGA's identity predicate verifier is not deployed upstream, so the bootstrap deploys it next from the bundle (the owner's own transaction) and records it in the same file; then the paradigms and the market go through the account. With the 0.9.0 build in place:
+
+```
+foga flow bootstrap --config /opt/foga/cell.config.json --wallet /opt/foga/wallet      # the maintainer's one-time act: the paradigms, the market; prints the world file's flows block
+foga cell extend --covenants 8489 --config /opt/foga/cell.config.json --wallet /opt/foga/wallet   # the scope, the OG's own channel and its SUBMIT grant; a one-key cell also anchors its publication and joins the market
+sudo systemctl restart foga-og                                                          # the node opens the world with the registries and the flows in it
+foga flow status --config /opt/foga/cell.config.json
+curl -s https://foga.finchip.ai/.well-known/foga-cell.json | jq .flows
+curl -s https://foga.finchip.ai/documents/flows/channel.json
+```
+
+The `flows` block the bootstrap prints (the paradigm ids, the market channel id and its authority, the identity verifier's address) goes into `worlds/sepolia.json` and `deployments/sepolia.example.json` with the next release, so every cell that joins Sepolia afterwards opens its channel at birth and is admitted to the market by `foga join`; a cell joined before is extended with the same `foga cell extend --covenants 8489`, after stopping its join and before starting it again. The watcher anchors each new publication and keeps the market admission; `foga node preflight` gains a `flows` area.
+
 ## The MCP registry listing
 
 With `https://foga.finchip.ai/mcp` answering, the cell was listed in the MCP registry as `io.github.garyyang-finchip/foga` so clients and other agents discover it (docs/mcp.md, "The package"). `server.json` at the repository root is the npm-package manifest; the OG cell also writes its own `server.json` among its documents (`foga cell docs build`) with this cell's MCP URL as the remote. Publishing is the package owner's, from a checkout, and needs the remote reachable:

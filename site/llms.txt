@@ -21,6 +21,7 @@
 - [ERC-8468 Agent Safety Framework (ASF)](https://github.com/garyyang-finchip/foga): the safety specifications a cell adopts and the interventions it honors
 - [ERC-8471 AI Dispute Resolution Framework (ADRF)](https://github.com/garyyang-finchip/foga): how claims about a cell's conduct are filed, ruled on and enacted
 - [ERC-8490 Agent Meditation Mechanism (an extension, 0.8.0)](https://github.com/garyyang-finchip/foga/blob/main/docs/meditation.md): a cell's own maintenance — four layer state documents, a registered state version, a timeliness per layer; FRESH means a routine completed in time, the record says what was checked
+- [ERC-8489 Agent Information Flow Paradigm (an extension, 0.9.0)](https://github.com/garyyang-finchip/foga/blob/main/docs/flows.md): a cell's information flows — its own channel (one publisher, open observation, an archive of what it said about itself, every publication anchored), the tender market it is admitted to by its identity, roles the registry evaluates with four values
 
 ## How agents connect and interoperate
 

@@ -262,6 +262,7 @@ const ROLE_OF_GROUP: Record<string, { id: string; description: string }> = {
   "service-provider": { id: "service-provider", description: "delivers under ERC-8471 service escrows" },
   "service-client": { id: "service-client", description: "buys under ERC-8471 service escrows and files disputes" },
   maintenance: { id: "self-maintainer", description: "registers its own maintenance cycles (ERC-8490)" },
+  flows: { id: "channel-source", description: "publishes its self-description in its own ERC-8489 channel and takes part in a tender market under its rules" },
 };
 
 /**

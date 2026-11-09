@@ -64,6 +64,17 @@ export const WIRING_CHECKS: WiringCheck[] = [
   { subject: "8471/ADRFACDFBridge", fn: "adrf", expectRef: "8471/ADRFDisputeRegistry" },
   { subject: "8471/ADRFACDFBridge", fn: "acdf", expectRef: "8436/ACDFRegistry" },
   { subject: "8471/ADRFServiceEscrow", fn: "adrf", expectRef: "8471/ADRFDisputeRegistry" },
+
+  // ERC-8489 (an extension): one deployment is one clock domain, so the registries, the anchor and FOGA's verifier point at each other and at the world's own registries
+  { subject: "8489/AIFPChannelRegistry", fn: "paradigmRegistry", expectRef: "8489/AIFPParadigmRegistry" },
+  { subject: "8489/AIFPChannelRegistry", fn: "participationRegistry", expectRef: "8489/AIFPParticipationRegistry" },
+  { subject: "8489/AIFPParticipationRegistry", fn: "channelRegistry", expectRef: "8489/AIFPChannelRegistry" },
+  { subject: "8489/AIFPParticipationRegistry", fn: "paradigmRegistry", expectRef: "8489/AIFPParadigmRegistry" },
+  { subject: "8489/AIFPParticipationRegistry", fn: "verifier", expectRef: "8489/AIFPCompositeVerifier" },
+  { subject: "8489/AIFPEventAnchor", fn: "channelRegistry", expectRef: "8489/AIFPChannelRegistry" },
+  { subject: "8489/AIFPEventAnchor", fn: "participationRegistry", expectRef: "8489/AIFPParticipationRegistry" },
+  { subject: "8489/FogaIdentityVerifier", fn: "identityRegistry", expectRef: "identity8004" },
+  { subject: "8489/FogaIdentityVerifier", fn: "aidRegistry", expectRef: "8434/AIDRegistry" },
 ];
 
 /** Layer-4 readouts: authority slots worth seeing even when nothing is expected of them. */
@@ -76,4 +87,7 @@ export const READOUTS: { subject: string; fn: string }[] = [
   { subject: "8454/AUFUnitRegistry", fn: "unitCount" },
   // ERC-8490 (an extension): the registry's clock mode — mode=timestamp is what the maintenance module assumes
   { subject: "8490/AgentMeditationRegistry", fn: "CLOCK_MODE" },
+  // ERC-8489 (an extension): the clock domain of the channel registry, and the gas bound of one predicate leaf
+  { subject: "8489/AIFPChannelRegistry", fn: "CLOCK_MODE" },
+  { subject: "8489/AIFPCompositeVerifier", fn: "LEAF_GAS_LIMIT" },
 ];

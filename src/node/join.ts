@@ -8,6 +8,7 @@ import { newApiKey } from "../http/access.js";
 import { adviseCell, formatAdvice } from "./advise.js";
 import { cellCard, formatCard, type CellCard } from "./card.js";
 import { loadCellConfig, newCellConfig, saveCellConfig } from "./config.js";
+import { marketOf } from "./flows.js";
 import { cellInit } from "./init.js";
 import { Node } from "./node.js";
 import { ensureWallet, ensuredKey, walletDir, type EnsuredWallet } from "./wallet.js";
@@ -293,10 +294,19 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
     try {
       const r = await catalog.invoke(node, "docs_publish", {}, OPERATOR_CALLER, { mode: "act" });
       if (!r.ok) throw new Error(`docs_publish: ${r.gate}: ${r.reason}`);
-      const d = r.output as { version: number; committed: string[]; dir: string };
+      const d = r.output as { version: number; committed: string[]; dir: string; flows?: { anchored: string | null; disclosed: boolean; note: string } };
       // the same documents make the same job: a resume is answered from the store, and the chain is not asked again
       const replayed = node.store.decisions({ limit: 1 })[0]?.gate === "idempotent";
-      log(`join: documents v${d.version} in ${d.dir}; ${replayed ? "the chain holds them (nothing sent)" : d.committed.length ? `committed on chain (${d.committed.join(", ")})` : "the chain already holds them"}`);
+      log(`join: documents v${d.version} in ${d.dir}; ${replayed ? "the chain holds them (nothing sent)" : d.committed.length ? `committed on chain (${d.committed.join(", ")})` : "the chain already holds them"}${d.flows && (d.flows.anchored || d.flows.disclosed) ? `; flows: ${d.flows.note}` : ""}`);
+      // ERC-8489 (0.9.0): the market, when the world names one and the configuration says to join — SUBMIT and RESPOND by the
+      // identity predicate; a refusal (the registry's outcome by name) is said and the join goes on, the watcher tries again
+      if (node.kernel.flows.available && node.config.flows.market.join && marketOf(node)) {
+        const a = await catalog.invoke(node, "flow_admit", {}, OPERATOR_CALLER, { mode: "act" });
+        if (a.ok) {
+          const o = a.output as { channelId: string; admitted: { role: string }[]; alreadyHeld: string[] };
+          log(`join: market ${o.channelId.slice(0, 10)}…: ${o.admitted.length ? `admitted as ${o.admitted.map((x) => x.role).join(", ")}` : ""}${o.alreadyHeld.length ? `${o.admitted.length ? "; " : ""}${o.alreadyHeld.join(", ")} held already` : ""}`);
+        } else if (!/holds .* already/.test(a.reason)) log(`join: market admission ${a.gate}: ${a.reason}`);
+      }
     } finally {
       node.close();
     }

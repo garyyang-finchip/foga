@@ -232,7 +232,7 @@ export async function runLoopD(opts: LoopDOptions): Promise<LoopDEvidence> {
       configure: (cfg) => {
         // the fee book is sized for the run (two skill mints, a few mints, the tenders); the value caps stay tight so case g and the concurrent mints meet them
         cfg.policy.budget = { dailyValueWei: parseEther("0.002").toString(), perOperationValueWei: parseEther("0.001").toString(), dailyGasWei: parseEther("0.05").toString(), maxConcurrentCommitments: 2 };
-        cfg.policy.tenders = { minRewardWei: parseEther("0.0005").toString(), minSubmitWindowSeconds: 600, minSettleWindowSeconds: 600, acceptance: ["hashlock"], counterpartyMinLevel: 0, lookbackBlocks: 9000 };
+        cfg.policy.tenders = { minRewardWei: parseEther("0.0005").toString(), minSubmitWindowSeconds: 600, minSettleWindowSeconds: 600, acceptance: ["hashlock"], counterpartyMinLevel: 0, lookbackBlocks: 9000, requireCounterpartyFlowRole: false };
         cfg.runtime.pollSeconds = intervalSeconds;
         cfg.runtime.model = external ? { provider: "stub", dailyCalls: 0, maxToolCallsPerTick: 12, maxActsPerTick: 2 } : { provider: opts.model as "stub" | "anthropic", model: opts.modelName, dailyCalls: opts.model === "stub" ? 400 : 120, maxToolCallsPerTick: 12, maxActsPerTick: 2 };
         cfg.runtime.http.listen = listen;

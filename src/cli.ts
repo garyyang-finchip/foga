@@ -18,9 +18,10 @@ usage:
   foga vendor sync [--only <repo,repo>]          fetch the locked upstream sources into vendor/
   foga vendor verify                             check vendor/ against vendor/LOCK.json
   foga build [--verify] [--solc-dir <dir>]       compile the ten reference implementations into artifacts/bundle.json
-  foga world deploy --world <config.json> [--rpc <url>] [--out <file>] [--resume] [--gas-multiplier <x>] [--allow-chain-mismatch]
+  foga world deploy --world <config.json> [--rpc <url>] [--out <file>] [--resume] [--gas-multiplier <x>] [--allow-chain-mismatch] [--no-flows]
                                                  deploy-mode config: the whole stack; attach-mode config: attach what it
-                                                 lists and deploy the reference contracts it does not (deployer = W)
+                                                 lists and deploy the reference contracts it does not (deployer = W);
+                                                 --no-flows leaves the ERC-8489 bootstrap (paradigms, market) to foga flow bootstrap
   foga world attach --world <config.json> [--out <file>]   address book only, no transactions (every contract listed)
   foga world verify --world <world.json> --sourcify [--dry-run] [--only <id,id>] [--server <url>] [--out <dir>] [--build-info <dir>]
                                                  submit every contract the world deployed from the bundle to Sourcify, with the standard JSON input of its
@@ -76,6 +77,10 @@ usage:
   foga meditate status | run | enroll | policy | controller | demand | floor | pulse --config <cell.config.json>
                                                  the cell's own maintenance (ERC-8490, 0.8.0): its status, a cycle, the enrollment, the policy, the controller
                                                  (foga cell help lists the flags); foga cell extend --covenants 8490 brings a running cell onto it
+  foga flow status | roles | open | admit | anchor | disclose | bootstrap --config <cell.config.json>
+                                                 the cell's information flows (ERC-8489, 0.9.0): its channel and the market, a subject's roles, the opening, the
+                                                 admission, the anchors and disclosures, the maintainer's bootstrap; foga cell extend --covenants 8489 brings a
+                                                 running cell onto it
 
 environment:
   FOGA_SOLC_DIR   directory with solc-<version> static binaries (offline builds; otherwise forge downloads solc)
@@ -145,6 +150,11 @@ async function main(): Promise<void> {
   if (group === "meditate") {
     const { meditateCommand } = await import("./cli-cell.js");
     await meditateCommand(cmd, positional.slice(2), flags);
+    return;
+  }
+  if (group === "flow") {
+    const { flowCommand } = await import("./cli-cell.js");
+    await flowCommand(cmd, positional.slice(2), flags);
     return;
   }
 
@@ -217,6 +227,7 @@ async function main(): Promise<void> {
       resume: Boolean(flags.resume),
       gasMultiplier: gm ? Number(gm) : undefined,
       allowChainMismatch: Boolean(flags["allow-chain-mismatch"]),
+      flows: !flags["no-flows"],
     });
     return;
   }

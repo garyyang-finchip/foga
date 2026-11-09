@@ -6,6 +6,9 @@ import { accountRef, dataUri, keccakJcs } from "../core/canonical.js";
 import { cellUnitDefinition } from "../core/units.js";
 import { NODE_SCOPE_GROUPS, applicableGroups, mergeScope, operatorScope, ownerExecuteScope } from "../genesis/operator-scope.js";
 import { Cell } from "../kernel/cell.js";
+import { AIFP, ROLES, ZERO32 } from "../core/aifp.js";
+import { CELL_SOURCE } from "../core/paradigms.js";
+import { cellSourceParadigmId, cellTransportBindings, channelMetadataUri, recordChannel } from "./flows.js";
 import { enrollmentPlan, recordEnrollment } from "./meditation.js";
 import type { Node } from "./node.js";
 import { ROLE } from "./node.js";
@@ -29,6 +32,8 @@ export interface InitResult {
   operations: string[];
   /** The ERC-8490 enrollment, on a world that has the registry; null on one that does not. */
   maintenance: { registry: string; root: string; stateVersion: string; controller: string; controllerRights: number } | null;
+  /** The ERC-8489 channel, on a world whose maintainer registered the cell-source paradigm; null otherwise (and why). */
+  flows: { channelId: string; paradigmId: string; grantBindingId: string } | { skipped: string } | null;
 }
 
 /**
@@ -237,10 +242,35 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
     log(`  maintenance: enrolled in ${k.meditation.address} at state version ${head.stateVersion}, root ${head.root.slice(0, 10)}…, controller ${plan.controllerRights ? `${plan.controller} (rights ${plan.controllerRights})` : "none"}`);
   }
 
-  k.evidence("init", cfg.name, { account: address, owner, operator, guardian, specId, bindingId, agentId: agentId.toString(), recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, scope: scope.names, capital: capital.toString(), maintenance });
+  // 11. information flows (ERC-8489, an extension; docs/flows.md): on a world whose maintainer registered the cell-source
+  // paradigm, the cell opens its own channel through its account — the authority is the account, the entrances are its
+  // transport bindings — and grants itself SUBMIT in it; what it publishes is anchored there from the first docs_publish on.
+  let flows: InitResult["flows"] = null;
+  if (k.flows.available && cfg.flows.auto) {
+    const paradigmId = cellSourceParadigmId(node);
+    if (!(await k.flows.paradigmExists(paradigmId))) {
+      flows = { skipped: `the paradigm ${CELL_SOURCE} (${paradigmId}) is not registered on this chain; the world's maintainer registers it (foga flow bootstrap), then foga cell extend --covenants 8489 opens the channel` };
+      log(`  flows: ${flows.skipped}`);
+    } else {
+      const transports = cellTransportBindings(node);
+      const metadataURI = await k.memo("init.flow.metadataURI", () => channelMetadataUri(node));
+      const opened = await cell.execute("init.flow.open", k.flows.addressOf(AIFP.channels), k.flows.encodeOpenChannel(paradigmId, address, ZERO32, metadataURI, transports.map((t) => t.binding)), { by: "owner" });
+      done("init.flow.open");
+      const channelId = k.flows.channelIdFromReceipt(opened.receipt);
+      const granted = await cell.execute("init.flow.grant", k.flows.addressOf(AIFP.participation), k.flows.encodeGrant(channelId, k.flows.subjectOf(address), ROLES.submit), { by: "owner" });
+      done("init.flow.grant");
+      const grantBindingId = k.flows.roleBindingIdFromReceipt(granted.receipt);
+      const rec = await k.flows.channel(channelId);
+      recordChannel(node, { channelId, paradigm: CELL_SOURCE, paradigmId, authority: rec.authority, openedAt: rec.openedAt, txHash: opened.txHash, metadataURI, bindingIds: k.flows.bindingIdsFromReceipt(opened.receipt), grant: { bindingId: grantBindingId, roles: ROLES.submit, txHash: granted.txHash } });
+      flows = { channelId, paradigmId, grantBindingId };
+      log(`  flows: channel ${channelId.slice(0, 10)}… opened (${CELL_SOURCE}, authority the account, ${transports.length} transport binding(s)); SUBMIT granted to the cell`);
+    }
+  }
+
+  k.evidence("init", cfg.name, { account: address, owner, operator, guardian, specId, bindingId, agentId: agentId.toString(), recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, scope: scope.names, capital: capital.toString(), maintenance, flows });
   const state = await k.aid.stateName(address);
   const status = await cell.status();
   log(`  born: agent ${agentId}, anchor ${state}, binding ${status.verdictName}, record ${recordId.slice(0, 10)}…, unit ${unitId}`);
   if (state !== "ACTIVE" || status.verdictName !== "Satisfied") throw new Error(`the cell was born but is not ready: anchor ${state}, binding ${status.verdictName} [${status.reasonNames.join(",")}]`);
-  return { account: address, agentId: agentId.toString(), bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, specId, operations, maintenance };
+  return { account: address, agentId: agentId.toString(), bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, specId, operations, maintenance, flows };
 }

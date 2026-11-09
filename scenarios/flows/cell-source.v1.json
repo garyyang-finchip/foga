@@ -1,0 +1,103 @@
+{
+  "aifp": "1",
+  "family": "foga",
+  "version": "1.0.0",
+  "title": "foga:cell-source/v1 - a FOGA cell's self-description: one publisher, open observation, a pulled, immutable archive",
+  "labels": [
+    "aifp:paradigm/source/v1",
+    "aifp:paradigm/archive/v1"
+  ],
+  "carriers": [
+    "delivery",
+    "shared-object"
+  ],
+  "operators": [
+    "fan-out"
+  ],
+  "cardinality": {
+    "contributors": "single",
+    "pairwise": false
+  },
+  "dimensions": {
+    "discovery": "public-directory",
+    "observation": {
+      "readScope": "open",
+      "submissionVisibility": "all",
+      "payloadProtection": "none",
+      "metadataProtection": "none"
+    },
+    "contribution": {
+      "actions": [
+        "publish"
+      ],
+      "acquisition": "manager",
+      "transferable": false,
+      "expiry": "none"
+    },
+    "management": {
+      "admission": [
+        "source"
+      ],
+      "ordering": [
+        "protocol"
+      ],
+      "removal": [
+        "source"
+      ],
+      "rules": [
+        "source"
+      ],
+      "disclosure": [
+        "source"
+      ]
+    },
+    "redistribution": {
+      "forward": true,
+      "quote": true,
+      "derive": true,
+      "publishElsewhere": true
+    },
+    "history": {
+      "lateJoiner": "all",
+      "retention": "indefinite",
+      "mutable": false
+    },
+    "time": {
+      "realtime": false,
+      "correlation": "none",
+      "delivery": [
+        "pull"
+      ],
+      "batching": "none",
+      "clock": "registry",
+      "absence": "none"
+    },
+    "disclosureTiming": "immediate",
+    "contributorVisibility": "identified",
+    "admissionBasis": [
+      "open-discovery"
+    ],
+    "representation": "disallowed",
+    "objectRelations": [
+      "references",
+      "supersedes",
+      "retracts"
+    ],
+    "ordering": {
+      "sequencer": "protocol",
+      "order": "total",
+      "observable": true
+    }
+  },
+  "predicates": {
+    "discover": {
+      "open": true
+    },
+    "observe": {
+      "open": true
+    },
+    "redistribute": {
+      "open": true
+    }
+  }
+}

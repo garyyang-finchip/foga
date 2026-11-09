@@ -233,6 +233,56 @@
       "bundleKey": "agent-meditation-mechanism:AgentMeditationRegistry",
       "deployedRevision": "2026-11-09 (solc 0.8.28)",
       "note": "ERC-8490 Agent Meditation Mechanism registry deployed by the upstream repository on 2026-11-09 (block 12094378, commit 58499030, solc 0.8.28; Sourcify verified). Added in FOGA 0.8.0 as an extension: a cell enrolls through its account (foga cell extend --covenants 8490), existing worlds gain the entry by the same command."
+    },
+    "8489/AIFPParadigmRegistry": {
+      "address": "0xe5CC5dc02D282Ca1A980Ed586b509Ac9144Dd985",
+      "bundleKey": "aif-paradigm:AIFPParadigmRegistry",
+      "txHash": "0x82119a5c49bd952d51f799385515c524dc906e571c0460298d2d112d94cc2dfe",
+      "block": 12090710,
+      "note": "ERC-8489 AIFPParadigmRegistry deployed by the upstream repository on 2026-11-08 (block 12090710) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0x43e97ba3\u2026"
+    },
+    "8489/AIFPChannelRegistry": {
+      "address": "0x59c42e471c823a874d7d8E1820DF0A643c340d17",
+      "bundleKey": "aif-paradigm:AIFPChannelRegistry",
+      "txHash": "0x6d33cb66aba4d903767f159eabc783c7b91394aa1425e7cae40eb8efcf94a24b",
+      "block": 12090719,
+      "note": "ERC-8489 AIFPChannelRegistry deployed by the upstream repository on 2026-11-08 (block 12090719) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0x4c6e0b07\u2026"
+    },
+    "8489/AIFPParticipationRegistry": {
+      "address": "0x6d0d5A589cdBd07C432C1874f11dF3804b309fd0",
+      "bundleKey": "aif-paradigm:AIFPParticipationRegistry",
+      "txHash": "0xd27d7b4f5b7a2a14b3f39eaa19c2be0568d8d6ca9c642dab4172a2a0f661542c",
+      "block": 12090731,
+      "note": "ERC-8489 AIFPParticipationRegistry deployed by the upstream repository on 2026-11-08 (block 12090731) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0x6342befc\u2026"
+    },
+    "8489/AIFPCompositeVerifier": {
+      "address": "0x0Eb8923fdc4E3e60E2252B62A139582C824A5226",
+      "bundleKey": "aif-paradigm:AIFPCompositeVerifier",
+      "txHash": "0xc975532e95fd2ecd1dc6b62c47f14d20eeb1075c9d44ebba9b518b640c7c1198",
+      "block": 12090710,
+      "deployedRevision": "aif-paradigm v0.1.1 (2026-11-08)",
+      "note": "ERC-8489 AIFPCompositeVerifier deployed by the upstream repository on 2026-11-08 (block 12090710) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0x3601a55d\u2026. Known revision seam: the deployed verifier is the v0.1.1 build; the locked source (v0.1.2) changed the leaf calls to bounded staticcall with raw return-data checks, so its runtime code differs from the bundle's; the admission outcomes of a well-formed leaf verifier are the same under both"
+    },
+    "8489/AIFPEventAnchor": {
+      "address": "0xCcdf6647c90E8C3eC382eF2C46fa2Be3a74bCd08",
+      "bundleKey": "aif-paradigm:AIFPEventAnchor",
+      "txHash": "0xb3b4d053a4363f52da2404a7a162c3eb6b7ed197a0e938846ffad87ac22d0534",
+      "block": 12090745,
+      "note": "ERC-8489 AIFPEventAnchor deployed by the upstream repository on 2026-11-08 (block 12090745) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0x322fc04c\u2026"
+    },
+    "8489/AIFPObjectionWindow": {
+      "address": "0x8ea02f7ca49E26D63689Bd98bc026C13810a8664",
+      "bundleKey": "aif-paradigm:AIFPObjectionWindow",
+      "txHash": "0xe8b1294f700b13b375322669d3881107bbfe3365b1040906294db97d29b2287a",
+      "block": 12090745,
+      "note": "ERC-8489 AIFPObjectionWindow deployed by the upstream repository on 2026-11-08 (block 12090745) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0xc6c4bc30\u2026; companion (objection-window profile), not used by FOGA's paradigms"
+    },
+    "8489/AIFPSubjectSet": {
+      "address": "0x4D72639CB1044091E8136105c7E6381ac973aE3A",
+      "bundleKey": "aif-paradigm:AIFPSubjectSet",
+      "txHash": "0xad2bba666bf6bb326319a48f23a53f62eed32455bfc1826984ad3a436709ca8a",
+      "block": 12090745,
+      "note": "ERC-8489 AIFPSubjectSet deployed by the upstream repository on 2026-11-08 (block 12090745) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0xeeb2b52a\u2026; an allowlist subject set owned by the upstream deployer, not used by FOGA's paradigms"
     }
   },
   "notes": [
@@ -241,7 +291,8 @@
     "Seam 2: only AllowlistEligibility is deployed for ERC-8447; the ERC-8004 and identity-state modules are deployed by foga world deploy, the assertion-level and composite modules by the genesis (no owner restriction).",
     "Seam 3: ERC-8471 is deployed upstream at revision 3 while the locked source is revision 4; the two revisions cannot be bound to each other, so FOGA runs its own revision-4 instance here (see upstreamNotAttached) until the upstream revision-4 run lands.",
     "Layer-4 expectations below record the upstream wiring as it is, so a Pass means 'matches the recorded upstream state', not 'matches what FOGA would deploy'.",
-    "ERC-8490 (0.8.0): the Agent Meditation Mechanism registry is attached as an extension; it is not part of the ten-covenant base set and the doctor's layer 5 reports it NotTested until a scenario exercises it."
+    "ERC-8490 (0.8.0): the Agent Meditation Mechanism registry is attached as an extension; it is not part of the ten-covenant base set and the doctor's layer 5 reports it NotTested until a scenario exercises it.",
+    "ERC-8489 (0.9.0): the Agent Information Flow Paradigm registries, the composite verifier, the event anchor and the two companions are attached as an extension from the upstream Sepolia deployment (aif-paradigm deployments/11155111.json). FOGA's own identity predicate verifier (8489/FogaIdentityVerifier) and the family's paradigms with the default market channel (the `flows` block) are the maintainer's bootstrap on the chain \u2014 `foga flow bootstrap` by the reference cell's owner \u2014 and enter this file when they exist; until then `foga world deploy` on this config deploys the verifier from the bundle and a cell on this world has no default market."
   ],
   "expectations": {
     "8444/AgentAdapter.identityRegistry": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E"

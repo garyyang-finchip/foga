@@ -1,0 +1,94 @@
+{
+  "aifp": "1",
+  "family": "aifp.examples.invalid.label",
+  "version": "1.0.0",
+  "title": "Invalid: declared as panel but contribution is acquired by predicate",
+  "labels": [
+    "aifp:paradigm/panel/v1"
+  ],
+  "carriers": [
+    "delivery"
+  ],
+  "operators": [
+    "n-party"
+  ],
+  "cardinality": {
+    "contributors": "qualified",
+    "pairwise": false
+  },
+  "dimensions": {
+    "discovery": "public-directory",
+    "observation": {
+      "readScope": "open",
+      "submissionVisibility": "all",
+      "payloadProtection": "none",
+      "metadataProtection": "none"
+    },
+    "contribution": {
+      "actions": [
+        "publish"
+      ],
+      "acquisition": "predicate",
+      "transferable": false,
+      "expiry": "none"
+    },
+    "management": {
+      "admission": [
+        "source"
+      ],
+      "ordering": [
+        "protocol"
+      ],
+      "removal": [
+        "source"
+      ],
+      "rules": [
+        "source"
+      ],
+      "disclosure": [
+        "source"
+      ]
+    },
+    "redistribution": {
+      "forward": true,
+      "quote": true,
+      "derive": true,
+      "publishElsewhere": true
+    },
+    "history": {
+      "lateJoiner": "all",
+      "retention": "indefinite",
+      "mutable": false
+    },
+    "time": {
+      "realtime": false,
+      "correlation": "none",
+      "delivery": [
+        "push"
+      ],
+      "batching": "none",
+      "clock": "registry",
+      "absence": "none"
+    },
+    "disclosureTiming": "immediate",
+    "contributorVisibility": "identified",
+    "admissionBasis": [
+      "open-discovery"
+    ],
+    "representation": "allowed",
+    "objectRelations": [
+      "replyTo",
+      "forwards",
+      "derivesFrom",
+      "synthesizes",
+      "references",
+      "supersedes",
+      "retracts"
+    ],
+    "ordering": {
+      "sequencer": "protocol",
+      "order": "total",
+      "observable": true
+    }
+  }
+}

@@ -55,19 +55,19 @@ const zTrigger = z.enum(Object.keys(TRIGGERS) as [TriggerName, ...TriggerName[]]
 const zLayers = z.union([z.string(), z.array(z.union([z.number(), z.string()]))]).optional().describe("the layers in scope: 0..3 or their names, comma-separated or as a list; all four by default");
 
 /** True when the cell's owner is its operator: the account then scope-checks the owner's `execute` calls too (operator-scope.ts). */
-function oneKey(node: Node): boolean {
+export function oneKey(node: Node): boolean {
   return getAddress(node.config.identity.owner) === getAddress(node.config.identity.operator);
 }
 
 /** The pairs of `scope` the account does not allow its operator yet, as indices. */
-async function missingOf(node: Node, scope: ScopeList): Promise<number[]> {
+export async function missingOf(node: Node, scope: ScopeList): Promise<number[]> {
   const missing: number[] = [];
   for (let i = 0; i < scope.targets.length; i++) if (!(await node.body.contract().operatorAllowed(scope.targets[i], scope.selectors[i]))) missing.push(i);
   return missing;
 }
 
-/** The owner's `execute` call `fn` on the registry can be made: always with separated roles; in a one-key cell only when the pair is allowed. */
-async function ownerExecuteGate(node: Node, fn: string): Promise<Gate | null> {
+/** The owner's `execute` call `fn` on a registry can be made: always with separated roles; in a one-key cell only when the pair is allowed. */
+export async function ownerExecuteGate(node: Node, fn: string): Promise<Gate | null> {
   if (!oneKey(node)) return null;
   const scope = ownerExecuteScope(node.kernel);
   const i = scope.names.findIndex((n) => n.includes(`.${fn}(`));

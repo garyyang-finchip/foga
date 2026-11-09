@@ -9,8 +9,9 @@ import { ensureDir } from "../util/fs.js";
  * cell describes itself to the world), skills (what it holds and offers), policy (the business authorization the
  * policy engine applies to every act), runtime (how the node runs, the HTTP server among it), access (the API
  * keys the HTTP entrance accepts, as their hashes, and what a signer proving itself with its wallet is granted) and
- * maintenance (the ERC-8490 policy the cell keeps itself under, 0.8.0). Amounts in wei are decimal strings so the
- * file stays plain JSON; every block but identity and presence has defaults, so an older configuration still loads.
+ * maintenance (the ERC-8490 policy the cell keeps itself under, 0.8.0) and flows (its ERC-8489 channel and market, 0.9.0).
+ * Amounts in wei are decimal strings so the file stays plain JSON; every block but identity and presence has defaults, so
+ * an older configuration still loads.
  */
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "an address (0x + 40 hex digits)");
 const bytes32 = z.string().regex(/^0x[0-9a-fA-F]{64}$/, "a 32-byte hex value");
@@ -127,6 +128,12 @@ export const TenderPolicySchema = z.object({
   counterpartyMinLevel: z.number().int().min(0).default(0),
   /** How far back tender discovery scans (blocks). */
   lookbackBlocks: z.number().int().min(1).default(9000),
+  /**
+   * ERC-8489 (0.9.0): require the demander to hold the SUBMIT role in the tender market channel (the historical role the
+   * participation registry evaluates; the demander's current eligibility is its own matter). Refused at the `flow` gate
+   * before the verifier gate when it does not; off by default, since a market is one context among many.
+   */
+  requireCounterpartyFlowRole: z.boolean().default(false),
 });
 
 export const PolicySchema = z.object({
@@ -253,6 +260,34 @@ export const MaintenanceSchema = z.object({
   gasPerReport: z.number().int().min(100_000).default(600_000),
 });
 
+/**
+ * ERC-8489 information flows (0.9.0, docs/flows.md): the cell's own channel (its self-description as a source and an
+ * archive), the market it joins, and what it records about its publications. Every write goes through the account; the
+ * defaults open the channel at birth, join the world's default market and record a public disclosure of each
+ * publication when the cell has a public URL.
+ */
+export const FlowsSchema = z.object({
+  /** Open the cell's channel at birth (or by `foga cell extend --covenants 8489`) and keep its publications anchored; off: no channel. */
+  auto: z.boolean().default(true),
+  /** The cell's own channel, written back by `flow_open` / the birth; absent before. */
+  channelId: bytes32.optional(),
+  market: z
+    .object({
+      /** Admit the cell to the market (SUBMIT and RESPOND by the identity predicate) when the world names one. */
+      join: z.boolean().default(true),
+      /** Another market channel than the world's default. */
+      channelId: bytes32.optional(),
+      roles: z.array(z.enum(["submit", "respond"])).min(1).default(["submit", "respond"]),
+    })
+    .prefault({}),
+  /** Record a DISCLOSED fact (to the public audience) for each publication when the cell has a public URL. */
+  disclose: z.boolean().default(true),
+  /** How often the watcher looks for a publication to anchor or a market to join (seconds of wall time; reads only). */
+  checkEverySeconds: z.number().int().min(0).default(600),
+  /** Where the flow documents live (the channel's metadata, the paradigms as registered), relative to the configuration's directory. */
+  dir: z.string().default("flows"),
+});
+
 export const CellConfigSchema = z.object({
   schema: z.literal("foga.cell-config/1"),
   name: z.string().min(1).max(64),
@@ -269,6 +304,8 @@ export const CellConfigSchema = z.object({
   access: AccessSchema.prefault({}),
   /** ERC-8490 maintenance (0.8.0): the policy the cell enrolls with and how its cycles run. */
   maintenance: MaintenanceSchema.prefault({}),
+  /** ERC-8489 flows (0.9.0): the cell's channel, the market it joins, its publications' anchors and disclosures. */
+  flows: FlowsSchema.prefault({}),
 });
 
 export type CellConfig = z.infer<typeof CellConfigSchema>;

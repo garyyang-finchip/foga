@@ -54,10 +54,11 @@ test("propagation: a free manifest from the configuration, served live and read 
     assert.deepEqual(m.skills.sort(), ["finch-extract-verify", "foga-probe"]);
     assert.equal(m.discovery.onchain.optional, true, "on-chain discoverability is opt-in");
     assert.ok(m.discovery.free.length >= 2, "there are free discovery routes");
-    // the covenants the world actually has, read off its contract keys — the local world attaches all eleven, no extension
-    assert.deepEqual(m.world.covenants, [...FOGA_COVENANTS, "ERC-8490"], "the deployed local world attaches the ten covenants, ERC-8004 and the ERC-8490 extension");
-    assert.deepEqual(m.world.extensions, ["ERC-8490"], "the maintenance registry is the one covenant beyond the base set (0.8.0)");
+    // the covenants the world actually has, read off its contract keys — the local world attaches the base set and the two extensions
+    assert.deepEqual(m.world.covenants, [...FOGA_COVENANTS, "ERC-8489", "ERC-8490"], "the deployed local world attaches the ten covenants, ERC-8004 and the ERC-8489 / ERC-8490 extensions");
+    assert.deepEqual(m.world.extensions, ["ERC-8489", "ERC-8490"], "the flows and maintenance registries are the covenants beyond the base set (0.9.0, 0.8.0)");
     assert.ok(m.maintenance && m.maintenance.registry, "the manifest points at the maintenance registry");
+    assert.ok(m.flows && m.flows.registries.channels, "the manifest points at the flow registries");
     // the services slot: the maintainer's catalog by default, visible and declinable, planned offers not for sale
     assert.ok(m.services, "the services block is present by default");
     assert.equal(m.services!.catalog, "https://foga.finchip.ai/services.json");

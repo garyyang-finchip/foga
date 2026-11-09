@@ -87,7 +87,9 @@ test("documents: built, served, published on chain once, read back; a public URL
     const out = ok(foga(RPC, ["cell", "docs", "publish", "--config", cell.configPath], { FOGA_OPERATOR_KEY: cell.keys.operator.privateKey }), "docs publish (CLI)") as { version: number; committed: string[]; unchanged: string[]; readBack: { commitment: string; ok: boolean | null }[]; jobId: string; operations: string[] };
     assert.equal(out.version, 1);
     assert.deepEqual(out.committed, ["identity-uri", "aid-document", "ard-descriptor", "unit-version"]);
-    assert.equal(out.operations.length, 4);
+    // the four commitments, and since 0.9.0 the publication anchored in the cell's ERC-8489 channel (docs/flows.md)
+    assert.equal(out.operations.length, 5);
+    assert.ok(out.operations.some((o) => o.endsWith(":anchor")), "the publication is anchored in the same job");
     assert.ok(out.readBack.every((r) => r.ok === true), JSON.stringify(out.readBack));
     await node.kernel.world.provider.getBlockNumber(); // the CLI's transactions happened in another process: move this kernel's read pin to the head
     const after = await onChainState(node);
@@ -103,7 +105,7 @@ test("documents: built, served, published on chain once, read back; a public URL
     const again = await catalog.invoke(node, "docs_publish", {}, OPERATOR_CALLER, { mode: "act" });
     assert.ok(again.ok);
     assert.equal(again.jobId, out.jobId, "the same documents are the same job");
-    assert.equal(node.store.all().filter((o) => o.key.startsWith(`job:${out.jobId}:`)).length, 4, "no new operation");
+    assert.equal(node.store.all().filter((o) => o.key.startsWith(`job:${out.jobId}:`)).length, 5, "no new operation: the four commitments and the anchor");
     const planAfter = await publishSteps(node, readBuilt(docsDir)!);
     assert.deepEqual(planAfter.steps, []);
     assert.deepEqual(planAfter.unchanged.sort(), ["aid-document", "ard-descriptor", "identity-uri", "unit-version"]);

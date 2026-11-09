@@ -180,6 +180,10 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
     server.registerResource("join", "foga://docs/join", { title: "Become a cell", description: "How any agent becomes a FOGA cell that lives on a public chain in one command (foga join): the wallet, the funding, the birth, the card, work over the chain, other chains with the same key.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(joinDoc, "utf8") }] }));
   }
   const meditationDoc = join(repoRoot(), "docs", "meditation.md");
+  const flowsDoc = join(repoRoot(), "docs", "flows.md");
+  if (existsSync(flowsDoc)) {
+    server.registerResource("flows", "foga://docs/flows", { title: "The cell's information flows (ERC-8489)", description: "The cell's own channel (one publisher, open observation, an archive of what it said about itself), the tender market it is admitted to by its identity, the roles the registry evaluates with four values, and what an anchored publication or a disclosure record does and does not prove.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(flowsDoc, "utf8") }] }));
+  }
   if (existsSync(meditationDoc)) {
     server.registerResource("meditation", "foga://docs/meditation", { title: "The cell's own maintenance (ERC-8490)", description: "What this cell registers about its own upkeep — four layer state documents, a state version, a timeliness per layer — what FRESH means and does not, and how a cycle is run, resumed and recomputed.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(meditationDoc, "utf8") }] }));
   }

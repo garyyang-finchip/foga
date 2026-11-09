@@ -1,5 +1,6 @@
 import type { Node } from "./node.js";
 import { endpointsOf } from "../a2a/card.js";
+import { cellChannelId, marketOf } from "./flows.js";
 import { PACKAGE_NAME } from "../util/version.js";
 
 /**
@@ -72,6 +73,12 @@ export interface PropagationManifest {
    * read (meditate_status); "registered" never means "correct".
    */
   maintenance: { registry: string; documents: string | null; disclosure: "commitment" | "summary" | "full"; note: string } | null;
+  /**
+   * The cell's information flows (ERC-8489, 0.9.0), when its world has the registries: the registries, the cell's own channel
+   * and its paradigm, the market it joins, where the flow documents are served. Null otherwise. A role in a channel is the
+   * registry's own four-valued read (flow_roles); nothing here is one.
+   */
+  flows: { registries: { paradigms: string; channels: string; participation: string; verifier: string; anchor: string }; channel: string | null; paradigm: string; market: string | null; documents: string | null; note: string } | null;
   /**
    * The services around the covenants, free and (later) paid, as the program's maintainer lists them: a pointer this
    * cell's operator may keep, replace with a catalog of their own, or drop (`presence.services`). Visible and
@@ -153,6 +160,20 @@ export function buildPropagationManifest(node: Node, o: { version: string; skill
     },
     services: servicesOf(cfg),
     maintenance: maintenanceOf(node, base),
+    flows: flowsOf(node, base),
+  };
+}
+
+function flowsOf(node: Node, base: string | null): PropagationManifest["flows"] {
+  if (!node.kernel.flows.available) return null;
+  const k = node.kernel;
+  return {
+    registries: { paradigms: k.flows.addressOf("8489/AIFPParadigmRegistry"), channels: k.flows.addressOf("8489/AIFPChannelRegistry"), participation: k.flows.addressOf("8489/AIFPParticipationRegistry"), verifier: k.flows.addressOf("8489/AIFPCompositeVerifier"), anchor: k.flows.addressOf("8489/AIFPEventAnchor") },
+    channel: cellChannelId(node),
+    paradigm: "foga:cell-source/v1",
+    market: marketOf(node)?.channelId ?? null,
+    documents: base ? `${base}/documents/flows/` : null,
+    note: "ERC-8489: the cell's self-description is a channel it is the authority of (one publisher, open observation, an archive); each publication is anchored there; the market admits the cell by its identity; who may observe, submit and redistribute, under which rule version, is the participation registry's four-valued read",
   };
 }
 

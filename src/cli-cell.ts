@@ -27,10 +27,11 @@ export const CELL_USAGE = `
                                                  the cell's birth (the owner's key: the wallet's, or FOGA_OWNER_KEY[_FILE]); writes the account, agent id, binding, record and unit into the config
   foga cell migrate --config <cell.config.json> --to <new.config.json> [--store <new ops.sqlite>] [--operator <addr>] [--capital-wei <n>] [--no-sweep]
                                                  move the cell to a new revision-2 account (the owner's key); the new config and store are written beside
-  foga cell extend --covenants 8490 --config <cell.config.json> [--wallet <dir>] [--rpc <url>] [--registry <addr>]
-                                                 extend a running cell in place with a covenant the program gained (ERC-8490): the registry enters the
-                                                 cell's world file (from the packaged world of its chain, or --registry), the owner opens the operator's
-                                                 maintenance scope and enrolls the cell through its account, the registry is read back; idempotent, no migration
+  foga cell extend --covenants 8490|8489 --config <cell.config.json> [--wallet <dir>] [--rpc <url>] [--registry <addr> | --from <world.json>]
+                                                 extend a running cell in place with a covenant the program gained: the contracts enter the cell's world
+                                                 file (from the packaged world of its chain, a world file given, or --registry for a one-registry covenant), the owner opens the
+                                                 operator's scope and — 8490 — enrolls the cell, or — 8489 — opens its channel and grants it SUBMIT (a
+                                                 one-key cell also anchors its publication and joins the market); read back; idempotent, no migration
   foga cell status --config <cell.config.json>   cell_status as the operator
   foga cell card --config <cell.config.json> [--as-json]
                                                  the cell's card: what it is and how to reach it, in the words another agent needs (no chain call)
@@ -79,6 +80,21 @@ export const CELL_USAGE = `
   foga meditate demand [--layers …] [--due-in-seconds 86400] [--withdraw] | floor [--required-layers n] [--pulse-interval s] [--max-interval a,b,c,d]
                                                  the controller's acts (the guardian key): a demand with a deadline, a floor the policy cannot relax
   foga meditate pulse [--next-planned-at <ts>] [--force] --config … [--wallet <dir>]   an activity signal through the account (the operator key)
+  foga flow status --config <cell.config.json> [--rpc <url>] [--as-json]   the ERC-8489 flows: the cell's channel (paradigm, authority, bindings, the roles it
+                                                 holds, what it anchored and disclosed), the market it joins (roles held, current eligibility), the registries
+  foga flow roles --subject <addr|canonical|bytes32> [--channel <id>] [--roles submit,respond] --config … [--rpc <url>]
+                                                 a subject's four-valued roles in a channel (the market by default) and its bindings there — the public read
+                                                 a counterparty makes before dealing
+  foga flow open --config <cell.config.json> [--wallet <dir>]   the owner opens the cell's channel (foga:cell-source/v1, authority the account, the entrances
+                                                 as transport bindings) and grants it SUBMIT; opens the flows scope when missing
+  foga flow admit [--roles submit,respond] [--channel <id>] --config … [--wallet <dir>]   admit the cell to the market by the identity predicate (the operator
+                                                 key); a refusal names the outcome the registry would obtain (NOT_SATISFIED, UNDETERMINABLE, VERIFIER_ERROR)
+  foga flow anchor | disclose --config … [--wallet <dir>]   anchor the current publication in the cell's channel (publish, then supersede); record its disclosure
+                                                 to the public (a cell with a public URL); the operator key; nothing is anchored or recorded twice
+  foga flow bootstrap --config <cell.config.json> [--wallet <dir>] [--from <world.json>]   the maintainer's one-time act on a chain (the owner key): register
+                                                 FOGA's two paradigms in the family foga and open the default market channel through the cell's account; writes
+                                                 the world file's flows block. A world file without the registries gains them first (from the packaged world of
+                                                 the chain, or --from), and FOGA's identity verifier is deployed from the bundle when the world lacks it
 `;
 
 type Flags = Record<string, string | boolean>;
@@ -274,7 +290,7 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
   }
 
   if (cmd === "extend") {
-    const covenants = (str(flags, "covenants") ?? fail("--covenants 8490 is required (the covenant to extend the cell with)")).split(",").map((c) => c.trim()).filter(Boolean);
+    const covenants = (str(flags, "covenants") ?? fail("--covenants 8490|8489 is required (the covenant to extend the cell with)")).split(",").map((c) => c.trim()).filter(Boolean);
     const { extendWorld, EXTENSIONS } = await import("./node/extend.js");
     const { loadCellConfig, configPath: cfgPath } = await import("./node/config.js");
     for (const c of covenants) if (!EXTENSIONS[c]) fail(`unknown covenant ${c}; this build extends with ${Object.keys(EXTENSIONS).join(", ")}`);
@@ -283,12 +299,15 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     const worldPath = cfgPath(loaded, loaded.config.world);
     const rpcUrl = rpc;
     const results: Record<string, unknown> = {};
+    // a one-key cell's owner is its operator: the operator's acts the extension ends with (the first anchor, the market admission)
+    // can be made in the same run; a separated cell leaves them to its node's watcher
+    const oneKeyCell = loaded.config.identity.owner.toLowerCase() === loaded.config.identity.operator.toLowerCase();
     for (const c of covenants) {
-      // 1. the world file: the covenant's contract, from the packaged world of the chain or the address given
-      const ext = await extendWorld({ worldPath, covenant: c, address: str(flags, "registry"), rpc: rpcUrl, log });
-      log(`extend ${c}: ${ext.contract} ${ext.outcome === "added" ? "added to" : "already in"} the world file at ${ext.address}`);
-      // 2. the cell: the owner opens the maintenance scope and enrolls through the account (one keyed job; a refusal because it is enrolled already is the end state)
-      const node = await Node.open({ configPath, rpc: rpcUrl, keys: { owner }, log });
+      // 1. the world file: the covenant's contracts, from the packaged world of the chain or the address given
+      const ext = await extendWorld({ worldPath, covenant: c, address: str(flags, "registry"), from: str(flags, "from"), rpc: rpcUrl, log });
+      log(`extend ${c}: ${ext.contracts.filter((x) => x.outcome === "added").length} contract(s) added to the world file, ${ext.contracts.filter((x) => x.outcome === "present").length} already in it${ext.flows ? `; flows ${ext.flows}` : ""}${ext.missing.length ? `; not in the packaged world yet: ${ext.missing.join(", ")}` : ""}`);
+      // 2. the cell: the owner's acts through the account (one keyed job each; a refusal because it is done already is the end state)
+      const node = await Node.open({ configPath, rpc: rpcUrl, keys: oneKeyCell ? { owner, operator: owner } : { owner }, log });
       try {
         if (c === "8490") {
           const head = await node.kernel.meditation.headOf(node.body.address);
@@ -313,6 +332,43 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
           // 3. read back
           const st = await catalog.invoke(node, "meditate_status", {}, OPERATOR_CALLER);
           results[c] = { world: ext, enrollment, status: st.ok ? st.output : st.reason };
+        }
+        if (c === "8489") {
+          const { cellChannelId } = await import("./node/flows.js");
+          // the operator's scope (admit, readmit, anchor, recordDisclosure) and, for a one-key cell, the owner's pairs
+          const sc = await catalog.invoke(node, "scope_complete", { groups: ["flows"] }, OPERATOR_CALLER, { mode: "act" });
+          if (sc.ok) log(`extend ${c}: allow-list completed: ${(sc.output as { added: string[] }).added.join(", ")}`);
+          else if (!/allowed already/.test(sc.reason)) log(`extend ${c}: scope: ${sc.reason}`);
+          // the channel: opened by the owner unless the cell has one
+          let channel: unknown;
+          if (cellChannelId(node)) {
+            channel = { alreadyOpen: true, channelId: cellChannelId(node) };
+            log(`extend ${c}: the cell has its channel ${cellChannelId(node)} already; nothing sent`);
+          } else {
+            const r = await catalog.invoke(node, "flow_open", {}, OPERATOR_CALLER, { mode: "act" });
+            if (!r.ok) {
+              print({ ...results, [c]: { world: ext, channel: r } });
+              process.exitCode = 2;
+              return;
+            }
+            channel = r.output;
+            log(`extend ${c}: channel ${(r.output as { channelId: string }).channelId} opened (${(r.output as { bindingIds: string[] }).bindingIds.length} transport binding(s)); SUBMIT granted to the cell (job ${r.jobId})`);
+          }
+          // the operator's acts, in the same run when the one key is both: the publication anchored, the market joined
+          let anchored: unknown = null;
+          let admitted: unknown = null;
+          if (oneKeyCell) {
+            const a = await catalog.invoke(node, "flow_anchor", {}, OPERATOR_CALLER, { mode: "act" });
+            anchored = a.ok ? a.output : { skipped: a.reason };
+            log(`extend ${c}: ${a.ok ? `publication anchored (${(a.output as { action: string }).action})` : `anchor: ${a.reason}`}`);
+            if (node.config.flows.market.join) {
+              const m = await catalog.invoke(node, "flow_admit", {}, OPERATOR_CALLER, { mode: "act" });
+              admitted = m.ok ? m.output : { refused: `${m.gate}: ${m.reason}` };
+              log(`extend ${c}: ${m.ok ? `market: admitted as ${(m.output as { admitted: { role: string }[] }).admitted.map((x) => x.role).join(", ") || "nothing new"}` : `market admission ${m.gate}: ${m.reason}`}`);
+            }
+          } else log(`extend ${c}: the roles are separated; the node's watcher anchors the publication and joins the market with the operator's key`);
+          const st = await catalog.invoke(node, "flow_status", {}, OPERATOR_CALLER);
+          results[c] = { world: ext, channel, anchored, admitted, status: st.ok ? st.output : st.reason };
         }
       } finally {
         node.close();
@@ -486,6 +542,95 @@ export async function meditateCommand(verb: string | undefined, _rest: string[],
     if (verb === "status" && result.ok && !flags["as-json"]) {
       const { formatMaintenanceStatus } = await import("./node/meditation-cycle.js");
       console.log(formatMaintenanceStatus(result.output as Parameters<typeof formatMaintenanceStatus>[0]));
+      return;
+    }
+    print(result);
+    if (!result.ok) process.exitCode = result.gate === "pending" ? 3 : 2;
+  } finally {
+    node.close();
+  }
+}
+
+/**
+ * `foga flow <verb> …`: the ERC-8489 capabilities said in the flows vocabulary. Each verb is one capability; the key it
+ * needs is loaded for the one command (the owner's for open and bootstrap, the operator's for admit, anchor and disclose,
+ * none for status and roles). `--dry-run` runs the capability in simulate mode.
+ */
+export async function flowCommand(verb: string | undefined, _rest: string[], flags: Flags): Promise<void> {
+  const catalog = defaultCatalog();
+  const verbs: Record<string, { capability: string; role: "operator" | "owner" | "none" }> = {
+    status: { capability: "flow_status", role: "none" },
+    roles: { capability: "flow_roles", role: "none" },
+    open: { capability: "flow_open", role: "owner" },
+    bootstrap: { capability: "flow_bootstrap", role: "owner" },
+    admit: { capability: "flow_admit", role: "operator" },
+    anchor: { capability: "flow_anchor", role: "operator" },
+    disclose: { capability: "flow_disclose", role: "operator" },
+  };
+  if (!verb || verb === "help" || !verbs[verb]) {
+    if (verb && verb !== "help") console.error(`unknown verb ${verb}`);
+    const lines = CELL_USAGE.split("\n");
+    const from = lines.findIndex((l) => /foga flow status/.test(l));
+    const to = lines.findIndex((l) => /foga flow bootstrap/.test(l));
+    console.log(from >= 0 && to >= from ? lines.slice(from, to + 1).join("\n") : CELL_USAGE);
+    return;
+  }
+  const { capability, role } = verbs[verb];
+  const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
+  const log = (line: string) => console.error(line);
+  const rpc = await rpcFor(configPath, str(flags, "rpc"), log);
+  const wallet = walletFromFlags(flags);
+  const dryRun = Boolean(flags["dry-run"]);
+  const mode: Mode = dryRun ? "simulate" : "act";
+  const input: Record<string, unknown> = {};
+  const take = (flag: string, field: string, f: (v: string) => unknown = (v) => v) => {
+    const v = str(flags, flag);
+    if (v !== undefined) input[field] = f(v);
+  };
+  take("subject", "subject");
+  take("channel", "channelId");
+  take("roles", "roles", (v) => v.split(",").map((x) => x.trim()).filter(Boolean));
+  take("job-id", "jobId");
+  const keys: NodeKeys = {};
+  if (mode === "act" && role !== "none") keys[role] = keysFor(role, false, wallet);
+  // the maintainer's bootstrap from a cell born before the covenant: its world file gains the registries first (the packaged world
+  // of the chain carries the upstream's seven, or --from names a world that does), and on a chain whose packaged world lacks FOGA's
+  // identity verifier (the upstream deploys only its own contracts) the owner deploys it from the bundle, as a keyed operation of
+  // the cell's store, and the world file gains it too
+  if (verb === "bootstrap" && mode === "act") {
+    const { AIFP, AIFP_CORE } = await import("./core/aifp.js");
+    const { loadCellConfig, configPath: cfgPath } = await import("./node/config.js");
+    const { readJson, writeJson } = await import("./util/fs.js");
+    const loaded = loadCellConfig(configPath);
+    const worldPath = cfgPath(loaded, loaded.config.world);
+    let world = readJson<import("./world/types.js").WorldFile>(worldPath);
+    if (!AIFP_CORE.every((id) => Boolean(world.contracts[id]))) {
+      const { extendWorld } = await import("./node/extend.js");
+      const ext = await extendWorld({ worldPath, covenant: "8489", from: str(flags, "from"), rpc, log });
+      log(`flow bootstrap: ${ext.contracts.filter((x) => x.outcome === "added").length} ERC-8489 contract(s) added to ${worldPath} (from ${ext.source})${ext.missing.length ? `; not in the packaged world: ${ext.missing.join(", ")}` : ""}`);
+      world = readJson<import("./world/types.js").WorldFile>(worldPath);
+    }
+    if (!world.contracts[AIFP.identityVerifier]) {
+      const node = await Node.open({ configPath, rpc, keys, log });
+      try {
+        const k = node.kernel;
+        if (!k.flows.available) fail(`the world has no ERC-8489 registries; foga cell extend --covenants 8489 adds them first`);
+        const { address, confirmed } = await k.deploy("flow.bootstrap.verifier", "owner", "foga:FogaIdentityVerifier", [k.identity.address, k.aid.address]);
+        world.contracts[AIFP.identityVerifier] = { address, bundleKey: "foga:FogaIdentityVerifier", txHash: confirmed.txHash, block: confirmed.receipt.blockNumber, args: [k.identity.address, k.aid.address], note: `FOGA's identity predicate verifier (ERC-8489 kind 7) over the world's ERC-8004 and ERC-8434 registries, deployed by the maintainer's owner key (foga flow bootstrap) on ${new Date().toISOString()}` };
+        world.steps.push({ id: AIFP.identityVerifier, status: "deployed", txHash: confirmed.txHash, note: "deployed by foga flow bootstrap" });
+        writeJson(worldPath, world);
+        log(`flow bootstrap: ${AIFP.identityVerifier} deployed at ${address} (${confirmed.txHash}); added to ${worldPath}`);
+      } finally {
+        node.close();
+      }
+    }
+  }
+  const node = await Node.open({ configPath, rpc, keys, log });
+  try {
+    const result = await catalog.invoke(node, capability, input, OPERATOR_CALLER, { mode });
+    if (verb === "status" && result.ok && !flags["as-json"]) {
+      const { formatFlowStatus } = await import("./node/flows-format.js");
+      console.log(formatFlowStatus(result.output as Parameters<typeof formatFlowStatus>[0]));
       return;
     }
     print(result);

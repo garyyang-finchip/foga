@@ -20,5 +20,17 @@
     "ids": {
       "IAgentMeditation": "0x9c81b550"
     }
+  },
+  "aif-paradigm": {
+    "source": "assets/erc-aifp/vectors/interface-ids.json (the file lists {name, interfaceId} records rather than name: id pairs)",
+    "ids": {
+      "IAIFPParadigmRegistry": "0xa30ca0da",
+      "IAIFPChannelRegistry": "0x94dbe6d5",
+      "IAIFPParticipationRegistry": "0x14c97260",
+      "IAIFPCompositeVerifier": "0xa5913d6e",
+      "IAIFPPredicateVerifier": "0xe7a501b7",
+      "IAIFPSubjectSet": "0x1d1a696d",
+      "IAIFPEventAnchor": "0x62b24396"
+    }
   }
 }

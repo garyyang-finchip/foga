@@ -168,6 +168,17 @@
         "assets/erc-agent-meditation/vectors/interface.json"
       ],
       "extras": {}
+    },
+    {
+      "repo": "aif-paradigm",
+      "erc": 8489,
+      "mode": "native",
+      "solc": "0.8.28",
+      "contractsRoot": "assets/erc-aifp/contracts",
+      "vectors": [
+        "assets/erc-aifp/vectors/interface-ids.json"
+      ],
+      "extras": {}
     }
   ],
   "local": {

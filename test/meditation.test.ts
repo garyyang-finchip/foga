@@ -246,7 +246,7 @@ test("ERC-8490: enrollment at birth, commanded cycles, version semantics, demand
         try {
           await waitForHttp(`${running.url}/healthz`);
           const manifest = (await (await fetch(`${running.url}/.well-known/foga-cell.json`)).json()) as any;
-          assert.deepEqual(manifest.world.extensions, ["ERC-8490"], "the registry is an extension of this world");
+          assert.deepEqual(manifest.world.extensions, ["ERC-8489", "ERC-8490"], "the registries are extensions of this world");
           assert.equal(manifest.maintenance.registry, registry);
           assert.equal(manifest.maintenance.disclosure, "full");
           assert.equal(manifest.maintenance.documents, `${running.url}/documents/maintenance/`);
@@ -329,7 +329,7 @@ test("ERC-8490: enrollment at birth, commanded cycles, version semantics, demand
       // extending again changes nothing
       const twice = foga(RPC, ["cell", "extend", "--covenants", "8490", "--config", oldConfig], { FOGA_OWNER_KEY: cell.keys.owner.privateKey });
       assert.equal(twice.code, 0, twice.stderr.slice(-2000));
-      assert.match(twice.stderr, /already in the world file/);
+      assert.match(twice.stderr, /0 contract\(s\) added to the world file, 1 already in it/);
       assert.match(twice.stderr, /already enrolled/);
       assert.equal((await (await k.blockNumber(), k.meditation).headOf(E)).recordCount, 0n);
       // and the extended cell cycles like one born with it

@@ -1,5 +1,6 @@
 import type { Catalog } from "../tools/catalog.js";
 import type { Caller } from "../tools/types.js";
+import { flowsTick, formatFlowsWatch, type FlowsWatch } from "./flows-watch.js";
 import { formatMaintenanceWatch, maintenanceTick, type MaintenanceWatch } from "./meditation-watch.js";
 import type { Node } from "./node.js";
 import { settlementDead } from "./runner.js";
@@ -18,13 +19,15 @@ export interface TickReport {
   anchor: string;
   /** The cell's own upkeep (ERC-8490, 0.8.2): what the maintenance watcher found and did this tick. */
   maintenance: MaintenanceWatch;
+  /** The cell's channels (ERC-8489, 0.9.0): a publication anchored, a market joined, or nothing to do. */
+  flows: FlowsWatch;
 }
 
 /** One line for the log, the same at every entrance. */
 export function formatTick(r: TickReport): string {
   const settled = r.settled.filter((x) => x.outcome === "settled").length;
   const refusals = r.settled.filter((x) => x.outcome !== "settled");
-  return `${r.at} block ${r.block}: anchor ${r.anchor}, heartbeat ${r.heartbeat.sent ? "sent" : "not sent"} (${r.heartbeat.reason}); ${r.discovered.length} new tender(s); ${settled} settled${refusals.length ? ` (${refusals.map((x) => `${x.tokenId}: ${x.outcome}`).join("; ")})` : ""}, ${r.withdrawn.length} withdrawn; safety ${r.safety.verdict}${r.safety.changed ? " (changed)" : ""}${formatMaintenanceWatch(r.maintenance)}`;
+  return `${r.at} block ${r.block}: anchor ${r.anchor}, heartbeat ${r.heartbeat.sent ? "sent" : "not sent"} (${r.heartbeat.reason}); ${r.discovered.length} new tender(s); ${settled} settled${refusals.length ? ` (${refusals.map((x) => `${x.tokenId}: ${x.outcome}`).join("; ")})` : ""}, ${r.withdrawn.length} withdrawn; safety ${r.safety.verdict}${r.safety.changed ? " (changed)" : ""}${formatMaintenanceWatch(r.maintenance)}${formatFlowsWatch(r.flows)}`;
 }
 
 /**
@@ -33,7 +36,8 @@ export function formatTick(r: TickReport): string {
  * submission whose answer it holds, withdraw credited reward), and record a change of its safety state. Each duty
  * goes through the catalog like any caller, so it passes the same gates and leaves the same records. `tick` runs
  * every duty once; the serve loop (3b) calls it on the poll interval. Since 0.8.2 the duties include the cell's own
- * upkeep: a maintenance cycle when a layer is due or a document drifted (meditation-watch.ts), on its own pace.
+ * upkeep: a maintenance cycle when a layer is due or a document drifted (meditation-watch.ts), on its own pace; since
+ * 0.9.0 its channels: a publication anchored, a market joined once eligible (flows-watch.ts).
  */
 export class Watchers {
   constructor(
@@ -122,6 +126,15 @@ export class Watchers {
       k.store.journal("maintenance-watch", { action: "failed", reason: (e as Error).message });
     }
 
-    return { at: new Date().toISOString(), block, heartbeat, discovered, settled, withdrawn, safety: { verdict: status.verdictName, reasons: status.reasonNames, changed }, anchor, maintenance };
+    // 6. channels: a publication not anchored is anchored, a market not joined is joined once eligible (one act a tick, on its pace)
+    let flows: FlowsWatch;
+    try {
+      flows = await flowsTick(node, this.catalog, WATCHER_CALLER);
+    } catch (e) {
+      flows = { checked: true, action: "refused", reason: `the flows watcher failed: ${(e as Error).message}`, nextCheckAt: null };
+      k.store.journal("flows-watch", { action: "failed", reason: (e as Error).message });
+    }
+
+    return { at: new Date().toISOString(), block, heartbeat, discovered, settled, withdrawn, safety: { verdict: status.verdictName, reasons: status.reasonNames, changed }, anchor, maintenance, flows };
   }
 }

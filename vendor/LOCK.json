@@ -1,7 +1,7 @@
 {
   "schema": "foga.vendor-lock/1",
   "lockedAt": "2026-10-30",
-  "note": "Reference implementations of the ten ERCs and of the covenants attached after them (ERC-8490 from 0.8.0), pinned by commit. `foga vendor sync` materializes each source tree under vendor/<repo>/ at exactly this commit; the committed artifacts/bundle.json is built from these commits and CI rebuilds it to prove the hash. Spec references are recorded separately from implementation commits: a Sepolia deployment may predate the implementation commit (see docs/version-lock.md).",
+  "note": "Reference implementations of the ten ERCs and of the covenants attached after them (ERC-8490 from 0.8.0, ERC-8489 from 0.9.0), pinned by commit. `foga vendor sync` materializes each source tree under vendor/<repo>/ at exactly this commit; the committed artifacts/bundle.json is built from these commits and CI rebuilds it to prove the hash. Spec references are recorded separately from implementation commits: a Sepolia deployment may predate the implementation commit (see docs/version-lock.md).",
   "sources": [
     {
       "erc": 8338,
@@ -155,6 +155,20 @@
         "status": "Draft",
         "where": "ERCS/erc-agent-meditation.md in this repository; ethereum/ERCs PR #2155",
         "discussion": "https://ethereum-magicians.org/t/30304"
+      }
+    },
+    {
+      "erc": 8489,
+      "title": "Agent Information Flow Paradigm",
+      "repo": "aif-paradigm",
+      "url": "https://github.com/garyyang-finchip/aif-paradigm.git",
+      "commit": "594c7eec637e554b8b584d48cd34440677bee9dd",
+      "contractsRoot": "assets/erc-aifp/contracts",
+      "upstreamToolchain": "foundry (solc 0.8.28, optimizer runs 200, evm cancun)",
+      "spec": {
+        "status": "Draft",
+        "where": "ERCS/erc-aifp.md in this repository; ethereum/ERCs PR #2152",
+        "discussion": "https://ethereum-magicians.org/t/30300"
       }
     }
   ]

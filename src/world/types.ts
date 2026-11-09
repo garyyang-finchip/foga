@@ -1,3 +1,5 @@
+import type { WorldFlows } from "../core/paradigms.js";
+
 /** Input: how to build or attach to a world. */
 export interface WorldConfig {
   schema: "foga.world-config/1";
@@ -18,6 +20,8 @@ export interface WorldConfig {
   };
   /** For attach mode: the address book, authored by hand from the upstream deployment records. */
   contracts?: Record<string, WorldContract>;
+  /** For attach mode: the ERC-8489 flows the maintainer bootstrapped on that chain (the family, the paradigm ids, the default market channel), copied into the world file. */
+  flows?: WorldFlows;
   /** Layer-4 expectations that override the plan's defaults: "<stepId>.<getter>" -> expected value. */
   expectations?: Record<string, string>;
   notes?: string[];
@@ -54,4 +58,6 @@ export interface WorldFile {
   wiring: Record<string, unknown>;
   steps: { id: string; status: "deployed" | "attached" | "skipped" | "wired"; txHash?: string; note?: string }[];
   notes: string[];
+  /** The ERC-8489 flows of this world (0.9.0): FOGA's paradigms as registered and the default market channel; absent until the maintainer bootstraps them. */
+  flows?: WorldFlows;
 }

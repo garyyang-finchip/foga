@@ -47,8 +47,10 @@ const config = {
   identity8004: { mode: "address", address: world.identity8004.address, note: "the local stub, attached by address as a public world attaches the official registry" },
   params: world.params,
   contracts,
+  // the ERC-8489 flows the base world's deployer bootstrapped (paradigms, market channel) travel with the address book, as a public chain's do
+  ...(world.flows ? { flows: world.flows } : {}),
   notes: [
-    "Rehearsal of the attach-mode path on anvil (scripts/attach-rehearsal.mjs): the ERC-8471 stack and the ERC-8004 / identity-state eligibility modules are left out of the address book so that `foga world deploy` adds them from the bundle, as on Sepolia; a second AIDRegistry is listed as the ARD backing registry.",
+    "Rehearsal of the attach-mode path on anvil (scripts/attach-rehearsal.mjs): the ERC-8471 stack and the ERC-8004 / identity-state eligibility modules are left out of the address book so that `foga world deploy` adds them from the bundle, as on Sepolia; a second AIDRegistry is listed as the ARD backing registry; the ERC-8489 flows of the base world are carried over.",
   ],
 };
 mkdirSync(dirname(resolve(outPath)), { recursive: true });

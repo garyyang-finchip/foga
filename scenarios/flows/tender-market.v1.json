@@ -1,0 +1,121 @@
+{
+  "aifp": "1",
+  "family": "foga",
+  "version": "1.0.0",
+  "title": "foga:tender-market/v1 - the public tender market of a FOGA world: ERC-8414 tenders minted by demanders and taken by cells, every submission public on chain, the acceptance authority settles",
+  "labels": [
+    "aifp:ext/finchip.ai/tender-market/v1"
+  ],
+  "carriers": [
+    "delivery"
+  ],
+  "operators": [
+    "fan-in"
+  ],
+  "cardinality": {
+    "contributors": "qualified",
+    "pairwise": false
+  },
+  "dimensions": {
+    "discovery": "public-directory",
+    "observation": {
+      "readScope": "open",
+      "submissionVisibility": "all",
+      "payloadProtection": "none",
+      "metadataProtection": "none"
+    },
+    "contribution": {
+      "actions": [
+        "publish",
+        "submit",
+        "respond"
+      ],
+      "acquisition": "predicate",
+      "transferable": false,
+      "expiry": "none"
+    },
+    "management": {
+      "admission": [
+        "protocol"
+      ],
+      "ordering": [
+        "protocol"
+      ],
+      "removal": [
+        "none"
+      ],
+      "rules": [
+        "source"
+      ],
+      "disclosure": [
+        "none"
+      ]
+    },
+    "redistribution": {
+      "forward": true,
+      "quote": true,
+      "derive": true,
+      "publishElsewhere": true
+    },
+    "history": {
+      "lateJoiner": "all",
+      "retention": "indefinite",
+      "mutable": false
+    },
+    "time": {
+      "realtime": false,
+      "correlation": "request-response",
+      "delivery": [
+        "push"
+      ],
+      "batching": "none",
+      "clock": "registry",
+      "absence": "none"
+    },
+    "disclosureTiming": "immediate",
+    "contributorVisibility": "identified",
+    "admissionBasis": [
+      "open-discovery"
+    ],
+    "representation": "disallowed",
+    "objectRelations": [
+      "replyTo",
+      "references",
+      "supersedes",
+      "retracts"
+    ],
+    "ordering": {
+      "sequencer": "protocol",
+      "order": "total",
+      "observable": true
+    }
+  },
+  "predicates": {
+    "observe": {
+      "open": true
+    },
+    "submit": {
+      "identity": {
+        "verifier": "${8489/FogaIdentityVerifier}",
+        "registry": "${identity8004}",
+        "requiredState": "active"
+      }
+    },
+    "respond": {
+      "identity": {
+        "verifier": "${8489/FogaIdentityVerifier}",
+        "registry": "${identity8004}",
+        "requiredState": "active"
+      }
+    }
+  },
+  "requiredBindings": {
+    "capabilities": [
+      "identity",
+      "push",
+      "history-retention",
+      "late-join-history",
+      "total-order"
+    ]
+  }
+}

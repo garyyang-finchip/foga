@@ -6,6 +6,7 @@ import { A2AServer } from "../a2a/server.js";
 import { A2A_ERRORS, A2A_WELL_KNOWN } from "../a2a/types.js";
 import { buildMcpServer } from "../mcp/server.js";
 import { DOCUMENT_FILES, documentsDir, readManifest } from "../node/documents.js";
+import { publicFlowFile } from "../node/flows.js";
 import { publicMaintenanceFile } from "../node/meditation.js";
 import { buildPropagationManifest, servicesCatalogOf } from "../node/propagation.js";
 import type { Node } from "../node/node.js";
@@ -237,6 +238,16 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
       if (level === 0 || (level === 1 && rel.startsWith("state/"))) return json(res, 404, { ok: false, reason: `disclosure level ${level}: ${level === 0 ? "commitments only; no maintenance document is served" : "cycle records and the policy are served; the state documents are not"}` });
       const file = publicMaintenanceFile(node, rel);
       if (!file || !existsSync(file)) return json(res, 404, { ok: false, reason: "no such maintenance document" });
+      const text = readFileSync(file);
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
+      res.end(text);
+      return;
+    }
+    // the flow documents (ERC-8489, docs/flows.md): the channel's and the market's metadata, the paradigms as registered; public
+    if (method === "GET" && url.pathname.startsWith("/documents/flows/")) {
+      const rel = decodeURIComponent(url.pathname.slice("/documents/flows/".length));
+      const file = publicFlowFile(node, rel);
+      if (!file || !existsSync(file)) return json(res, 404, { ok: false, reason: "no such flow document" });
       const text = readFileSync(file);
       res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
       res.end(text);

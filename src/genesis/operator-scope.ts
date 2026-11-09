@@ -13,7 +13,7 @@ import type { CellName } from "./roles.js";
  * The groups were taken from a recording of every `execute` the genesis makes through the operator (0.5.0) and
  * are kept in step with it by the genesis itself: a call outside the scope reverts with `OperatorNotAllowed`.
  */
-export type ScopeGroup = "identity" | "standing" | "skills-provider" | "labour" | "demander" | "organization-member" | "organization-coordinator" | "service-provider" | "service-client" | "maintenance";
+export type ScopeGroup = "identity" | "standing" | "skills-provider" | "labour" | "demander" | "organization-member" | "organization-coordinator" | "service-provider" | "service-client" | "maintenance" | "flows";
 
 /** A world contract id (or a bundle key for interfaces the world entry does not expose) and a function name. */
 export interface ScopeEntry {
@@ -85,16 +85,25 @@ export const SCOPE_GROUPS: Record<ScopeGroup, ScopeEntry[]> = {
     { contract: "8490/AgentMeditationRegistry", fn: "report(address,(uint64,bytes32,bytes32[4],uint8,uint8,uint16,uint8,uint8,uint32,uint48,uint48,uint48,uint64,bytes32,string))" },
     { contract: "8490/AgentMeditationRegistry", fn: "pulse(address,uint48)" },
   ],
+  // ERC-8489 (0.9.0): the cell's admission to a market, the anchoring of what it publishes and the disclosure records of its
+  // own channel, through the account. Opening a channel, granting roles and registering a paradigm are the owner's acts
+  // through `execute` and are not opened to the operator (docs/flows.md).
+  flows: [
+    { contract: "8489/AIFPParticipationRegistry", fn: "admit(bytes32,uint16,bytes32,bytes,bytes[],uint48)" },
+    { contract: "8489/AIFPParticipationRegistry", fn: "readmit(bytes32,bytes,bytes[])" },
+    { contract: "8489/AIFPEventAnchor", fn: "anchor(bytes32,uint8,bytes32,(uint8,bytes32)[])" },
+    { contract: "8489/AIFPChannelRegistry", fn: "recordDisclosure(bytes32,uint8,bytes32,bytes32,bytes32)" },
+  ],
 };
 
 /** The groups whose contracts an attach-mode world may lack (extensions); `operatorScope` skips them on such a world instead of failing. */
-export const EXTENSION_GROUPS: Partial<Record<ScopeGroup, string>> = { maintenance: "8490/AgentMeditationRegistry" };
+export const EXTENSION_GROUPS: Partial<Record<ScopeGroup, string>> = { maintenance: "8490/AgentMeditationRegistry", flows: "8489/AIFPParticipationRegistry" };
 
 /**
  * The operator scope a standalone cell (a node) starts with: identity, standing, skills, labour on both sides, services
  * as provider, and its own maintenance where the world has the registry (`operatorScope` leaves the group out otherwise).
  */
-export const NODE_SCOPE_GROUPS: ScopeGroup[] = ["identity", "standing", "skills-provider", "labour", "demander", "service-provider", "maintenance"];
+export const NODE_SCOPE_GROUPS: ScopeGroup[] = ["identity", "standing", "skills-provider", "labour", "demander", "service-provider", "maintenance", "flows"];
 
 /** The groups each genesis cell plays. A-prime (T9) takes the successor's groups: identity and what it inherits by adoption. */
 export const CELL_GROUPS: Record<CellName | "A-prime", ScopeGroup[]> = {
@@ -131,22 +140,27 @@ export function operatorScope(k: Kernel, groups: ScopeGroup[]): ScopeList {
 }
 
 /**
- * The owner's acts through `execute` on the ERC-8490 registry (`enroll`, `setPolicy`, `setController`). With the roles
+ * The owner's acts through `execute` on the extension registries: ERC-8490's `enroll`, `setPolicy` and `setController`
+ * (0.8.0); ERC-8489's `openChannel`, `declareBinding`, `setState`, `grant` and `registerParadigm` (0.9.0). With the roles
  * separated they need no allow-list entry: the account does not scope-check its owner. In a one-key cell the owner *is*
  * the operator and `execute` checks the scope for that address, so these pairs are opened for such a cell alone — at
- * birth, by `meditate_enroll` and by `scope_complete` — and closed again by `operator_rotate` when the roles separate.
- * They are not a scope group: a separated cell's operator never holds them.
+ * birth, by the enrolling and opening capabilities and by `scope_complete` — and closed again by `operator_rotate` when
+ * the roles separate. They are not a scope group: a separated cell's operator never holds them.
  */
 export const OWNER_EXECUTE_SCOPE: ScopeEntry[] = [
   { contract: "8490/AgentMeditationRegistry", fn: "enroll(bytes32[4],(bytes32,string,uint8,uint8,uint8,uint8,uint48,uint48,uint48[4]),address,uint8)" },
   { contract: "8490/AgentMeditationRegistry", fn: "setPolicy(address,(bytes32,string,uint8,uint8,uint8,uint8,uint48,uint48,uint48[4]))" },
   { contract: "8490/AgentMeditationRegistry", fn: "setController(address,address,uint8)" },
+  { contract: "8489/AIFPChannelRegistry", fn: "openChannel(bytes32,address,bytes32,string,(uint8,bytes32,bytes32,uint32,uint32,uint8,bytes32,bool)[])" },
+  { contract: "8489/AIFPChannelRegistry", fn: "declareBinding(bytes32,(uint8,bytes32,bytes32,uint32,uint32,uint8,bytes32,bool))" },
+  { contract: "8489/AIFPChannelRegistry", fn: "setState(bytes32,uint8)" },
+  { contract: "8489/AIFPParticipationRegistry", fn: "grant(bytes32,bytes32,bytes32,uint16,bytes32,uint8,bytes32,uint48,uint48)" },
+  { contract: "8489/AIFPParadigmRegistry", fn: "registerParadigm(bytes,bytes32,bytes32,bytes32[],(uint16,bytes32)[],string)" },
 ];
 
-/** The owner-through-operator pairs on this world (empty without the registry). */
+/** The owner-through-operator pairs on this world: the entries whose registry the world has (empty without any extension). */
 export function ownerExecuteScope(k: Kernel): ScopeList {
-  if (!k.world.has("8490/AgentMeditationRegistry")) return { targets: [], selectors: [], names: [] };
-  return resolveScope(k, OWNER_EXECUTE_SCOPE);
+  return resolveScope(k, OWNER_EXECUTE_SCOPE.filter((e) => k.world.has(e.contract)));
 }
 
 /** Two scope lists as one, without duplicates. */

@@ -57,6 +57,7 @@ const RULES: { test: RegExp; ercs: string[] }[] = [
   { test: tok("dispute", "case", "ruling", "refund", "call1", "call2", "file", "finding", "service", "provider", "balances", "conforms", "released", "deposited", "charged", "held"), ercs: ["8471"] },
   { test: tok("8004", "identity", "histories", "inherit"), ercs: ["8004"] },
   { test: tok("meditation", "maintenance", "cycle", "amm", "pulse", "enrolled", "stateRoot", "checkpoint", "layerStatus", "controller", "floor", "demand"), ercs: ["8490"] },
+  { test: tok("flow", "flows", "aifp", "paradigm", "channel", "admit", "admission", "anchor", "disclosure", "redistribute", "market"), ercs: ["8489"] },
 ];
 
 /** Steps and the standards they are about, used when a check name says nothing. */

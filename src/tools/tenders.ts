@@ -8,6 +8,7 @@ import { chainById } from "../core/chains.js";
 import { hashlock, nativeTerms, SubmissionStatus } from "../core/tenders.js";
 import { runExtractIsolated, runProbeIsolated } from "../genesis/skill-runner.js";
 import { PROBE_RPC_FAILURE, PROBE_STATE_GONE, RECENT_BLOCKS, blocksBehind, type ProbeInput } from "../genesis/probe.js";
+import { marketOf, roleNow } from "../node/flows.js";
 import type { Node } from "../node/node.js";
 import { ok, refused, safetyGate, skillGate, tenderGates, type Gate } from "../node/policy.js";
 import { GateSchema, TaskDocumentSchema, TenderOutputSchema, derivedJobId, readTender, runJobId, tenderJobId, tenderOutput, zAddress, zAs, zBool, zBytes32, zHex, zJobId, zUint, type TenderView } from "./common.js";
@@ -85,6 +86,19 @@ async function takingGates(node: Node, view: TenderView): Promise<Gate[]> {
     else if (view.task?.acceptance.answerHash && view.task.acceptance.answerHash.toLowerCase() !== committed.toLowerCase()) gates.push(refused("verifier", `the task document's answerHash ${view.task.acceptance.answerHash.slice(0, 10)}… differs from the verifier's commitment ${committed.slice(0, 10)}…`));
     else gates.push(ok("verifier", `answer committed in the hashlock verifier (${committed.slice(0, 10)}…)`));
   }
+  // ERC-8489 (0.9.0): the demander's SUBMIT role in the market, when the policy asks for it — the historical role the
+  // participation registry evaluates, four-valued and kept as obtained; a read that fails is a failed call, not a verdict.
+  // Said before the verifier and budget gates, so a refusal names the flow and nothing else.
+  if (node.config.policy.tenders.requireCounterpartyFlowRole) {
+    const market = k.flows.available ? marketOf(node) : null;
+    if (!market) gates.push(refused("flow", "the policy requires the demander's SUBMIT role in the tender market, and this world names no market channel"));
+    else {
+      const r = await roleNow(node, market.channelId, k.flows.subjectOf(view.demander), "submit");
+      if (r.outcome === "SATISFIED") gates.push(ok("flow", `the demander ${view.demander} holds SUBMIT in the market ${market.channelId.slice(0, 10)}…`));
+      else if (r.outcome) gates.push(refused("flow", `the demander ${view.demander} does not hold SUBMIT in the market ${market.channelId.slice(0, 10)}…: ${r.outcome}`));
+      else gates.push(refused("flow", `the demander's SUBMIT role in the market could not be read (call failed: ${r.error}); not a verdict on the demander`));
+    }
+  }
   const gas = await k.balance(node.config.identity.operator);
   const floor = BigInt(node.config.policy.budget.dailyGasWei) / 4n;
   if (gas < floor) gates.push(refused("budget", `operator gas ${gas} wei is below a quarter of the daily gas budget (${floor} wei)`));
@@ -95,11 +109,11 @@ async function takingGates(node: Node, view: TenderView): Promise<Gate[]> {
 export const tender_precheck: ActCapability = {
   name: "tender_precheck",
   title: "Pre-check a tender",
-  description: "Every gate the cell passes before taking a tender: anchor ACTIVE and binding Satisfied, the skill held and offered with the committed package, the policy on reward and deadlines, the acceptance authority, the hashlock commitment, the budget. Writes a decision record; sends nothing.",
+  description: "Every gate the cell passes before taking a tender: anchor ACTIVE and binding Satisfied, the skill held and offered with the committed package, the policy on reward and deadlines, the acceptance authority, the hashlock commitment, the demander's SUBMIT role in the tender market when the policy requires it (ERC-8489, four-valued), the budget. Writes a decision record; sends nothing.",
   action: "act",
   visibility: "public",
   principal: "cell",
-  ercs: [8414, 8434, 8468, 8338],
+  ercs: [8414, 8434, 8468, 8338, 8489],
   input: z.object({ tokenId: zUint }),
   output: z.object({ tokenId: zUint, jobId: z.string(), gates: z.array(GateSchema), tender: TenderOutputSchema }),
   async plan({ node }, { tokenId }) {

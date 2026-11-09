@@ -140,6 +140,46 @@ export async function preflight(node: Node, o: PreflightOptions = {}): Promise<P
     }
   }
 
+  // --- flows (ERC-8489), on a world that has the registries: the paradigm registered, the channel open and the cell's SUBMIT held,
+  //     the publication anchored, the market joined (or not asked for)
+  if (k.flows.available) {
+    try {
+      const { anchorPlan, cellChannelId, cellSourceParadigmId, currentEligibility, marketOf, roleNow } = await import("./flows.js");
+      const { CELL_SOURCE } = await import("../core/paradigms.js");
+      const paradigmId = cellSourceParadigmId(node);
+      const registered = await k.flows.paradigmExists(paradigmId);
+      row("flows", "the cell-source paradigm is registered on this chain", registered ? "Pass" : "Warn", registered ? `${CELL_SOURCE} ${paradigmId.slice(0, 10)}…` : `${CELL_SOURCE} ${paradigmId.slice(0, 10)}… is not registered: the world's maintainer runs foga flow bootstrap first`);
+      const channelId = cellChannelId(node);
+      if (!channelId) row("flows", "the cell has its own channel", cfg.flows.auto ? "Warn" : "Pass", cfg.flows.auto ? `no channel yet (foga cell extend --covenants 8489 opens it${registered ? "" : " once the paradigm is registered"})` : "flows.auto is off: no channel by choice");
+      else {
+        const rec = await k.flows.channel(channelId);
+        const mine = rec.authority.toLowerCase() === cell.address.toLowerCase();
+        row("flows", "the cell has its own channel", mine && rec.stateName === "Active" ? "Pass" : "Warn", `${channelId.slice(0, 10)}… authority ${rec.authority}${mine ? "" : " (NOT the cell)"}, ${rec.stateName}`);
+        const role = await roleNow(node, channelId, k.flows.subjectOf(cell.address), "submit");
+        row("flows", "the cell holds SUBMIT in its channel", role.outcome === "SATISFIED" ? "Pass" : "Warn", role.outcome ?? `call failed: ${role.error}`);
+        const plan = anchorPlan(node);
+        row("flows", "the current publication is anchored", plan === null ? "Pass" : plan === "unpublished" ? "Warn" : "Warn", plan === null ? "anchored" : plan === "unpublished" ? "the documents are not built (foga cell docs publish)" : `${plan.objectRef.slice(0, 10)}… not anchored yet (the watcher anchors it on its pace; foga flow anchor now)`);
+      }
+      const market = marketOf(node);
+      if (!market) row("flows", "the cell is admitted to the market", "Warn", "this world names no market channel and the configuration none either; a counterparty that requires the SUBMIT role finds none");
+      else if (!cfg.flows.market.join) row("flows", "the cell is admitted to the market", "Pass", `flows.market.join is off: ${market.channelId.slice(0, 10)}… not joined by choice`);
+      else {
+        const subject = k.flows.subjectOf(cell.address);
+        const missing: string[] = [];
+        for (const r of cfg.flows.market.roles) {
+          const o = await roleNow(node, market.channelId, subject, r);
+          if (o.outcome !== "SATISFIED") missing.push(`${r} ${o.outcome ?? "unreadable"}`);
+        }
+        const e = await currentEligibility(node);
+        row("flows", "the cell is admitted to the market", missing.length ? "Warn" : "Pass", missing.length ? `${market.channelId.slice(0, 10)}…: ${missing.join(", ")}; eligibility now: ${e.detail}${e.ok ? " (the watcher admits the cell on its pace; foga flow admit now)" : ""}` : `${market.channelId.slice(0, 10)}…: ${cfg.flows.market.roles.join(", ")} held; eligibility now: ${e.detail}`);
+      }
+      const w = node.store.getFact<{ lastAction?: string }>("watch.flows");
+      row("flows", "the watcher anchors publications and joins the market", cfg.flows.auto ? "Pass" : "Warn", cfg.flows.auto ? `on: checks every ${cfg.flows.checkEverySeconds} s${w?.lastAction ? `; last: ${w.lastAction}` : "; not checked yet (it checks on the node's ticks)"}` : "off (flows.auto false)");
+    } catch (e) {
+      row("flows", "the cell has its own channel", "NotTested", (e as Error).message);
+    }
+  }
+
   // --- the operator key: this environment's, alone; the address the account names; gas for its acts
   try {
     const key = loadOperatorKey(env);

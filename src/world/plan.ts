@@ -114,9 +114,26 @@ export const DEPLOY_PLAN: DeployStep[] = [
 
   // ERC-8490 (an extension in 0.8.0; docs/meditation.md): the maintenance registry a cell enrolls in through its account
   { id: "8490/AgentMeditationRegistry", bundleKey: "agent-meditation-mechanism:AgentMeditationRegistry", args: () => [], note: "Agent Meditation Mechanism registry (no constructor arguments; clock mode=timestamp)" },
+
+  // ERC-8489 (an extension in 0.9.0; docs/flows.md): the paradigm, channel and participation registries, the composite predicate
+  // verifier, the event anchor, the two companions, and FOGA's own identity predicate verifier over the world's registries
+  { id: "8489/AIFPParadigmRegistry", bundleKey: "aif-paradigm:AIFPParadigmRegistry", args: () => [], note: "Agent Information Flow Paradigm: paradigm registry (clock mode=timestamp)" },
+  { id: "8489/AIFPCompositeVerifier", bundleKey: "aif-paradigm:AIFPCompositeVerifier", args: () => [], note: "the composite predicate verifier (leaf calls bounded to LEAF_GAS_LIMIT)" },
+  { id: "8489/AIFPChannelRegistry", bundleKey: "aif-paradigm:AIFPChannelRegistry", args: (c) => [c.addr("8489/AIFPParadigmRegistry")], note: "the channel registry; the wiring step links the participation registry" },
+  { id: "8489/AIFPParticipationRegistry", bundleKey: "aif-paradigm:AIFPParticipationRegistry", args: (c) => [c.addr("8489/AIFPChannelRegistry"), c.addr("8489/AIFPParadigmRegistry"), c.addr("8489/AIFPCompositeVerifier")] },
+  { id: "8489/AIFPEventAnchor", bundleKey: "aif-paradigm:AIFPEventAnchor", args: (c) => [c.addr("8489/AIFPChannelRegistry"), c.addr("8489/AIFPParticipationRegistry")], note: "the event-anchor profile: a cell anchors what it publishes" },
+  { id: "8489/AIFPObjectionWindow", bundleKey: "aif-paradigm:AIFPObjectionWindow", args: (c) => [c.addr("8489/AIFPChannelRegistry"), c.addr("8489/AIFPParticipationRegistry")], note: "companion (objection-window profile); not used by FOGA's paradigms in 0.9.0" },
+  { id: "8489/AIFPSubjectSet", bundleKey: "aif-paradigm:AIFPSubjectSet", args: (c) => [c.deployer], note: "an allowlist subject set owned by the deployer; not used by FOGA's paradigms" },
+  { id: "8489/FogaIdentityVerifier", bundleKey: "foga:FogaIdentityVerifier", args: (c) => [c.addr("identity8004"), c.addr("8434/AIDRegistry")], note: "FOGA's identity predicate verifier (ERC-8489 kind 7): the subject's account owns an ERC-8004 identity in the world's registry and its ERC-8434 anchor is ACTIVE" },
 ];
 
 export const WIRE_PLAN: WireStep[] = [
+  {
+    id: "8489/setParticipationRegistry",
+    // the channel registry learns its participation registry once (the deployer's call); an attached registry was wired upstream
+    skip: (c) => (c.world.steps.some((s) => s.id === "8489/AIFPChannelRegistry" && s.status === "attached") ? "channel registry attached: wired upstream" : !c.world.contracts["8489/AIFPChannelRegistry"] ? "no ERC-8489 channel registry in this world" : null),
+    calls: (c) => [{ stepId: "8489/AIFPChannelRegistry", fn: "setParticipationRegistry", args: [c.addr("8489/AIFPParticipationRegistry")], note: "participation registry" }],
+  },
   {
     id: "8444/registerKinds",
     // An attached registry was wired upstream (its owner key registered the kinds); only a registry this run deployed is wired here.

@@ -6,6 +6,7 @@ import type { Bundle } from "../bundle/types.js";
 import { linkBytecode } from "../util/bytecode.js";
 import { exists, readJson, repoRoot, writeJson } from "../util/fs.js";
 import { log } from "../util/log.js";
+import { bootstrapFlowsAsSigner, worldHasFlowContracts } from "./flows-bootstrap.js";
 import { DEPLOY_PLAN, WIRE_PLAN, type PlanContext } from "./plan.js";
 import type { WorldConfig, WorldContract, WorldFile } from "./types.js";
 import { envMnemonic, mnemonicKeys } from "../genesis/roles.js";
@@ -31,6 +32,12 @@ export interface DeployOptions {
   allowChainMismatch?: boolean;
   /** Print nothing but warnings (the quickstart prints its own summary). */
   quiet?: boolean;
+  /**
+   * ERC-8489 (0.9.0): whether the deployer bootstraps the chain's flows (FOGA's paradigms registered, the market opened)
+   * once the registries are deployed. Default true; false leaves the world without a `flows` block, for a maintainer who
+   * bootstraps later through a cell's account (`foga flow bootstrap`).
+   */
+  flows?: boolean;
 }
 
 export function loadWorldConfig(path: string): WorldConfig {
@@ -81,6 +88,8 @@ export function attachWorld(cfg: WorldConfig, bundle: Bundle | null): WorldFile 
   }
   const kinds = bundle?.extras?.["ard-onchain-framework"]?.kindIds?.kinds;
   if (kinds) world.wiring["8444/kindIds"] = kinds;
+  // the ERC-8489 flows the maintainer bootstrapped on that chain, when the config records them
+  if (cfg.flows) world.flows = cfg.flows;
   return world;
 }
 
@@ -261,6 +270,18 @@ export async function deployWorld(opts: DeployOptions): Promise<{ world: WorldFi
   const kinds = bundle.extras["ard-onchain-framework"]?.kindIds?.kinds;
   if (kinds) world.wiring["8444/kindIds"] = kinds;
   writeJson(outPath, world);
+
+  // ERC-8489 (0.9.0): the maintainer's bootstrap — FOGA's paradigms registered in the family `foga`, the market channel
+  // opened — by the deployer, on a world that has the registries and no flows recorded yet (an attach-mode config that
+  // carries the chain's flows keeps them; a resumed run completes what is missing; --no-flows leaves it to `foga flow bootstrap`)
+  if (opts.flows === false && worldHasFlowContracts(world) && !world.flows?.market) {
+    say.step("8489/flows: not bootstrapped (--no-flows); a maintainer registers the paradigms and opens the market later with foga flow bootstrap");
+  } else if (worldHasFlowContracts(world) && !world.flows?.market) {
+    const flows = await bootstrapFlowsAsSigner({ worldFile: world, bundle, provider, signer: wallet, say: (l) => say.step(`8489/flows: ${l}`) });
+    world.flows = flows;
+    world.steps.push({ id: "8489/flows", status: "wired", txHash: flows.market?.txHash, note: `paradigms ${Object.keys(flows.paradigms).join(", ")}; market ${flows.market?.channelId ?? "none"}` });
+    writeJson(outPath, world);
+  }
   say.info(`world ${world.worldId}: ${Object.keys(world.contracts).length} contracts -> ${relative(root, outPath)}`);
   return { world, path: outPath };
 }

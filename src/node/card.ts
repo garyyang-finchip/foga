@@ -1,5 +1,6 @@
 import { endpointsOf } from "../a2a/card.js";
 import { chainById } from "../core/chains.js";
+import { anchors, cellChannelId, marketFact, marketOf } from "./flows.js";
 import { readPolicy, readState } from "./meditation.js";
 import { FOGA_COVENANTS } from "./propagation.js";
 import type { Node } from "./node.js";
@@ -29,6 +30,12 @@ export interface CellCard {
    * routine completed in time, not that the cell is correct.
    */
   maintenance: { registry: string; stateVersion: string | null; root: string | null; policyVersion: number | null; lastCycle: string | null; status: string } | null;
+  /**
+   * The cell's information flows (ERC-8489, 0.9.0), from what the node keeps — its own channel and the market it joined, the
+   * roles it was admitted to, how many publications it anchored — with no chain call; null on a world without the registries.
+   * The registry's own four-valued evaluation of a role is a live read: flow_roles.
+   */
+  flows: { registries: { channels: string; participation: string; anchor: string }; channel: { channelId: string; paradigm: string } | null; market: { channelId: string; admitted: string[] } | null; anchors: number; status: string } | null;
   program: { package: string; version: string; join: string };
 }
 
@@ -65,7 +72,24 @@ export function cellCard(node: Node, o: { version: string }): CellCard {
     standing: id.standing ? { schemeId: id.standing.schemeId, issuers: id.standing.issuers } : null,
     endpoints: { mcp: ep.mcp, a2a: ep.a2a, web: ep.web, manifest: base ? `${base}/.well-known/foga-cell.json` : null, card: base ? `${base}/.well-known/agent-card.json` : null },
     maintenance: maintenanceOf(node),
+    flows: flowsOf(node),
     program: { package: PACKAGE_NAME, version: o.version, join: `npx -y ${PACKAGE_NAME} join --chain ${chain?.name ?? "<chain>"}` },
+  };
+}
+
+function flowsOf(node: Node): CellCard["flows"] {
+  if (!node.kernel.flows.available) return null;
+  const k = node.kernel;
+  const channelId = cellChannelId(node);
+  const market = marketOf(node);
+  const admitted = marketFact(node);
+  const roles = market && admitted && admitted.channelId.toLowerCase() === market.channelId.toLowerCase() ? Object.keys(admitted.admitted) : [];
+  return {
+    registries: { channels: k.flows.addressOf("8489/AIFPChannelRegistry"), participation: k.flows.addressOf("8489/AIFPParticipationRegistry"), anchor: k.flows.addressOf("8489/AIFPEventAnchor") },
+    channel: channelId ? { channelId, paradigm: "foga:cell-source/v1" } : null,
+    market: market ? { channelId: market.channelId, admitted: roles } : null,
+    anchors: anchors(node).length,
+    status: channelId ? `channel open (foga:cell-source/v1); ${market ? (roles.length ? `admitted to the market as ${roles.join(", ")}` : "not admitted to the market yet") : "no market named"}; the registry's roles are a live read (flow_roles)` : "no channel as far as this node knows (foga cell extend --covenants 8489)",
   };
 }
 
@@ -102,6 +126,7 @@ export function formatCard(c: CellCard): string {
   if (c.endpoints.mcp) lines.push(`  reach me  MCP ${c.endpoints.mcp} · A2A ${c.endpoints.a2a} · manifest ${c.endpoints.manifest}`);
   else lines.push("  reach me  on chain (no public URL); a tender is the handshake");
   if (c.maintenance) lines.push(`  upkeep    ERC-8490 registry ${c.maintenance.registry}: ${c.maintenance.stateVersion ? `state version ${c.maintenance.stateVersion}, policy v${c.maintenance.policyVersion ?? "?"}${c.maintenance.lastCycle ? `, last cycle ${c.maintenance.lastCycle}` : ""}` : "not enrolled"} — the registry judges timeliness, the record says what was checked`);
+  if (c.flows) lines.push(`  flows     ERC-8489: ${c.flows.channel ? `my channel ${c.flows.channel.channelId} (${c.flows.channel.paradigm}), ${c.flows.anchors} publication(s) anchored` : "no channel yet"}; ${c.flows.market ? `market ${c.flows.market.channelId}${c.flows.market.admitted.length ? ` — admitted as ${c.flows.market.admitted.join(", ")}` : " — not admitted yet"}` : "no market named"}; ask flow_roles for the registry's own evaluation`);
   lines.push(`  program   ${c.program.package} ${c.program.version} — become one too:  ${c.program.join}`);
   return lines.join("\n");
 }
