@@ -6,6 +6,7 @@ import { A2AServer } from "../a2a/server.js";
 import { A2A_ERRORS, A2A_WELL_KNOWN } from "../a2a/types.js";
 import { buildMcpServer } from "../mcp/server.js";
 import { DOCUMENT_FILES, documentsDir, readManifest } from "../node/documents.js";
+import { publicMaintenanceFile } from "../node/meditation.js";
 import { buildPropagationManifest, servicesCatalogOf } from "../node/propagation.js";
 import type { Node } from "../node/node.js";
 import type { Watchers } from "../node/watchers.js";
@@ -224,6 +225,19 @@ export function createHttpServer(o: HttpServerOptions): { server: Server; listen
       const doc = servicesCatalogOf(node, { version: o.version });
       if (!doc) return json(res, 404, { ok: false, reason: "this cell's services pointer names another catalog; read it from the manifest at /.well-known/foga-cell.json" });
       const text = Buffer.from(JSON.stringify(doc, null, 2) + "\n");
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
+      res.end(text);
+      return;
+    }
+    // the maintenance documents (ERC-8490, docs/meditation.md): the policy, the registered state documents and the cycle
+    // records, as far as the policy's disclosure level goes — 2 all of them, 1 the policy and the records, 0 nothing
+    if (method === "GET" && url.pathname.startsWith("/documents/maintenance/")) {
+      const rel = decodeURIComponent(url.pathname.slice("/documents/maintenance/".length));
+      const level = node.config.maintenance.policy.disclosure;
+      if (level === 0 || (level === 1 && rel.startsWith("state/"))) return json(res, 404, { ok: false, reason: `disclosure level ${level}: ${level === 0 ? "commitments only; no maintenance document is served" : "cycle records and the policy are served; the state documents are not"}` });
+      const file = publicMaintenanceFile(node, rel);
+      if (!file || !existsSync(file)) return json(res, 404, { ok: false, reason: "no such maintenance document" });
+      const text = readFileSync(file);
       res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300", "content-length": text.length });
       res.end(text);
       return;

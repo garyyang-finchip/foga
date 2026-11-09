@@ -74,4 +74,6 @@ export const READOUTS: { subject: string; fn: string }[] = [
   { subject: "8471/ADRFServiceEscrow", fn: "admin" },
   { subject: "8471/ADRFServiceEscrow", fn: "bindingId" },
   { subject: "8454/AUFUnitRegistry", fn: "unitCount" },
+  // ERC-8490 (an extension): the registry's clock mode — mode=timestamp is what the maintenance module assumes
+  { subject: "8490/AgentMeditationRegistry", fn: "CLOCK_MODE" },
 ];

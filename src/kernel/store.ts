@@ -269,6 +269,31 @@ export class OperationStore {
     this.db.close();
   }
 
+  // ---------------------------------------------------------------------------- upkeep (the maintenance cycle's memory routine)
+
+  /** SQLite's own verdict on the file (`PRAGMA quick_check`): "ok", or the first problems it found. */
+  quickCheck(): string {
+    const rows = this.db.prepare("PRAGMA quick_check").all() as { quick_check: string }[];
+    return rows.map((r) => r.quick_check).join("; ");
+  }
+
+  /**
+   * Fold the write-ahead log back into the database file and truncate it (`PRAGMA wal_checkpoint(TRUNCATE)`). Nothing
+   * is lost: a checkpoint moves committed pages, it does not drop records. The frame counts say whether there was
+   * anything to move; a memory store has no log and reports zeros.
+   */
+  checkpoint(): { busy: boolean; logFrames: number; checkpointedFrames: number } {
+    if (this.path === ":memory:") return { busy: false, logFrames: 0, checkpointedFrames: 0 };
+    const r = this.db.prepare("PRAGMA wal_checkpoint(TRUNCATE)").get() as { busy: number; log: number; checkpointed: number };
+    return { busy: Number(r.busy) !== 0, logFrames: Math.max(0, Number(r.log)), checkpointedFrames: Math.max(0, Number(r.checkpointed)) };
+  }
+
+  /** Page accounting (size, pages, free pages) for the record of a maintenance cycle. */
+  pageStats(): { pageSize: number; pageCount: number; freelistCount: number } {
+    const one = (sql: string, col: string) => Number((this.db.prepare(sql).get() as Record<string, unknown>)[col]);
+    return { pageSize: one("PRAGMA page_size", "page_size"), pageCount: one("PRAGMA page_count", "page_count"), freelistCount: one("PRAGMA freelist_count", "freelist_count") };
+  }
+
   // ---------------------------------------------------------------------------- meta
 
   getMeta(key: string): string | undefined {

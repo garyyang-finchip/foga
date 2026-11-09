@@ -1,6 +1,6 @@
 # vendor/
 
-This directory holds the pinned upstream sources of the ten reference implementations.
+This directory holds the pinned upstream sources of the ten reference implementations and, since 0.8.0, of the ERC-8490 extension (`agent-meditation-mechanism`).
 Only `LOCK.json` is committed. Run `npm run vendor:sync` (or `foga vendor sync`) to
 materialize `vendor/<repo>/` at exactly the locked commits; the directories are
 gitignored so the FOGA repository itself stays small and uploadable by hand.

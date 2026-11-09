@@ -5,11 +5,12 @@ import { ensureDir } from "../util/fs.js";
 
 /**
  * `cell.config.json` (schema `foga.cell-config/1`): the one file a node maintains (design memo, Phase 3, section 7).
- * Six blocks: identity (the world, the account and its roles, what `foga cell init` writes back), presence (how the
+ * Seven blocks: identity (the world, the account and its roles, what `foga cell init` writes back), presence (how the
  * cell describes itself to the world), skills (what it holds and offers), policy (the business authorization the
- * policy engine applies to every act), runtime (how the node runs, the HTTP server among it) and access (the API
- * keys the HTTP entrance accepts, as their hashes, and what a signer proving itself with its wallet is granted).
- * Amounts in wei are decimal strings so the file stays plain JSON.
+ * policy engine applies to every act), runtime (how the node runs, the HTTP server among it), access (the API
+ * keys the HTTP entrance accepts, as their hashes, and what a signer proving itself with its wallet is granted) and
+ * maintenance (the ERC-8490 policy the cell keeps itself under, 0.8.0). Amounts in wei are decimal strings so the
+ * file stays plain JSON; every block but identity and presence has defaults, so an older configuration still loads.
  */
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "an address (0x + 40 hex digits)");
 const bytes32 = z.string().regex(/^0x[0-9a-fA-F]{64}$/, "a 32-byte hex value");
@@ -209,6 +210,41 @@ export const AccessSchema = z.object({
   signers: SignersSchema.prefault({}),
 });
 
+const layerMask = z.number().int().min(0).max(15);
+const seconds = z.number().int().min(0).max(2 ** 48 - 1);
+
+/**
+ * The on-chain fields of the cell's ERC-8490 maintenance policy (docs/meditation.md). The defaults: every layer
+ * supported and required, every trigger allowed, full disclosure (the documents are public anyway), an hour's due
+ * window, no activity pulse, and the ERC's example intervals — daily for the runtime, weekly for memory and skills,
+ * monthly for tasks and roles, quarterly for cognition. The floor a controller sets can only tighten these.
+ */
+export const MaintenancePolicySchema = z.object({
+  supportedLayers: layerMask.default(15),
+  requiredLayers: layerMask.default(15),
+  allowedTriggers: layerMask.default(15),
+  /** 0 commitment only, 1 summary (cycle records published), 2 full (the layer documents too). */
+  disclosure: z.number().int().min(0).max(2).default(2),
+  dueWindow: seconds.default(3600),
+  /** 0: the activity signal is not tracked (no pulse; a cycle report is a signal of its own). */
+  pulseInterval: seconds.default(0),
+  maxInterval: z.tuple([seconds, seconds, seconds, seconds]).default([86400, 604800, 2592000, 7776000]),
+});
+
+export const MaintenanceSchema = z.object({
+  policy: MaintenancePolicySchema.prefault({}),
+  /** Who holds the controller rights over the cell's maintenance: the guardian (default) or nobody. */
+  controller: z.enum(["guardian", "none"]).default("guardian"),
+  /** The controller's rights: 1 floor, 2 demand, 4 revoke operators (7 = all). */
+  controllerRights: z.number().int().min(0).max(7).default(7),
+  /** Cycles run by the watcher on their own (0.8.x, second slice); off: a cycle runs when commanded (foga meditate run). */
+  auto: z.boolean().default(false),
+  /** Where the maintenance documents live (state, cycle records, policy, salts), relative to the configuration's directory. */
+  dir: z.string().default("meditation"),
+  /** Gas one cycle report is budgeted at through the account (the fee reserve; the estimate sets the real limit). */
+  gasPerReport: z.number().int().min(100_000).default(600_000),
+});
+
 export const CellConfigSchema = z.object({
   schema: z.literal("foga.cell-config/1"),
   name: z.string().min(1).max(64),
@@ -223,6 +259,8 @@ export const CellConfigSchema = z.object({
   policy: PolicySchema.prefault({}),
   runtime: RuntimeSchema.prefault({}),
   access: AccessSchema.prefault({}),
+  /** ERC-8490 maintenance (0.8.0): the policy the cell enrolls with and how its cycles run. */
+  maintenance: MaintenanceSchema.prefault({}),
 });
 
 export type CellConfig = z.infer<typeof CellConfigSchema>;

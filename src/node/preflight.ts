@@ -2,7 +2,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { formatEther, getAddress } from "ethers";
 import { accountSubject } from "../core/kya.js";
-import { operatorScope } from "../genesis/operator-scope.js";
+import { mergeScope, operatorScope, ownerExecuteScope } from "../genesis/operator-scope.js";
 import { runExtractIsolated, runProbeIsolated } from "../genesis/skill-runner.js";
 import { documentsDir, readBack, readBuilt } from "./documents.js";
 import { NODE_SCOPE_GROUPS } from "./init.js";
@@ -85,10 +85,19 @@ export async function preflight(node: Node, o: PreflightOptions = {}): Promise<P
   }
   if (version >= 2) {
     try {
-      const scope = operatorScope(k, NODE_SCOPE_GROUPS);
+      // a one-key cell's owner is its operator and is scope-checked: its allow-list also carries the owner's pairs through
+      // `execute` (operator-scope.ts); a separated cell's must not
+      const oneKey = getAddress(cfg.identity.owner) === getAddress(cfg.identity.operator);
+      const ownerPairs = ownerExecuteScope(k);
+      const scope = oneKey ? mergeScope(operatorScope(k, NODE_SCOPE_GROUPS), ownerPairs) : operatorScope(k, NODE_SCOPE_GROUPS);
       const missing: string[] = [];
       for (let i = 0; i < scope.targets.length; i++) if (!(await cell.contract().operatorAllowed(scope.targets[i], scope.selectors[i]))) missing.push(scope.names[i]);
-      row("account", "the operator allow-list covers the node's capabilities", missing.length ? "Fail" : "Pass", missing.length ? `${missing.length} of ${scope.names.length} missing: ${missing.join(", ")} (the owner adds them with setOperatorAllowedBatch; a cell born before they were part of the scope)` : `${scope.names.length} (target, selector) pairs allowed`);
+      row("account", "the operator allow-list covers the node's capabilities", missing.length ? "Fail" : "Pass", missing.length ? `${missing.length} of ${scope.names.length} missing: ${missing.join(", ")} (the owner adds them with scope_complete; a cell born before they were part of the scope)` : `${scope.names.length} (target, selector) pairs allowed`);
+      if (!oneKey && ownerPairs.targets.length) {
+        const open: string[] = [];
+        for (let i = 0; i < ownerPairs.targets.length; i++) if (await cell.contract().operatorAllowed(ownerPairs.targets[i], ownerPairs.selectors[i])) open.push(ownerPairs.names[i]);
+        if (open.length) row("account", "the owner's pairs stay closed to a separate operator", "Warn", `${open.join(", ")} allowed to the operator ${cfg.identity.operator} (opened while the cell had one key; the owner closes them with setOperatorAllowedBatch(…, false), as operator_rotate does)`);
+      }
     } catch (e) {
       row("account", "the operator allow-list covers the node's capabilities", "NotTested", (e as Error).message);
     }
@@ -101,6 +110,31 @@ export async function preflight(node: Node, o: PreflightOptions = {}): Promise<P
     row("budget", "the account holds working capital", balance > 0n ? "Pass" : "Warn", `${formatEther(balance)} ETH on the account${valueCap !== null && valueCap !== undefined ? `; the account's own daily value cap ${formatEther(BigInt(valueCap))} ETH` : ""}`);
   } catch (e) {
     row("budget", "the policy's caps are consistent", "NotTested", (e as Error).message);
+  }
+
+  // --- maintenance (ERC-8490), on a world that has the registry: enrolled, documents in step with the chain, nothing overdue
+  if (k.meditation.available) {
+    try {
+      const { readState } = await import("./meditation.js");
+      const { currentLock, cycleFact } = await import("./meditation-cycle.js");
+      const s = await k.meditation.summary(cell.address);
+      if (!s.enrolled) row("maintenance", "the cell is enrolled in the maintenance registry", "Warn", `${cell.address} is not enrolled in ${s.registry} (foga cell extend --covenants 8490)`);
+      else {
+        row("maintenance", "the cell is enrolled in the maintenance registry", "Pass", `state version ${s.head.stateVersion}, ${s.head.recordCount} record(s), policy v${s.head.policyVersion}, controller ${s.head.controllerRights ? s.head.controller : "none"}`);
+        const state = readState(node);
+        row("maintenance", "the registered documents kept here are the ones on chain", !state ? "Warn" : state.root.toLowerCase() === s.head.root.toLowerCase() ? "Pass" : "Fail", !state ? "no registered state is kept here (the enrollment was made elsewhere, or the store is new)" : `local version ${state.stateVersion} root ${state.root.slice(0, 10)}…; chain root ${s.head.root.slice(0, 10)}…`);
+        const overdue = (s.layers ?? []).filter((l) => l.statusName === "OVERDUE");
+        const due = (s.layers ?? []).filter((l) => l.statusName === "DUE");
+        row("maintenance", "no layer is overdue", overdue.length ? "Warn" : "Pass", (s.layers ?? []).map((l) => `${l.name} ${l.statusName}${l.neverCompleted ? " (never completed)" : ""}`).join(", ") + (overdue.length || due.length ? " — foga meditate run" : ""));
+        const lock = currentLock(node);
+        if (lock) {
+          const c = cycleFact(node, lock.cycleId);
+          row("maintenance", "no cycle is left half-way", "Warn", `cycle ${lock.cycleId} is ${c?.phase ?? "unknown"} (report ${node.store.get(`job:${lock.cycleId}:report`)?.status ?? "not sent"}); the next foga meditate run reconciles it`);
+        }
+      }
+    } catch (e) {
+      row("maintenance", "the cell is enrolled in the maintenance registry", "NotTested", (e as Error).message);
+    }
   }
 
   // --- the operator key: this environment's, alone; the address the account names; gas for its acts

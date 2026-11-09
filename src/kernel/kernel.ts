@@ -2,6 +2,7 @@ import { Contract, Interface, Wallet, getCreateAddress, type ContractRunner, typ
 import { ACDF } from "../core/acdf.js";
 import { ADRF } from "../core/adrf.js";
 import { AID } from "../core/aid.js";
+import { Meditation } from "../core/amm.js";
 import { ARD } from "../core/ard.js";
 import { ASF } from "../core/asf.js";
 import { ERC8004_ABI, Identity8004 } from "../core/erc8004.js";
@@ -50,6 +51,8 @@ export class Kernel {
   readonly acdf: ACDF;
   readonly adrf: ADRF;
   readonly swarms: Swarms;
+  /** ERC-8490 maintenance registration; an extension — `meditation.available` says whether this world has the registry. */
+  readonly meditation: Meditation;
   private readonly evidenceList: EvidenceRecord[] = [];
 
   private constructor(
@@ -78,6 +81,7 @@ export class Kernel {
     this.acdf = new ACDF(world);
     this.adrf = new ADRF(world);
     this.swarms = new Swarms(world);
+    this.meditation = new Meditation(world);
     for (const id of Object.keys(world.file.contracts)) {
       if (id === "identity8004") continue;
       try {

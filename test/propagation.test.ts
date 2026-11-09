@@ -55,8 +55,9 @@ test("propagation: a free manifest from the configuration, served live and read 
     assert.equal(m.discovery.onchain.optional, true, "on-chain discoverability is opt-in");
     assert.ok(m.discovery.free.length >= 2, "there are free discovery routes");
     // the covenants the world actually has, read off its contract keys — the local world attaches all eleven, no extension
-    assert.deepEqual(m.world.covenants, [...FOGA_COVENANTS], "the deployed local world attaches the ten covenants and ERC-8004");
-    assert.deepEqual(m.world.extensions, [], "nothing beyond the base set on this world");
+    assert.deepEqual(m.world.covenants, [...FOGA_COVENANTS, "ERC-8490"], "the deployed local world attaches the ten covenants, ERC-8004 and the ERC-8490 extension");
+    assert.deepEqual(m.world.extensions, ["ERC-8490"], "the maintenance registry is the one covenant beyond the base set (0.8.0)");
+    assert.ok(m.maintenance && m.maintenance.registry, "the manifest points at the maintenance registry");
     // the services slot: the maintainer's catalog by default, visible and declinable, planned offers not for sale
     assert.ok(m.services, "the services block is present by default");
     assert.equal(m.services!.catalog, "https://foga.finchip.ai/services.json");

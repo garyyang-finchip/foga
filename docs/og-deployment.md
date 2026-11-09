@@ -94,6 +94,22 @@ curl -s -X POST https://foga.finchip.ai/a2a -H 'content-type: application/json' 
 
 should answer a `TASK_STATE_COMPLETED` quote of the cell's offered skills and the terms a tender must meet.
 
+## The cell's own maintenance (0.8.0)
+
+The OG was born before the ERC-8490 registry was known, so its world file has no entry for it and it is not enrolled; the extension in place (docs/meditation.md) brings it on without touching its identity, account, store or documents. With the 0.8.0 build in place (`git pull`, `npm ci`, `npm run build`), the owner's key — the box's one key — extends the cell, the service restarts so the node opens the world with the registry in it, and the first cycle is run and read back:
+
+```
+foga cell extend --covenants 8490 --config /opt/foga/cell.config.json --wallet /opt/foga/wallet   # the world file (a .before-8490.bak beside it), the scope, the enrollment, read back
+sudo systemctl restart foga-og
+foga meditate status --config /opt/foga/cell.config.json                                        # enrolled, state version 1, every layer FRESH and never completed
+foga meditate run --config /opt/foga/cell.config.json --wallet /opt/foga/wallet --dry-run        # the cycle computed and shown; nothing sent
+foga meditate run --config /opt/foga/cell.config.json --wallet /opt/foga/wallet                  # the first cycle: the routines, the four documents, one report
+curl -s https://foga.finchip.ai/documents/maintenance/policy.json | jq .onchain
+curl -s https://foga.finchip.ai/.well-known/foga-cell.json | jq .maintenance
+```
+
+The cycle's record lands under `/opt/foga/meditation/cycles/` (the configuration's directory, `maintenance.dir`) and is served at `https://foga.finchip.ai/documents/maintenance/cycles/<id>.json`, where anyone recomputes the hash the registry holds. `foga node preflight` gains a `maintenance` area. A cell joined with `foga join` is extended the same way, with its own configuration (`~/.foga/cells/sepolia/<name>/cell.config.json`) and wallet (`~/.foga/wallet`), after stopping the join and before starting it again (the join never overwrites the world file it finds). Cycles run when commanded in this release; the watcher's automatic cycles are the next slice.
+
 ## The MCP registry listing
 
 With `https://foga.finchip.ai/mcp` answering, the cell was listed in the MCP registry as `io.github.garyyang-finchip/foga` so clients and other agents discover it (docs/mcp.md, "The package"). `server.json` at the repository root is the npm-package manifest; the OG cell also writes its own `server.json` among its documents (`foga cell docs build`) with this cell's MCP URL as the remote. Publishing is the package owner's, from a checkout, and needs the remote reachable:

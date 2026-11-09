@@ -51,6 +51,22 @@ export class OperationReverted extends Error {
   }
 }
 
+/**
+ * The operation was broadcast and is still pending when the manager stops waiting: nothing failed, the row stays
+ * `sent`, and the next call under the same key resolves it from the chain (the receipt if it was mined, a replacement
+ * or a re-send otherwise). A caller that owns a job keeps the job running on this error rather than marking it failed.
+ */
+export class OperationPending extends Error {
+  constructor(
+    readonly key: string,
+    readonly txHash: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "OperationPending";
+  }
+}
+
 export interface TxManagerOptions {
   /** Milliseconds to wait for a broadcast transaction's receipt before replacing it or giving up (the op stays `sent`). */
   receiptTimeoutMs?: number;
@@ -273,11 +289,11 @@ export class TxManager {
       const pending = await this.provider.getTransaction(hash);
       if (pending) {
         if (made >= max) {
-          throw new Error(`operation ${req.key}: no receipt for ${hash} within ${timeoutMs / 1000} s after ${made} fee replacement${made === 1 ? "" : "s"} (still pending; the limit is ${max}). The row stays 'sent' and is recovered on the next run (the receipt is read if a transaction of this operation was mined, otherwise it is replaced or sent again). If the node is local, check that nothing else is saturating the machine (a proving-key build, for instance) and run again.`);
+          throw new OperationPending(req.key, hash, `operation ${req.key}: no receipt for ${hash} within ${timeoutMs / 1000} s after ${made} fee replacement${made === 1 ? "" : "s"} (still pending; the limit is ${max}). The row stays 'sent' and is recovered on the next run (the receipt is read if a transaction of this operation was mined, otherwise it is replaced or sent again). If the node is local, check that nothing else is saturating the machine (a proving-key build, for instance) and run again.`);
         }
         const next = await this.replace(req, wallet, current, pending);
         if (!next) {
-          throw new Error(`operation ${req.key}: ${hash} is still pending after ${timeoutMs / 1000} s and raising its fees would pass the fee cap; the row stays 'sent' and is recovered on the next run.`);
+          throw new OperationPending(req.key, hash, `operation ${req.key}: ${hash} is still pending after ${timeoutMs / 1000} s and raising its fees would pass the fee cap; the row stays 'sent' and is recovered on the next run.`);
         }
         current = next.populated;
         hash = next.hash;
@@ -302,7 +318,7 @@ export class TxManager {
   private async awaitOnly(req: SendRequest, hash: string): Promise<TransactionReceipt> {
     const timeoutMs = this.options.receiptTimeoutMs ?? 120_000;
     const receipt = await this.waitAny(req.key, hash, timeoutMs);
-    if (!receipt) throw new Error(`operation ${req.key}: ${hash} is still pending and cannot be replaced (replacement limit or fee cap); the row stays 'sent' and is recovered on the next run.`);
+    if (!receipt) throw new OperationPending(req.key, hash, `operation ${req.key}: ${hash} is still pending and cannot be replaced (replacement limit or fee cap); the row stays 'sent' and is recovered on the next run.`);
     return receipt;
   }
 
@@ -372,6 +388,32 @@ export class TxManager {
       if (Date.now() >= deadline) return null;
       await new Promise((r) => setTimeout(r, Math.min(poll, Math.max(0, deadline - Date.now()))));
     }
+  }
+
+  /**
+   * Settle a `sent` operation from the chain alone, without sending, replacing or waiting: when any hash the operation
+   * had was mined, its receipt completes the row (a reverted receipt fails it and throws OperationReverted) and the
+   * confirmation is returned; otherwise null — the transaction is still pending or gone, and `send` under the same key
+   * is what decides that. A caller reconciling an interrupted job uses this before it decides anything else.
+   */
+  async resolveSent(key: string): Promise<Confirmed | null> {
+    const rec = this.store.get(key);
+    if (!rec) return null;
+    if (rec.status === "confirmed" && rec.txHash) {
+      const receipt = await this.provider.getTransactionReceipt(rec.txHash);
+      return receipt ? { key, txHash: rec.txHash, receipt, replayed: true, recovered: false } : null;
+    }
+    if (rec.status !== "sent" || !rec.txHash) return null;
+    for (const h of this.hashesOf(key, rec.txHash)) {
+      const receipt = await this.provider.getTransactionReceipt(h);
+      if (receipt) {
+        this.store.journal("recovered-receipt", { txHash: h, block: receipt.blockNumber }, key);
+        this.log(`${key}: recovered receipt for ${h} from block ${receipt.blockNumber}; not re-sent`);
+        await this.ensureVisible(receipt.blockNumber);
+        return this.finish(key, receipt, true);
+      }
+    }
+    return null;
   }
 
   /**

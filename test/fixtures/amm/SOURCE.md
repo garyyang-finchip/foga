@@ -1,0 +1,3 @@
+# Upstream ERC-8490 vectors
+
+Copied from `garyyang-finchip/agent-meditation-mechanism` (CC0-1.0) at commit `58499030e92a65e2a427c0faca98123b9947f7a7`, the commit `vendor/LOCK.json` pins: `assets/erc-agent-meditation/examples/mcp-timeout-cycle/` (the worked example: baseline and post layer documents, salts, policy, cycle record), `assets/erc-agent-meditation/vectors/{example-mcp-timeout,jcs}.json` (the expected commitments, roots, policy struct, report struct, calldata and the RFC 8785 cases) and `assets/erc-agent-meditation/abi/IAgentMeditation.json` (as `IAgentMeditation.abi.json`). `test/amm.test.ts` holds `src/core/amm.ts` to them byte for byte; the vendored tree is not committed, so the test carries its own copy.

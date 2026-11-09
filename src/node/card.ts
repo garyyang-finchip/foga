@@ -1,5 +1,6 @@
 import { endpointsOf } from "../a2a/card.js";
 import { chainById } from "../core/chains.js";
+import { readPolicy, readState } from "./meditation.js";
 import { FOGA_COVENANTS } from "./propagation.js";
 import type { Node } from "./node.js";
 import { PACKAGE_NAME } from "../util/version.js";
@@ -21,6 +22,13 @@ export interface CellCard {
   work: { taskToken: string | null; minRewardWei: string; acceptance: string[]; counterpartyMinLevel: number };
   standing: { schemeId: string; issuers: string[] } | null;
   endpoints: { mcp: string | null; a2a: string | null; web: string | null; manifest: string | null; card: string | null };
+  /**
+   * The cell's own maintenance (ERC-8490, 0.8.0), from what the node keeps — the registry it enrolled in, the state version
+   * and root it registered last, the policy version — with no chain call; null on a world without the registry. The
+   * registry's own timeliness (FRESH / DUE / OVERDUE) is a live read: meditate_status. Registered maintenance says a
+   * routine completed in time, not that the cell is correct.
+   */
+  maintenance: { registry: string; stateVersion: string | null; root: string | null; policyVersion: number | null; lastCycle: string | null; status: string } | null;
   program: { package: string; version: string; join: string };
 }
 
@@ -56,8 +64,24 @@ export function cellCard(node: Node, o: { version: string }): CellCard {
     work: { taskToken: has("8414/TaskToken"), minRewardWei: String(cfg.policy.tenders.minRewardWei), acceptance: cfg.policy.tenders.acceptance, counterpartyMinLevel: cfg.policy.tenders.counterpartyMinLevel },
     standing: id.standing ? { schemeId: id.standing.schemeId, issuers: id.standing.issuers } : null,
     endpoints: { mcp: ep.mcp, a2a: ep.a2a, web: ep.web, manifest: base ? `${base}/.well-known/foga-cell.json` : null, card: base ? `${base}/.well-known/agent-card.json` : null },
+    maintenance: maintenanceOf(node),
     program: { package: PACKAGE_NAME, version: o.version, join: `npx -y ${PACKAGE_NAME} join --chain ${chain?.name ?? "<chain>"}` },
   };
+}
+
+function maintenanceOf(node: Node): CellCard["maintenance"] {
+  const registry = (() => {
+    try {
+      return node.world.address("8490/AgentMeditationRegistry");
+    } catch {
+      return null;
+    }
+  })();
+  if (!registry) return null;
+  const state = readState(node);
+  const policy = readPolicy(node);
+  const lastCycle = node.store.getFact<string>("meditation.lastCycle") ?? null;
+  return { registry, stateVersion: state?.stateVersion ?? null, root: state?.root ?? null, policyVersion: policy?.version ?? null, lastCycle, status: state ? `registered state version ${state.stateVersion} (${state.by}); the registry's timeliness is a live read (meditate_status)` : "not enrolled as far as this node knows (foga cell extend --covenants 8490)" };
 }
 
 /** The card as a few lines an agent can paste to another agent. */
@@ -77,6 +101,7 @@ export function formatCard(c: CellCard): string {
   if (c.work.taskToken) lines.push(`  work      mint an ERC-8414 tender on TaskToken ${c.work.taskToken} for one of my offered skills, reward ≥ ${c.work.minRewardWei} wei, acceptance ${c.work.acceptance.join("/")}${c.work.counterpartyMinLevel ? `, your KYA level ≥ ${c.work.counterpartyMinLevel}` : ""}; I find it on chain, run the skill, submit, settle`);
   if (c.endpoints.mcp) lines.push(`  reach me  MCP ${c.endpoints.mcp} · A2A ${c.endpoints.a2a} · manifest ${c.endpoints.manifest}`);
   else lines.push("  reach me  on chain (no public URL); a tender is the handshake");
+  if (c.maintenance) lines.push(`  upkeep    ERC-8490 registry ${c.maintenance.registry}: ${c.maintenance.stateVersion ? `state version ${c.maintenance.stateVersion}, policy v${c.maintenance.policyVersion ?? "?"}${c.maintenance.lastCycle ? `, last cycle ${c.maintenance.lastCycle}` : ""}` : "not enrolled"} — the registry judges timeliness, the record says what was checked`);
   lines.push(`  program   ${c.program.package} ${c.program.version} — become one too:  ${c.program.join}`);
   return lines.join("\n");
 }

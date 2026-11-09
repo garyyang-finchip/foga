@@ -27,6 +27,10 @@ export const CELL_USAGE = `
                                                  the cell's birth (the owner's key: the wallet's, or FOGA_OWNER_KEY[_FILE]); writes the account, agent id, binding, record and unit into the config
   foga cell migrate --config <cell.config.json> --to <new.config.json> [--store <new ops.sqlite>] [--operator <addr>] [--capital-wei <n>] [--no-sweep]
                                                  move the cell to a new revision-2 account (the owner's key); the new config and store are written beside
+  foga cell extend --covenants 8490 --config <cell.config.json> [--wallet <dir>] [--rpc <url>] [--registry <addr>]
+                                                 extend a running cell in place with a covenant the program gained (ERC-8490): the registry enters the
+                                                 cell's world file (from the packaged world of its chain, or --registry), the owner opens the operator's
+                                                 maintenance scope and enrolls the cell through its account, the registry is read back; idempotent, no migration
   foga cell status --config <cell.config.json>   cell_status as the operator
   foga cell card --config <cell.config.json> [--as-json]
                                                  the cell's card: what it is and how to reach it, in the words another agent needs (no chain call)
@@ -63,6 +67,18 @@ export const CELL_USAGE = `
   foga node run --config <cell.config.json> [--model stub|anthropic] [--listen <host:port> | --no-http] [--interval <s>] [--once | --ticks <n>] [--transcripts <dir>]
                                                  the embedded node: the HTTP server, the watchers and the runner (a model proposing acts the catalog
                                                  judges) on the poll interval; the operator key alone; anthropic needs ANTHROPIC_API_KEY and runtime.model.model
+  foga meditate status --config <cell.config.json> [--rpc <url>] [--as-json]   the ERC-8490 maintenance status: enrollment, state version and root, each layer's
+                                                 timeliness (FRESH / DUE / OVERDUE) and commitment, the signal, the policy; what the node keeps beside it
+  foga meditate run --config <cell.config.json> [--wallet <dir>] [--layers 0,1,2,3] [--trigger commanded|scheduled|event|self] [--detail <text>] [--dry-run] [--job-id <id>]
+                                                 one maintenance cycle (meditate_run, the operator key): the routines locally, the four state documents
+                                                 rebuilt, one report through the account; --dry-run computes and shows the cycle, sends and keeps nothing;
+                                                 --job-id resumes an interrupted cycle
+  foga meditate enroll | policy --config <cell.config.json> [--wallet <dir>]   the owner's acts through the account: enroll (baseline, policy, guardian as
+                                                 controller; opens the maintenance scope when missing), policy (record maintenance.policy as a new version)
+  foga meditate controller --to <addr> [--rights 7] --config … [--wallet <dir>]   appoint (the owner, when none is set) or transfer / shrink / renounce (the guardian)
+  foga meditate demand [--layers …] [--due-in-seconds 86400] [--withdraw] | floor [--required-layers n] [--pulse-interval s] [--max-interval a,b,c,d]
+                                                 the controller's acts (the guardian key): a demand with a deadline, a floor the policy cannot relax
+  foga meditate pulse [--next-planned-at <ts>] [--force] --config … [--wallet <dir>]   an activity signal through the account (the operator key)
 `;
 
 type Flags = Record<string, string | boolean>;
@@ -230,6 +246,58 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     return;
   }
 
+  if (cmd === "extend") {
+    const covenants = (str(flags, "covenants") ?? fail("--covenants 8490 is required (the covenant to extend the cell with)")).split(",").map((c) => c.trim()).filter(Boolean);
+    const { extendWorld, EXTENSIONS } = await import("./node/extend.js");
+    const { loadCellConfig, configPath: cfgPath } = await import("./node/config.js");
+    const { chainById, resolveRpc } = await import("./core/chains.js");
+    for (const c of covenants) if (!EXTENSIONS[c]) fail(`unknown covenant ${c}; this build extends with ${Object.keys(EXTENSIONS).join(", ")}`);
+    const owner = keysFor("owner", false, wallet);
+    const loaded = loadCellConfig(configPath);
+    const worldPath = cfgPath(loaded, loaded.config.world);
+    const worldChain = (JSON.parse(readFileSync(worldPath, "utf8")) as { chainId: number }).chainId;
+    const chain = chainById(worldChain);
+    const rpcUrl = rpc ?? loaded.config.rpc ?? resolveRpc(chain, undefined).url;
+    const results: Record<string, unknown> = {};
+    for (const c of covenants) {
+      // 1. the world file: the covenant's contract, from the packaged world of the chain or the address given
+      const ext = await extendWorld({ worldPath, covenant: c, address: str(flags, "registry"), rpc: rpcUrl, log });
+      log(`extend ${c}: ${ext.contract} ${ext.outcome === "added" ? "added to" : "already in"} the world file at ${ext.address}`);
+      // 2. the cell: the owner opens the maintenance scope and enrolls through the account (one keyed job; a refusal because it is enrolled already is the end state)
+      const node = await Node.open({ configPath, rpc: rpcUrl, keys: { owner }, log });
+      try {
+        if (c === "8490") {
+          const head = await node.kernel.meditation.headOf(node.body.address);
+          let enrollment: unknown;
+          if (head.enrolled) {
+            enrollment = { alreadyEnrolled: true, stateVersion: head.stateVersion.toString(), root: head.root, policyVersion: head.policyVersion };
+            log(`extend ${c}: ${node.body.address} is already enrolled (state version ${head.stateVersion}, policy v${head.policyVersion}); nothing sent`);
+          } else {
+            const r = await catalog.invoke(node, "meditate_enroll", {}, OPERATOR_CALLER, { mode: "act" });
+            if (!r.ok) {
+              print(r);
+              process.exitCode = 2;
+              return;
+            }
+            enrollment = r.output;
+            log(`extend ${c}: enrolled — state version ${(r.output as { stateVersion: string }).stateVersion}, root ${(r.output as { root: string }).root}${(r.output as { scopeOpened: string[] }).scopeOpened.length ? `; scope opened: ${(r.output as { scopeOpened: string[] }).scopeOpened.join(", ")}` : ""} (job ${r.jobId})`);
+          }
+          // the scope, when the cell was enrolled before this build added the group
+          const sc = await catalog.invoke(node, "scope_complete", { groups: ["maintenance"] }, OPERATOR_CALLER, { mode: "act" });
+          if (sc.ok) log(`extend ${c}: allow-list completed: ${(sc.output as { added: string[] }).added.join(", ")}`);
+          else if (!/allowed already/.test(sc.reason)) log(`extend ${c}: scope: ${sc.reason}`);
+          // 3. read back
+          const st = await catalog.invoke(node, "meditate_status", {}, OPERATOR_CALLER);
+          results[c] = { world: ext, enrollment, status: st.ok ? st.output : st.reason };
+        }
+      } finally {
+        node.close();
+      }
+    }
+    print(results);
+    return;
+  }
+
   if (cmd === "docs") {
     const sub = rest[0];
     const { buildDocuments, readBack, documentsDir, onChainState, readBuilt, publishSteps } = await import("./node/documents.js");
@@ -316,6 +384,88 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     const result = await catalog.invoke(node, name, input, caller, { mode });
     print(result);
     if (!result.ok) process.exitCode = 2;
+  } finally {
+    node.close();
+  }
+}
+
+/**
+ * `foga meditate <verb> …`: the ERC-8490 capabilities said in the maintenance vocabulary. Each verb is one capability
+ * of the catalog with the key its signer needs: run and pulse the operator's, enroll and policy the owner's, demand and
+ * floor the guardian's, controller the owner's or the guardian's as the registry's state decides (docs/meditation.md).
+ */
+export async function meditateCommand(verb: string | undefined, _rest: string[], flags: Flags): Promise<void> {
+  const catalog = defaultCatalog();
+  const verbs: Record<string, { capability: string; role: "operator" | "owner" | "guardian" | "none" | "either" }> = {
+    status: { capability: "meditate_status", role: "none" },
+    run: { capability: "meditate_run", role: "operator" },
+    pulse: { capability: "meditate_pulse", role: "operator" },
+    enroll: { capability: "meditate_enroll", role: "owner" },
+    policy: { capability: "meditate_policy", role: "owner" },
+    controller: { capability: "meditate_controller", role: "either" },
+    demand: { capability: "meditate_demand", role: "guardian" },
+    floor: { capability: "meditate_floor", role: "guardian" },
+  };
+  if (!verb || verb === "help" || !verbs[verb]) {
+    if (verb && verb !== "help") console.error(`unknown verb ${verb}`);
+    const lines = CELL_USAGE.split("\n");
+    const from = lines.findIndex((l) => /foga meditate status/.test(l));
+    const to = lines.findIndex((l) => /foga meditate pulse/.test(l));
+    console.log(from >= 0 && to >= from ? lines.slice(from, to + 1).join("\n") : CELL_USAGE);
+    return;
+  }
+  const { capability, role } = verbs[verb];
+  const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
+  const rpc = str(flags, "rpc");
+  const log = (line: string) => console.error(line);
+  const wallet = walletFromFlags(flags);
+  const dryRun = Boolean(flags["dry-run"]);
+  const mode: Mode = dryRun ? "simulate" : "act";
+  // the input: the flags, in the capability's names
+  const input: Record<string, unknown> = {};
+  const take = (flag: string, field: string, f: (v: string) => unknown = (v) => v) => {
+    const v = str(flags, flag);
+    if (v !== undefined) input[field] = f(v);
+    else if (flags[flag] === true) input[field] = true;
+  };
+  take("layers", "layers");
+  take("trigger", "trigger");
+  take("detail", "detail");
+  take("job-id", "jobId");
+  take("next-planned-at", "nextPlannedAt", Number);
+  take("force", "force");
+  take("to", "to");
+  take("rights", "rights", Number);
+  take("due-in-seconds", "dueInSeconds", Number);
+  take("withdraw", "withdraw");
+  take("required-layers", "requiredLayers", Number);
+  take("pulse-interval", "pulseInterval", Number);
+  take("max-interval", "maxInterval", (v) => v.split(",").map((x) => Number(x.trim())));
+  take("subject", "subject");
+  const keys: NodeKeys = {};
+  if (mode === "act" && role !== "none") {
+    if (role === "either") {
+      // the registry's state decides whose act it is; both keys may be at hand, and the plan refuses when the right one is not
+      for (const r of ["owner", "guardian"] as const) {
+        try {
+          keys[r] = keysFor(r, false, wallet);
+        } catch {
+          /* not here */
+        }
+      }
+      if (!keys.owner && !keys.guardian) fail("meditate controller needs the owner's key (to appoint a controller) or the guardian's (to transfer, shrink or renounce)");
+    } else keys[role] = keysFor(role, false, wallet);
+  }
+  const node = await Node.open({ configPath, rpc, keys, log });
+  try {
+    const result = await catalog.invoke(node, capability, input, OPERATOR_CALLER, { mode });
+    if (verb === "status" && result.ok && !flags["as-json"]) {
+      const { formatMaintenanceStatus } = await import("./node/meditation-cycle.js");
+      console.log(formatMaintenanceStatus(result.output as Parameters<typeof formatMaintenanceStatus>[0]));
+      return;
+    }
+    print(result);
+    if (!result.ok) process.exitCode = result.gate === "pending" ? 3 : 2;
   } finally {
     node.close();
   }

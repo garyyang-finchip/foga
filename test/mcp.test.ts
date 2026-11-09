@@ -207,7 +207,7 @@ test("MCP over Streamable HTTP and stdio, and the HTTP API, on a born cell", { t
     assert.equal(pub.getNegotiatedProtocolVersion(), "2026-07-28");
     const pubTools = await pub.listTools();
     const pubToolNames = names(pubTools);
-    assert.deepEqual(pubToolNames, ["cell_status", "docs_status", "identity_resolve", "kya_check", "propagation_kit", "safety_status", "skill_inspect", "skill_list", "spec_read", "tender_inspect", "tender_list", "tender_precheck_simulate", "world_describe"], "the public's tools: the public reads and the dry run of a pre-check");
+    assert.deepEqual(pubToolNames, ["cell_status", "docs_status", "identity_resolve", "kya_check", "meditate_status", "propagation_kit", "safety_status", "skill_inspect", "skill_list", "spec_read", "tender_inspect", "tender_list", "tender_precheck_simulate", "world_describe"], "the public's tools: the public reads and the dry run of a pre-check");
     const statusTool = pubTools.tools.find((x) => x.name === "cell_status")!;
     assert.equal(statusTool.annotations?.readOnlyHint, true);
     assert.equal((statusTool.outputSchema as { type?: string })?.type, "object");
@@ -233,7 +233,7 @@ test("MCP over Streamable HTTP and stdio, and the HTTP API, on a born cell", { t
     const badArgs = await call(pub, "tender_inspect", { tokenId: "x" });
     assert.ok(badArgs.isError, "bad input is a tool error");
     const resources = await pub.listResources();
-    assert.deepEqual(resources.resources.map((r) => r.uri).sort(), ["foga://cell/status", "foga://docs/compatibility-matrix", "foga://docs/join", "foga://docs/quickstart", "foga://policy", "foga://spec/foga-cell-v1", "foga://world"]);
+    assert.deepEqual(resources.resources.map((r) => r.uri).sort(), ["foga://cell/status", "foga://docs/compatibility-matrix", "foga://docs/join", "foga://docs/meditation", "foga://docs/quickstart", "foga://policy", "foga://spec/foga-cell-v1", "foga://world"]);
     const replicate = await pub.readResource({ uri: "foga://docs/quickstart" });
     assert.match(String((replicate.contents[0] as { text?: string }).text), /Quickstart \(foga quickstart\)/, "every cell carries the genome's instructions");
     const policy = await pub.readResource({ uri: "foga://policy" });

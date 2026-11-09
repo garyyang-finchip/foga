@@ -74,6 +74,13 @@ export interface ActPlan<O = unknown> {
   /** Native value the steps move out of the cell, in total (for the budget). */
   valueWei: bigint;
   steps: ActStep[];
+  /**
+   * Gas one step of this plan is expected to burn, for the fee reserve the budget gate holds until the operation's real
+   * cost replaces it (catalog.ts FEE_RESERVE_GAS when absent). A plan whose calls are known to be heavy (an ERC-8490
+   * enrollment at ~2.3 M gas, a cycle report at ~0.3 M through the account) says so here; the estimate at send time
+   * decides the transaction's own limit either way.
+   */
+  gasPerStep?: bigint;
   /** Work done off chain when the act is allowed (a skill run); its result is part of the output. */
   work?: () => Promise<unknown>;
   /** The output once the steps are confirmed (or, in simulate mode, once the plan passed). */

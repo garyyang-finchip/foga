@@ -24,6 +24,7 @@ FOGA locks five things separately, because they drift separately:
 | 8454 | aifi-unit-framework | `1be1da69811875bae0a6fd7b10152b4831e5538f` | foundry, solc 0.8.30, runs 200, cancun, bytecode_hash none | native |
 | 8468 | agent-safety-framework | `a76071c0e0ab76c296a0eb878dee1365ce5a78bc` | foundry, solc 0.8.30, runs 200, via-IR, cancun, bytecode_hash none, external libraries | native |
 | 8471 | ai-dispute-resolution | `cd5a3e076d648ff5c29d87ab023b22398e0ab17a` | foundry, solc 0.8.30, runs 200, via-IR, cancun, bytecode_hash none | native |
+| 8490 (extension, 0.8.0) | agent-meditation-mechanism | `58499030e92a65e2a427c0faca98123b9947f7a7` | foundry, solc 0.8.28, runs 200, cancun, bytecode_hash none, cbor_metadata off | native |
 
 "Staged" means the contract tree is copied into a throw-away Foundry project whose settings mirror the upstream solc-js script (same compiler version and commit — `0.8.28+commit.7893614a`, the version recorded in the upstream Sepolia deployments — same optimizer, runs, EVM version and metadata settings). Only the orchestration changes; the compiler input does not. Source paths in the staged project equal the upstream script's source names, so even the metadata hash is expected to match.
 

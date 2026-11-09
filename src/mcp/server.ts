@@ -179,6 +179,10 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
   if (existsSync(joinDoc)) {
     server.registerResource("join", "foga://docs/join", { title: "Become a cell", description: "How any agent becomes a FOGA cell that lives on a public chain in one command (foga join): the wallet, the funding, the birth, the card, work over the chain, other chains with the same key.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(joinDoc, "utf8") }] }));
   }
+  const meditationDoc = join(repoRoot(), "docs", "meditation.md");
+  if (existsSync(meditationDoc)) {
+    server.registerResource("meditation", "foga://docs/meditation", { title: "The cell's own maintenance (ERC-8490)", description: "What this cell registers about its own upkeep — four layer state documents, a state version, a timeliness per layer — what FRESH means and does not, and how a cycle is run, resumed and recomputed.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(meditationDoc, "utf8") }] }));
+  }
   server.registerPrompt("become-a-cell", { title: "Become a cell", description: "Replicate: make yourself a FOGA cell on your own machine, with your own wallet — the same program as this node, your own identity.", argsSchema: z.object({}) }, () => ({
     messages: [
       {

@@ -67,6 +67,12 @@ export interface PropagationManifest {
   /** How a cell is found, and what each route costs — free by default, on-chain strictly opt-in. */
   discovery: { free: string[]; onchain: { optional: true; via: string; cost: string } };
   /**
+   * The cell's own maintenance (ERC-8490, 0.8.0), when its world has the registry: where its cycles are registered and
+   * where their records are served, as far as its disclosure goes. Null otherwise. The registry's timeliness is a live
+   * read (meditate_status); "registered" never means "correct".
+   */
+  maintenance: { registry: string; documents: string | null; disclosure: "commitment" | "summary" | "full"; note: string } | null;
+  /**
    * The services around the covenants, free and (later) paid, as the program's maintainer lists them: a pointer this
    * cell's operator may keep, replace with a catalog of their own, or drop (`presence.services`). Visible and
    * declinable, like everything else here; a `planned` offer is not for sale yet.
@@ -146,5 +152,17 @@ export function buildPropagationManifest(node: Node, o: { version: string; skill
       onchain: { optional: true, via: "the ERC-8444 ARD descriptor (foga cell docs publish)", cost: "gas; opt-in, with this manifest and the card as the free backup" },
     },
     services: servicesOf(cfg),
+    maintenance: maintenanceOf(node, base),
+  };
+}
+
+function maintenanceOf(node: Node, base: string | null): PropagationManifest["maintenance"] {
+  if (!node.world.has("8490/AgentMeditationRegistry")) return null;
+  const level = node.config.maintenance.policy.disclosure;
+  return {
+    registry: node.world.address("8490/AgentMeditationRegistry"),
+    documents: base && level > 0 ? `${base}/documents/maintenance/` : null,
+    disclosure: (["commitment", "summary", "full"] as const)[level],
+    note: "ERC-8490: the cell registers its own maintenance cycles — commitments to four layer state documents and a timeliness the registry judges; a cycle record says what was checked and what changed",
   };
 }

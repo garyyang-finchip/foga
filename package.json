@@ -1,12 +1,12 @@
 {
   "name": "@finchip.ai/foga",
-  "version": "0.7.4",
+  "version": "0.8.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/garyyang-finchip/foga.git"
   },
   "homepage": "https://github.com/garyyang-finchip/foga#readme",
-  "description": "Finch OG Agent (FOGA): world builder, conformance doctor, cell kernel, genesis scenario and cell node (MCP server, HTTP API) for the ten-ERC agent stack (ERC-8338/8414/8419/8434/8436/8444/8447/8454/8468/8471)",
+  "description": "Finch OG Agent (FOGA): world builder, conformance doctor, cell kernel, genesis scenario and cell node (MCP server, HTTP API) for the ten-ERC agent stack (ERC-8338/8414/8419/8434/8436/8444/8447/8454/8468/8471), with ERC-8490 self-maintenance as an extension",
   "license": "Apache-2.0",
   "publishConfig": {
     "access": "public"
@@ -20,6 +20,7 @@
     "erc-8414",
     "erc-8434",
     "erc-8468",
+    "erc-8490",
     "ethereum",
     "agents",
     "onchain-agents"

@@ -227,6 +227,12 @@
       "address": "0x015393ECe2E3072055A3Fbe8Fc7f2979B7C7F3Ed",
       "bundleKey": "agent-safety-framework:ASFTaskTenderAdapter",
       "deployedRevision": "revision 7 (2026-10-27)"
+    },
+    "8490/AgentMeditationRegistry": {
+      "address": "0x184dF595404414f91aD11986C47B9a539eF9559f",
+      "bundleKey": "agent-meditation-mechanism:AgentMeditationRegistry",
+      "deployedRevision": "2026-11-09 (solc 0.8.28)",
+      "note": "ERC-8490 Agent Meditation Mechanism registry deployed by the upstream repository on 2026-11-09 (block 12094378, commit 58499030, solc 0.8.28; Sourcify verified). Added in FOGA 0.8.0 as an extension: a cell enrolls through its account (foga cell extend --covenants 8490), existing worlds gain the entry by the same command."
     }
   },
   "notes": [
@@ -234,7 +240,8 @@
     "Seam 1: the ARD AgentAdapter is bound to ARD's fixture AIDRegistry (0x36E4...), not to aid-standard's reference instance (0x01C0...). The registry owner key is session-held upstream, so the binding cannot be changed; cells keep their liveness in both registries (8434/AIDRegistry(ard-fixture) is the backing registry).",
     "Seam 2: only AllowlistEligibility is deployed for ERC-8447; the ERC-8004 and identity-state modules are deployed by foga world deploy, the assertion-level and composite modules by the genesis (no owner restriction).",
     "Seam 3: ERC-8471 is deployed upstream at revision 3 while the locked source is revision 4; the two revisions cannot be bound to each other, so FOGA runs its own revision-4 instance here (see upstreamNotAttached) until the upstream revision-4 run lands.",
-    "Layer-4 expectations below record the upstream wiring as it is, so a Pass means 'matches the recorded upstream state', not 'matches what FOGA would deploy'."
+    "Layer-4 expectations below record the upstream wiring as it is, so a Pass means 'matches the recorded upstream state', not 'matches what FOGA would deploy'.",
+    "ERC-8490 (0.8.0): the Agent Meditation Mechanism registry is attached as an extension; it is not part of the ten-covenant base set and the doctor's layer 5 reports it NotTested until a scenario exercises it."
   ],
   "expectations": {
     "8444/AgentAdapter.identityRegistry": "0x36E4a7BDe8a9D7d445042495180b64C7AF77Fd7E"

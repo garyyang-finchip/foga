@@ -2,9 +2,10 @@ import { getAddress } from "ethers";
 import { z } from "zod";
 import { BindingStateName, Restriction } from "../core/asf.js";
 import { keccakJcs } from "../core/canonical.js";
+import { ownerExecuteScope } from "../genesis/operator-scope.js";
 import { ok, refused, type Gate } from "../node/policy.js";
 import { derivedJobId, zAddress, zBytes32, zJobId, zUint } from "./common.js";
-import type { ActCapability } from "./types.js";
+import type { ActCapability, ActStep } from "./types.js";
 
 /**
  * Admin capabilities: the owner's and the guardian's acts (design memo, Phase 3, section 3 — admin is CLI-only in
@@ -16,7 +17,7 @@ import type { ActCapability } from "./types.js";
 export const operator_rotate: ActCapability = {
   name: "operator_rotate",
   title: "Rotate the operator",
-  description: "The owner sets a new operator key (address, optional expiry and daily native-value cap) on the account; the allow-list stays, and the configuration records the new operator.",
+  description: "The owner sets a new operator key (address, optional expiry and daily native-value cap) on the account; the allow-list stays, and the configuration records the new operator. When the rotation separates a one-key cell's roles, the owner's own pairs through `execute` (the ERC-8490 enrollment, policy and controller; operator-scope.ts) are closed to the new operator in the same job; when it joins them again, they are opened.",
   action: "admin",
   visibility: "operator",
   principal: "cell",
@@ -31,11 +32,23 @@ export const operator_rotate: ActCapability = {
     if (getAddress(previous) === getAddress(input.operator)) gates.push(refused("input", `${input.operator} is the operator already`));
     else gates.push(ok("policy", `operator ${previous} -> ${input.operator}`));
     const jobId = input.jobId ?? derivedJobId("operator-rotate", { operator: input.operator, previous });
+    // the owner's pairs through `execute` belong to a one-key cell alone: closed when the roles separate, opened when they join
+    const owner = getAddress(node.config.identity.owner);
+    const wasOneKey = getAddress(previous) === owner;
+    const willBeOneKey = getAddress(input.operator) === owner;
+    const ownerPairs = ownerExecuteScope(node.kernel);
+    const steps: ActStep[] = [{ name: "setOperator", by: "owner", route: "direct", build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", [input.operator, input.validUntil, BigInt(input.dailyValueCapWei)]), label: `setOperator(${input.operator})` }) }];
+    if (ownerPairs.targets.length && wasOneKey !== willBeOneKey) {
+      const allow = willBeOneKey;
+      const affected: number[] = [];
+      for (let i = 0; i < ownerPairs.targets.length; i++) if ((await cell.contract().operatorAllowed(ownerPairs.targets[i], ownerPairs.selectors[i])) !== allow) affected.push(i);
+      if (affected.length) steps.push({ name: allow ? "openOwnerPairs" : "closeOwnerPairs", by: "owner", route: "direct", build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperatorAllowedBatch", [affected.map((i) => ownerPairs.targets[i]), affected.map((i) => ownerPairs.selectors[i]), allow]), label: `setOperatorAllowedBatch(${affected.map((i) => ownerPairs.names[i]).join(", ")}, ${allow})` }) });
+    }
     return {
       job: { id: jobId, kind: "admin", input: { operator: input.operator, validUntil: input.validUntil, dailyValueCapWei: input.dailyValueCapWei } },
       gates,
       valueWei: 0n,
-      steps: [{ name: "setOperator", by: "owner", route: "direct", build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("setOperator", [input.operator, input.validUntil, BigInt(input.dailyValueCapWei)]), label: `setOperator(${input.operator})` }) }],
+      steps,
       output: (confirmed) => {
         node.config.identity.operator = getAddress(input.operator);
         node.saveConfig();

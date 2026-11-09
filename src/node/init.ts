@@ -4,13 +4,13 @@ import { agentDescriptor, kindId } from "../core/ard.js";
 import { Enforcement, Rights, accountSubjectKey, fogaCellSpecification, oneClause, scopeKeyOf, specIdOf } from "../core/asf.js";
 import { accountRef, dataUri, keccakJcs } from "../core/canonical.js";
 import { cellUnitDefinition } from "../core/units.js";
-import { operatorScope, type ScopeGroup } from "../genesis/operator-scope.js";
+import { NODE_SCOPE_GROUPS, applicableGroups, mergeScope, operatorScope, ownerExecuteScope } from "../genesis/operator-scope.js";
 import { Cell } from "../kernel/cell.js";
+import { enrollmentPlan, recordEnrollment } from "./meditation.js";
 import type { Node } from "./node.js";
 import { ROLE } from "./node.js";
 
-/** The operator scope a standalone cell starts with: identity, standing, skills, labour on both sides, services as provider. */
-export const NODE_SCOPE_GROUPS: ScopeGroup[] = ["identity", "standing", "skills-provider", "labour", "demander", "service-provider"];
+export { NODE_SCOPE_GROUPS } from "../genesis/operator-scope.js";
 
 export interface InitOptions {
   /** Working capital the owner gives the account at birth (default 0.05 ETH on anvil, 0.005 ETH elsewhere). */
@@ -27,6 +27,8 @@ export interface InitResult {
   documentDigest: string;
   specId: string;
   operations: string[];
+  /** The ERC-8490 enrollment, on a world that has the registry; null on one that does not. */
+  maintenance: { registry: string; root: string; stateVersion: string; controller: string; controllerRights: number } | null;
 }
 
 /**
@@ -111,10 +113,15 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   // 3. owner administration: the operator's key, scope and daily cap, the AID registry, the selector classes
   await cell.admin("init.setOperator", "setOperator", [operator, 0, BigInt(cfg.policy.budget.dailyValueWei)]);
   done("init.setOperator");
-  const scope = operatorScope(k, NODE_SCOPE_GROUPS);
+  const groups = applicableGroups(k, NODE_SCOPE_GROUPS);
+  // a one-key cell's owner is its operator, and the account scope-checks that address: the owner's acts through
+  // `execute` (the ERC-8490 enrollment, policy and controller) are opened for such a cell alone (operator-scope.ts)
+  const oneKey = getAddress(owner) === getAddress(operator);
+  const ownerThrough = oneKey ? ownerExecuteScope(k) : { targets: [], selectors: [], names: [] };
+  const scope = mergeScope(operatorScope(k, groups), ownerThrough);
   await cell.admin("init.scope", "setOperatorAllowedBatch", [scope.targets, scope.selectors, true]);
   done("init.scope");
-  k.setFact("init.scope", { groups: NODE_SCOPE_GROUPS, entries: scope.names });
+  k.setFact("init.scope", { groups, entries: scope.names, ownerThroughOperator: ownerThrough.names });
   await cell.admin("init.setAIDRegistry", "setAIDRegistry", [k.aid.address]);
   done("init.setAIDRegistry");
   const sel = (id: string, fn: string) => node.world.iface(id).getFunction(fn)!.selector;
@@ -141,7 +148,7 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   }
 
   // 4. the safety binding, adopted by the account and presented for clause 0
-  const params = { profile: "foga-cell/1", cell: cfg.name, operatorScope: NODE_SCOPE_GROUPS, deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
+  const params = { profile: "foga-cell/1", cell: cfg.name, operatorScope: groups, deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
   const authority = { kind: "owner", owner: accountRef(chainId, owner), guardian: accountRef(chainId, guardian) };
   const input = k.asf.cellBindingInput({ chainId, cell: address, specId, version: spec.version, contentHash, guardian, params, authority });
   const { bindingId } = await cell.adoptBinding("init.adopt", input, 0);
@@ -214,10 +221,26 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   cfg.identity.unitId = unitId.toString();
   node.saveConfig();
 
-  k.evidence("init", cfg.name, { account: address, owner, operator, guardian, specId, bindingId, agentId: agentId.toString(), recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, scope: scope.names, capital: capital.toString() });
+  // 10. maintenance (ERC-8490, an extension; docs/meditation.md): on a world that has the registry the cell enrolls
+  // through its account — the subject is the account — with the commitments of its four layer documents as they are at
+  // birth, the policy the configuration names and the guardian as controller. The documents and the policy are kept
+  // so the commitments can be re-derived; the plan is memoized so a resumed init sends the same calldata.
+  let maintenance: InitResult["maintenance"] = null;
+  if (k.meditation.available) {
+    const plan = await k.memo("init.amm.plan", () => enrollmentPlan(node));
+    await cell.execute("init.amm.enroll", k.meditation.address, k.meditation.encodeEnroll(plan.committed.commitments, plan.policyStruct, plan.controller, plan.controllerRights), { by: "owner" });
+    done("init.amm.enroll");
+    recordEnrollment(node, plan);
+    const head = await k.meditation.headOf(address);
+    if (!head.enrolled || head.root.toLowerCase() !== plan.committed.root.toLowerCase()) throw new Error(`the cell enrolled in the maintenance registry but the registry holds root ${head.root} (enrolled ${head.enrolled}); the baseline was ${plan.committed.root}`);
+    maintenance = { registry: k.meditation.address, root: head.root, stateVersion: head.stateVersion.toString(), controller: plan.controller, controllerRights: plan.controllerRights };
+    log(`  maintenance: enrolled in ${k.meditation.address} at state version ${head.stateVersion}, root ${head.root.slice(0, 10)}…, controller ${plan.controllerRights ? `${plan.controller} (rights ${plan.controllerRights})` : "none"}`);
+  }
+
+  k.evidence("init", cfg.name, { account: address, owner, operator, guardian, specId, bindingId, agentId: agentId.toString(), recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, scope: scope.names, capital: capital.toString(), maintenance });
   const state = await k.aid.stateName(address);
   const status = await cell.status();
   log(`  born: agent ${agentId}, anchor ${state}, binding ${status.verdictName}, record ${recordId.slice(0, 10)}…, unit ${unitId}`);
   if (state !== "ACTIVE" || status.verdictName !== "Satisfied") throw new Error(`the cell was born but is not ready: anchor ${state}, binding ${status.verdictName} [${status.reasonNames.join(",")}]`);
-  return { account: address, agentId: agentId.toString(), bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, specId, operations };
+  return { account: address, agentId: agentId.toString(), bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, specId, operations, maintenance };
 }

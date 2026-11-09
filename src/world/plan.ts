@@ -111,6 +111,9 @@ export const DEPLOY_PLAN: DeployStep[] = [
   { id: "8471/AttestorQuorumRule", bundleKey: "ai-dispute-resolution:AttestorQuorumRule", args: () => [] },
   { id: "8471/ADRFACDFBridge", bundleKey: "ai-dispute-resolution:ADRFACDFBridge", args: (c) => [c.addr("8471/ADRFDisputeRegistry"), c.addr("8436/ACDFRegistry")] },
   { id: "8471/ADRFServiceEscrow", bundleKey: "ai-dispute-resolution:ADRFServiceEscrow", args: (c) => [c.addr("8471/ADRFDisputeRegistry")], note: "service escrow example (obligation source + executor); bound to a policy by the genesis runner" },
+
+  // ERC-8490 (an extension in 0.8.0; docs/meditation.md): the maintenance registry a cell enrolls in through its account
+  { id: "8490/AgentMeditationRegistry", bundleKey: "agent-meditation-mechanism:AgentMeditationRegistry", args: () => [], note: "Agent Meditation Mechanism registry (no constructor arguments; clock mode=timestamp)" },
 ];
 
 export const WIRE_PLAN: WireStep[] = [

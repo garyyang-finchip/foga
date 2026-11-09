@@ -14,5 +14,11 @@
       "ITaskVerifier": "0x9977db15",
       "IOnchainTaskDocument": "0xeb078d05"
     }
+  },
+  "agent-meditation-mechanism": {
+    "source": "assets/erc-agent-meditation/vectors/interface.json (interfaceId of IAgentMeditation; the file keys it `interfaceId`, not by interface name)",
+    "ids": {
+      "IAgentMeditation": "0x9c81b550"
+    }
   }
 }

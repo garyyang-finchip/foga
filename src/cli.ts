@@ -73,6 +73,9 @@ usage:
   foga cell …                                    a cell as a node: birth, migration, and every capability of the catalog as a subcommand (foga cell help)
   foga node tick | watch | mcp | serve | run | key new --config <cell.config.json>   a running node: the watchers, MCP over stdio, the HTTP server, the embedded runner, API keys
   foga mcp --config <cell.config.json>          = foga node mcp (what an MCP client's command line runs)
+  foga meditate status | run | enroll | policy | controller | demand | floor | pulse --config <cell.config.json>
+                                                 the cell's own maintenance (ERC-8490, 0.8.0): its status, a cycle, the enrollment, the policy, the controller
+                                                 (foga cell help lists the flags); foga cell extend --covenants 8490 brings a running cell onto it
 
 environment:
   FOGA_SOLC_DIR   directory with solc-<version> static binaries (offline builds; otherwise forge downloads solc)
@@ -137,6 +140,11 @@ async function main(): Promise<void> {
     // `npx -y @finchip.ai/foga mcp --config <cell.config.json>`: the stdio MCP server
     const { nodeCommand } = await import("./cli-cell.js");
     await nodeCommand("mcp", [], flags);
+    return;
+  }
+  if (group === "meditate") {
+    const { meditateCommand } = await import("./cli-cell.js");
+    await meditateCommand(cmd, positional.slice(2), flags);
     return;
   }
 

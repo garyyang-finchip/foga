@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { jcs, sha256Hex } from "../core/canonical.js";
 import { OperationConflict, type DecisionRecord, type JobRecord, type OpBinding } from "../kernel/store.js";
-import { OperationAmbiguous, OperationReverted, type Confirmed } from "../kernel/tx.js";
+import { OperationAmbiguous, OperationPending, OperationReverted, type Confirmed } from "../kernel/tx.js";
 import { budgetGate, firstRefusal, type Gate } from "../node/policy.js";
 import type { Node } from "../node/node.js";
 import { ACTION_RANK, VISIBILITY_RANK, type ActCapability, type ActPlan, type ActStep, type Action, type Caller, type Capability, type Intent, type Mode, type Refusal, type Success, type ToolResult, type Visibility } from "./types.js";
@@ -151,14 +151,18 @@ export class Catalog {
       // business authorization: the capability's gates, then the budget (a cell's act only; an admin step is the owner's own transaction)
       const gates: Gate[] = [...plan.gates];
       if (cap.action === "act" && (plan.steps.length || plan.valueWei > 0n || plan.job.commitment)) {
-        const fee = await feeReserve(node, plan.steps.length);
+        const fee = await feeReserve(node, plan.steps.length, plan.gasPerStep);
         gates.push(budgetGate(node.config, node.budgetUse(), { valueWei: plan.valueWei, feeReserveWei: fee, commitment: Boolean(plan.job.commitment) && !job }));
       }
       const refusal = firstRefusal(gates);
       if (refusal) return this.refuse(node, cap, caller, mode, inputHash, refusal.gate, refusal.reason, jobId);
 
-      // wallet permission: the first step is simulated from its signer (the account's allow-list, gate and daily cap decide on chain as well)
-      if (plan.steps.length) {
+      // wallet permission: the first step is simulated from its signer (the account's allow-list, gate and daily cap decide on chain as well).
+      // A resumed job whose first operation was already broadcast is not simulated again: the chain may hold that very
+      // transaction by now, and simulating it against the state it produced would refuse what has in fact been done;
+      // the kernel resolves a sent operation from the chain before anything else is sent.
+      const resuming = job !== null && plan.steps.length > 0 && ["sent", "confirmed"].includes(node.store.get(`job:${jobId}:${plan.steps[0].name}`)?.status ?? "");
+      if (plan.steps.length && !resuming) {
         const first = plan.steps[0];
         const intent = await first.build([]);
         const route = routeOf(first);
@@ -194,7 +198,7 @@ export class Catalog {
     const operations: string[] = [...job.operations];
     try {
       const work = plan.work ? await plan.work() : undefined;
-      const fee = await feeReserve(node, 1);
+      const fee = await feeReserve(node, 1, plan.gasPerStep);
       for (const step of plan.steps) {
         const intent = await step.build(confirmed);
         const key = `job:${jobId}:${step.name}`;
@@ -215,6 +219,15 @@ export class Catalog {
       return { ok: true, output, decisionId: allowed.id, jobId, operations };
     } catch (e) {
       const reason = explain(e);
+      if (e instanceof OperationPending) {
+        // broadcast and not yet mined when the manager stopped waiting: nothing failed. The job stays running with the
+        // operation `sent`; the same request (the same job id) resumes it, and the kernel resolves the operation from
+        // the chain before anything else is sent. Recorded as an allowed decision at the `pending` gate.
+        if (!operations.includes(e.key)) operations.push(e.key);
+        node.store.updateJob(jobId, { status: "running", addOperation: e.key, error: null });
+        const decision = node.store.decide({ entrance: caller.entrance, caller: caller.id, capability: cap.name, mode, inputHash, verdict: "allowed", gate: "pending", reason, jobId, operationId: e.key, model: opts.model ?? null });
+        return { ok: false, gate: "pending", reason, decisionId: decision.id, jobId };
+      }
       const operationId = e instanceof OperationReverted || e instanceof OperationAmbiguous ? (e as { key?: string; op?: { key: string } }).key ?? (e as { op?: { key: string } }).op?.key ?? null : operations.at(-1) ?? null;
       node.store.updateJob(jobId, { status: "failed", error: reason });
       const decision = node.store.decide({ entrance: caller.entrance, caller: caller.id, capability: cap.name, mode, inputHash, verdict: "refused", gate: "execution", reason, jobId, operationId, model: opts.model ?? null });
@@ -265,11 +278,11 @@ async function buildAll(steps: ActStep[]): Promise<Intent[]> {
   return out;
 }
 
-async function feeReserve(node: Node, steps: number): Promise<bigint> {
+async function feeReserve(node: Node, steps: number, gasPerStep: bigint = FEE_RESERVE_GAS): Promise<bigint> {
   if (!steps) return 0n;
   const fee = await node.world.provider.getFeeData();
   const price = fee.maxFeePerGas ?? fee.gasPrice ?? 0n;
-  return BigInt(steps) * FEE_RESERVE_GAS * price;
+  return BigInt(steps) * gasPerStep * price;
 }
 
 function summarize(gates: Gate[], steps: number): string {
