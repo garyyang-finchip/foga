@@ -124,6 +124,33 @@ function walletFromFlags(flags: Flags): WalletInfo | null {
   return w;
 }
 
+/**
+ * The RPC a one-shot command uses: `--rpc`, the configuration's `rpc`, `FOGA_RPC_URL`, else — on a chain the program
+ * knows — its first public endpoint, said once on stderr (what `foga join` does; shared and rate-limited, a dedicated one
+ * is advised). A local world needs none (Node.open falls back to anvil's address).
+ */
+async function rpcFor(configPath: string, flagRpc: string | undefined, log: (line: string) => void): Promise<string | undefined> {
+  if (flagRpc) return flagRpc;
+  try {
+    const { loadCellConfig, configPath: cfgPath } = await import("./node/config.js");
+    const loaded = loadCellConfig(configPath);
+    if (loaded.config.rpc) return loaded.config.rpc;
+    if (process.env.FOGA_RPC_URL) return process.env.FOGA_RPC_URL;
+    const world = JSON.parse(readFileSync(cfgPath(loaded, loaded.config.world), "utf8")) as { chainId?: number; network?: string };
+    if (world.network === "anvil") return undefined;
+    const { chainById } = await import("./core/chains.js");
+    const chain = world.chainId ? chainById(Number(world.chainId)) : null;
+    if (chain && process.env[chain.rpcEnv]) return process.env[chain.rpcEnv];
+    if (chain?.rpc[0]) {
+      log(`no RPC given; using the public endpoint ${chain.rpc[0]} (shared and rate-limited — a dedicated one is advised: --rpc <url> or ${chain.rpcEnv})`);
+      return chain.rpc[0];
+    }
+  } catch {
+    /* Node.open says what is missing */
+  }
+  return undefined;
+}
+
 /** A role's key: from the wallet when --wallet is given, from the environment otherwise. */
 function keysFor(role: "operator" | "owner" | "guardian", strict = false, wallet: WalletInfo | null = null): string {
   if (wallet) {
@@ -184,8 +211,8 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
   }
 
   const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
-  const rpc = str(flags, "rpc");
   const log = (line: string) => console.error(line);
+  const rpc = await rpcFor(configPath, str(flags, "rpc"), log);
   const wallet = walletFromFlags(flags);
 
   if (cmd === "card") {
@@ -250,14 +277,11 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     const covenants = (str(flags, "covenants") ?? fail("--covenants 8490 is required (the covenant to extend the cell with)")).split(",").map((c) => c.trim()).filter(Boolean);
     const { extendWorld, EXTENSIONS } = await import("./node/extend.js");
     const { loadCellConfig, configPath: cfgPath } = await import("./node/config.js");
-    const { chainById, resolveRpc } = await import("./core/chains.js");
     for (const c of covenants) if (!EXTENSIONS[c]) fail(`unknown covenant ${c}; this build extends with ${Object.keys(EXTENSIONS).join(", ")}`);
     const owner = keysFor("owner", false, wallet);
     const loaded = loadCellConfig(configPath);
     const worldPath = cfgPath(loaded, loaded.config.world);
-    const worldChain = (JSON.parse(readFileSync(worldPath, "utf8")) as { chainId: number }).chainId;
-    const chain = chainById(worldChain);
-    const rpcUrl = rpc ?? loaded.config.rpc ?? resolveRpc(chain, undefined).url;
+    const rpcUrl = rpc;
     const results: Record<string, unknown> = {};
     for (const c of covenants) {
       // 1. the world file: the covenant's contract, from the packaged world of the chain or the address given
@@ -416,8 +440,8 @@ export async function meditateCommand(verb: string | undefined, _rest: string[],
   }
   const { capability, role } = verbs[verb];
   const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
-  const rpc = str(flags, "rpc");
   const log = (line: string) => console.error(line);
+  const rpc = await rpcFor(configPath, str(flags, "rpc"), log);
   const wallet = walletFromFlags(flags);
   const dryRun = Boolean(flags["dry-run"]);
   const mode: Mode = dryRun ? "simulate" : "act";
@@ -496,6 +520,8 @@ export async function nodeCommand(cmd: string | undefined, rest: string[], flags
   }
   const configPath = str(flags, "config") ?? fail("--config <cell.config.json> is required");
   const log = (line: string) => console.error(line);
+  const rpcGiven = await rpcFor(configPath, str(flags, "rpc"), log);
+  if (rpcGiven) flags.rpc = rpcGiven;
   // --wallet <dir>: the operator key file of the wallet, as FOGA_OPERATOR_KEY_FILE would name it; never beside another key source
   const wallet = walletFromFlags(flags);
   if (wallet) {

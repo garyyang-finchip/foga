@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { getAddress } from "ethers";
 import { ALL_LAYERS, LAYER_NAMES, LAYER_SCHEMAS, ZERO32, commitLayerDocument, contentHash, policyStruct, stateRoot, type Commitments, type LayerCommitmentRecord, type LayerDocument, type PolicyDocument, type PolicyStruct } from "../core/amm.js";
@@ -156,13 +156,34 @@ export async function buildLayerDocuments(node: Node): Promise<LayerDocuments> {
 
 const require_ = createRequire(import.meta.url);
 
-/** The installed version of a dependency (its package.json), or null when it cannot be resolved from here. */
-function installedVersion(name: string): string | null {
+/**
+ * The installed version of a dependency, from the package.json of the package that `require.resolve` lands in. A
+ * package whose `exports` map does not expose `./package.json` (ethers, the MCP SDK) cannot be asked for it directly,
+ * so the entry module is resolved and the nearest package.json above it that bears the name is read. Null when the
+ * package cannot be resolved from here at all.
+ */
+export function installedVersion(name: string): string | null {
   try {
     return String(require_(`${name}/package.json`).version);
   } catch {
-    return null;
+    /* the exports map hides package.json: walk up from the entry module */
   }
+  try {
+    let dir = dirname(require_.resolve(name));
+    for (let i = 0; i < 8; i++) {
+      const candidate = join(dir, "package.json");
+      if (exists(candidate)) {
+        const pkg = readJson<{ name?: string; version?: string }>(candidate);
+        if (pkg.name === name && pkg.version) return String(pkg.version);
+      }
+      const parent = dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  } catch {
+    /* not resolvable from here */
+  }
+  return null;
 }
 
 /** Layer 0, runtime: the program, its dependencies and adapters, the account's authorization and the self-check suite. */
@@ -181,7 +202,7 @@ export async function runtimeDocument(node: Node): Promise<LayerDocument> {
       .then((v: unknown) => Number(v))
       .catch(() => 1);
   }
-  const deps = ["ethers", "zod", "@modelcontextprotocol/sdk"].map((name) => ({ name, version: installedVersion(name) ?? "unresolved" }));
+  const deps = ["ethers", "zod", "@modelcontextprotocol/server"].map((name) => ({ name, version: installedVersion(name) ?? "unresolved" }));
   return {
     schema: LAYER_SCHEMAS[0],
     layer: 0,

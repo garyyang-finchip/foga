@@ -418,8 +418,11 @@ async function runtimeRoutine(node: Node, r: LayerResult, doc: LayerDocument, _p
   r.checks.push({ name: "dependencies-resolved", result: unresolved.length ? "finding" : "pass", details: unresolved.length ? `not resolvable from here: ${unresolved.join(", ")}` : deps.map((d) => `${d.name} ${d.version}`).join(", ") });
   const net = await k.world.provider.getNetwork();
   r.checks.push({ name: "endpoint-chain", result: Number(net.chainId) === node.chainId ? "pass" : "fail", details: `the endpoint serves chain ${net.chainId}; the world is on ${node.chainId}` });
-  const bundleOk = !node.world.file.bundleHash || node.world.file.bundleHash.toLowerCase() === node.world.bundle.hash.toLowerCase();
-  r.checks.push({ name: "bundle-matches-world", result: bundleOk ? "pass" : "finding", details: bundleOk ? `bundle ${node.world.bundle.hash.slice(0, 10)}…` : `the program's bundle ${node.world.bundle.hash.slice(0, 10)}… differs from the one the world was made with ${String(node.world.file.bundleHash).slice(0, 10)}… (an upgraded program on an older world: expected after a release)` });
+  // the world file records the bundle it was made with; a later program carries a later bundle, which is the ordinary
+  // state of a long-lived cell and nothing to act on (the doctor checks the contracts against the current bundle), so it
+  // is recorded, not raised
+  const sameBundle = !node.world.file.bundleHash || node.world.file.bundleHash.toLowerCase() === node.world.bundle.hash.toLowerCase();
+  r.checks.push({ name: "bundle-of-record", result: "pass", details: sameBundle ? `the program's bundle ${node.world.bundle.hash.slice(0, 10)}… is the one the world was made with` : `the program carries bundle ${node.world.bundle.hash.slice(0, 10)}…; the world was made with ${String(node.world.file.bundleHash).slice(0, 10)}… (a later release on an older world; the contracts are checked against the current bundle by the doctor)` });
   const [balance, operatorGas, block] = await Promise.all([k.balance(cell.address), k.balance(cfg.identity.operator), k.blockNumber()]);
   r.observations = { nativeBalanceWei: balance.toString(), nativeBalanceEth: formatEther(balance), operatorGasWei: operatorGas.toString(), block };
 }
