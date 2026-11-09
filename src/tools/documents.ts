@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ACTIONS, AIFP, DISCLOSURE_KIND, PUBLIC_AUDIENCE, PUBLIC_AUDIENCE_CANONICAL } from "../core/aifp.js";
 import { DOCUMENT_FILES, buildDocuments, documentsDir, onChainState, publishSteps, readBack, readBuilt, readManifest } from "../node/documents.js";
-import { anchorPlan, cellChannelId, disclosedToPublic, publicationObjectRef, reconcileAnchors, recordAnchor, recordDisclosure, roleNow, type AnchorPlan } from "../node/flows.js";
+import { anchorPlan, cellChannelId, publicationObjectRef, reconcileAnchors, reconcileDisclosures, recordAnchor, recordDisclosure, roleNow, type AnchorPlan } from "../node/flows.js";
 import { ok, refused, safetyGate, type Gate } from "../node/policy.js";
 import { version } from "../util/version.js";
 import { derivedJobId, zJobId } from "./common.js";
@@ -87,7 +87,7 @@ export const docs_publish: ActCapability = {
         if (role.outcome === "SATISFIED") anchor = plan;
         else flowNote = `not anchored: the cell does not hold SUBMIT in its channel now (${role.outcome ?? `call failed: ${role.error}`})`;
       } else flowNote = "the publication is anchored already";
-      disclose = Boolean(node.config.runtime.http.publicUrl && node.config.flows.disclose && !disclosedToPublic(node, objectRef));
+      disclose = Boolean(node.config.runtime.http.publicUrl && node.config.flows.disclose && !(await reconcileDisclosures(node, channelId, objectRef)));
       if (anchor || disclose) flowNote = `${anchor ? `${anchor.action} ${objectRef.slice(0, 10)}…` : "anchored already"}${disclose ? "; disclosed to the public" : ""}`;
       if (anchor) steps.push({ name: "anchor", kind: "plain", build: () => ({ target: k.flows.addressOf(AIFP.anchor), value: 0n, data: k.flows.encodeAnchor(channelId, ACTIONS[anchor!.action], anchor!.objectRef, anchor!.relations), label: `anchor(${channelId.slice(0, 10)}…, ${anchor!.action}, ${anchor!.objectRef.slice(0, 10)}…)` }) });
       if (disclose) steps.push({ name: "disclose", kind: "plain", build: () => ({ target: k.flows.addressOf(AIFP.channels), value: 0n, data: k.flows.encodeRecordDisclosure(channelId, DISCLOSURE_KIND.disclosed, objectRef, PUBLIC_AUDIENCE), label: `recordDisclosure(${channelId.slice(0, 10)}…, DISCLOSED, ${objectRef.slice(0, 10)}…, public)` }) });

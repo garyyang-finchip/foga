@@ -436,6 +436,17 @@
       "txHash": "0xad2bba666bf6bb326319a48f23a53f62eed32455bfc1826984ad3a436709ca8a",
       "block": 12090745,
       "note": "ERC-8489 AIFPSubjectSet deployed by the upstream repository on 2026-11-08 (block 12090745) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0xeeb2b52a\u2026; an allowlist subject set owned by the upstream deployer, not used by FOGA's paradigms"
+    },
+    "8489/FogaIdentityVerifier": {
+      "address": "0x7d5301B3CCee159341a25791001e295F7F226685",
+      "bundleKey": "foga:FogaIdentityVerifier",
+      "txHash": "0xf32e3320582cf11576a45a58396fe474da1256ed6518cd8407146c6dfe95c4b3",
+      "block": 12098307,
+      "args": [
+        "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "0x01C05738eebD20DC80bBb9Fa1Ceb1165af8dA00F"
+      ],
+      "note": "FOGA's identity predicate verifier (ERC-8489 kind 7) over the official ERC-8004 Identity Registry and aid-standard's AIDRegistry (0x01C0\u2026), deployed from the bundle by the OG cell's owner key with foga flow bootstrap on 2026-11-09 (block 12098307); the maintainer's contract, not an upstream one. Added in FOGA 0.9.1."
     }
   },
   "wiring": {
@@ -448,6 +459,34 @@
       "agent": "0x283cdd5ece2ad33dc6be3a32a7a140a653c611b0296c9b54878ae0439bbef3a2",
       "registry": "0x455d1d9d2b151bdfaa173c1cee0ee26ece8e7bdb98830e8e3ca1e180989cf3c6"
     }
+  },
+  "flows": {
+    "family": "foga",
+    "familyId": "0x576af79f3c37ac413b2d02ca44efd679f95a9471cf53e233081fd547107b9040",
+    "controller": "0xD7155E48f83e1fEa9eAFED0200671638f290ED49",
+    "paradigms": {
+      "foga:cell-source/v1": {
+        "paradigmId": "0xc5a7f453e921deadfc3c13e2db540a60487ce40946647e3fa83086e23ac55fbe",
+        "descriptorURI": "https://foga.finchip.ai/documents/flows/paradigms/cell-source.v1.json",
+        "txHash": "0x851a5945936b20a04c4c945dcf31732cdafd1907d5a72c5c2518d3b60fe4398d"
+      },
+      "foga:tender-market/v1": {
+        "paradigmId": "0xb6d5d67bf585307974735e9ef21db3202a9e4936b330bffe2164662474650ff2",
+        "descriptorURI": "https://foga.finchip.ai/documents/flows/paradigms/tender-market.v1.json",
+        "txHash": "0x8fff443f7d7d39859e9b5b05a10c1a375941dd402752a5a95ce42b9a9b21df71"
+      }
+    },
+    "market": {
+      "channelId": "0x32643288989f5880736477938988ffa6ccf79177c0fbb067ad4108ccc855a393",
+      "paradigm": "foga:tender-market/v1",
+      "paradigmId": "0xb6d5d67bf585307974735e9ef21db3202a9e4936b330bffe2164662474650ff2",
+      "authority": "0xD7155E48f83e1fEa9eAFED0200671638f290ED49",
+      "txHash": "0x90dda53437eb3b1abd005b469ee50bfc520f86a8b4abca7afbee2f1323bacf6b",
+      "bindingIds": [
+        "0xc099a52a7b343be19b84625af7e463a2079b1ab9907b1e2e72c12348262b0172"
+      ]
+    },
+    "note": "ERC-8489 flows of this world: FOGA's paradigms in the family foga and the default market channel, bootstrapped on 2026-11-09 by the reference cell (the OG, ERC-8004 agent 11261) through its account 0xD7155E48f83e1fEa9eAFED0200671638f290ED49, which is the family's controller and the market's authority; a cell's configuration may name another market"
   },
   "steps": [
     {
@@ -721,6 +760,18 @@
       "id": "8489/AIFPSubjectSet",
       "status": "attached",
       "note": "ERC-8489 AIFPSubjectSet deployed by the upstream repository on 2026-11-08 (block 12090745) (deployer 0xfaf78B3D\u2026, solc 0.8.28; deployments/11155111.json at the locked commit 594c7ee); runtime keccak 0xeeb2b52a\u2026; an allowlist subject set owned by the upstream deployer, not used by FOGA's paradigms"
+    },
+    {
+      "id": "8489/FogaIdentityVerifier",
+      "status": "deployed",
+      "txHash": "0xf32e3320582cf11576a45a58396fe474da1256ed6518cd8407146c6dfe95c4b3",
+      "note": "deployed by foga flow bootstrap (the OG cell's owner key) on 2026-11-09"
+    },
+    {
+      "id": "8489/flows",
+      "status": "wired",
+      "txHash": "0x90dda53437eb3b1abd005b469ee50bfc520f86a8b4abca7afbee2f1323bacf6b",
+      "note": "bootstrapped by 0xD7155E48f83e1fEa9eAFED0200671638f290ED49 (flow_bootstrap): paradigms foga:cell-source/v1, foga:tender-market/v1; market 0x32643288989f5880736477938988ffa6ccf79177c0fbb067ad4108ccc855a393"
     }
   ],
   "notes": [
@@ -731,6 +782,6 @@
     "Layer-4 expectations below record the upstream wiring as it is, so a Pass means 'matches the recorded upstream state', not 'matches what FOGA would deploy'.",
     "15 reference contracts the upstream records do not provide at the locked revision are deployed from the bundle by 0x3D177ecaa56402335fC7C6449d35bC1Fa68Bc1b8: 8447/ERC8004Eligibility, 8447/IdentityStateEligibility, 8471/ADRFPolicyRegistry, 8471/ADRFBindingModule, 8471/ADRFFilingModule, 8471/ADRFResolutionModule, 8471/ADRFDecisionModule, 8471/ADRFRecordModule, 8471/ADRFOutcomeModule, 8471/ADRFDisputeRegistry, 8471/DuplicateSettlementVerifier, 8471/DeclaredVersionVerifier, 8471/AttestorQuorumRule, 8471/ADRFACDFBridge, 8471/ADRFServiceEscrow",
     "ERC-8490 (0.8.0): the Agent Meditation Mechanism registry is attached as an extension; it is not part of the ten-covenant base set and the doctor's layer 5 reports it NotTested until a scenario exercises it.",
-    "ERC-8489 (0.9.0): the Agent Information Flow Paradigm stack is attached as an extension; FOGA's identity predicate verifier, the family's paradigms and the default market channel (the `flows` block) are added when the maintainer bootstraps them on Sepolia; the doctor's layer 5 reports ERC-8489 NotTested until a scenario exercises it."
+    "ERC-8489 (0.9.0): the Agent Information Flow Paradigm stack is attached as an extension; since 0.9.1 FOGA's identity predicate verifier and the chain's `flows` block (the family's paradigms, the default market channel) are recorded here as the OG cell bootstrapped them on 2026-11-09 (foga flow bootstrap, through the account 0xD7155E48f83e1fEa9eAFED0200671638f290ED49); the doctor's layer 5 reports ERC-8489 NotTested until a scenario exercises it."
   ]
 }

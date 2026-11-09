@@ -5,7 +5,7 @@ import { ACTIONS, AIFP, DISCLOSURE_KIND, OUTCOME, PUBLIC_AUDIENCE, PUBLIC_AUDIEN
 import { CELL_SOURCE, TENDER_MARKET, descriptorUri, fogaParadigm, fogaParadigms, marketTransportBinding, type WorldFlows } from "../core/paradigms.js";
 import { NODE_SCOPE_GROUPS, applicableGroups, mergeScope, operatorScope, ownerExecuteScope } from "../genesis/operator-scope.js";
 import { documentsDir, readManifest } from "../node/documents.js";
-import { admissionMaterial, anchorPlan, anchors, cellChannelId, reconcileAnchors, cellSourceParadigmId, cellTransportBindings, channelFact, channelMetadata, channelMetadataUri, currentEligibility, disclosedToPublic, disclosures, flowsDir, marketFact, marketOf, publicationObjectRef, recordAdmission, recordAnchor, recordChannel, recordDisclosure, roleNow, writeFlowDocuments, type ChannelFact } from "../node/flows.js";
+import { admissionMaterial, anchorPlan, anchors, cellChannelId, reconcileAnchors, cellSourceParadigmId, cellTransportBindings, channelFact, channelMetadata, channelMetadataUri, currentEligibility, disclosedToPublic, disclosures, flowsDir, marketFact, marketOf, publicationObjectRef, recordAdmission, recordAnchor, recordChannel, recordDisclosure, reconcileDisclosures, roleNow, writeFlowDocuments, type ChannelFact } from "../node/flows.js";
 import { dataUriJcs } from "../core/canonical.js";
 import { marketMetadata } from "../world/flows-bootstrap.js";
 import { ok, refused, safetyGate, type Gate } from "../node/policy.js";
@@ -467,7 +467,7 @@ export const flow_disclose: ActCapability = {
     const manifest = readManifest(documentsDir(node));
     const objectRef = manifest ? publicationObjectRef(manifest) : null;
     if (!objectRef) gates.push(refused("policy", "the documents are not built: nothing was disclosed"));
-    else if (disclosedToPublic(node, objectRef)) gates.push(refused("policy", `the current publication ${objectRef.slice(0, 10)}… is recorded as disclosed already`));
+    else if (channelId && (await reconcileDisclosures(node, channelId, objectRef))) gates.push(refused("policy", `the current publication ${objectRef.slice(0, 10)}… is recorded as disclosed already`));
     else if (!gates.some((g) => !g.ok)) gates.push(ok("policy", `record DISCLOSED ${objectRef.slice(0, 10)}… to ${PUBLIC_AUDIENCE_CANONICAL} in ${channelId}`));
     const [aidState, status] = await Promise.all([k.aid.stateName(account), cell.status()]);
     gates.push(safetyGate(aidState, status, "plain"));

@@ -401,6 +401,39 @@ test("ERC-8489: the world's flows, a cell's channel, anchors, the market's admis
     } finally {
       nodeE.close();
     }
+    // a public URL given to a cell whose publication is anchored already (0.9.1): the watcher records the disclosure — one act a
+    // tick — and a store that lost the fact finds the record on the chain, so nothing is recorded twice
+    {
+      const c = JSON.parse(readFileSync(oldConfig, "utf8"));
+      c.runtime.http.publicUrl = "http://127.0.0.1:8599";
+      writeFileSync(oldConfig, JSON.stringify(c, null, 2));
+    }
+    const nodeE2 = await Node.open({ configPath: oldConfig, rpc: RPC, keys: { operator: cell.keys.operator.privateKey }, log: () => {} });
+    try {
+      const watchers = new Watchers(nodeE2, catalog);
+      const before = await (await fresh()).disclosureCount(channelE);
+      const t4 = await watchers.tick();
+      assert.equal(t4.flows.action, "disclosed", JSON.stringify(t4.flows));
+      assert.equal(await (await fresh()).disclosureCount(channelE), before + 1);
+      const t5 = await watchers.tick();
+      assert.equal(t5.flows.action, "skipped", JSON.stringify(t5.flows));
+      assert.match(t5.flows.reason, /anchored and disclosed, market roles held/);
+      nodeE2.store.setFact("flows.disclosures", []);
+      const t6 = await watchers.tick();
+      assert.equal(t6.flows.action, "skipped", JSON.stringify(t6.flows));
+      const recoveredD = nodeE2.store.getFact<any[]>("flows.disclosures")!;
+      assert.equal(recoveredD.length, 1);
+      assert.equal(recoveredD[0].txHash, "", "recovered from the chain, not sent");
+      assert.equal(await (await fresh()).disclosureCount(channelE), before + 1, "nothing more on chain");
+      // the same object is the same job (replayed as done); a new job finds the record and is refused
+      const same = await catalog.invoke(nodeE2, "flow_disclose", {}, OPERATOR_CALLER, { mode: "act" });
+      assert.equal(same.ok, true, "the derived job is the watcher's, already done");
+      const again = await catalog.invoke(nodeE2, "flow_disclose", { jobId: "flow-disclose-E-again" }, OPERATOR_CALLER, { mode: "act" });
+      assert.equal(again.ok, false);
+      assert.match((again as { reason: string }).reason, /recorded as disclosed already/);
+    } finally {
+      nodeE2.close();
+    }
 
     // --- the account path of the maintainer's bootstrap (the OG on a public chain): a world deployed with --no-flows has the
     //     registries and no paradigms; its packaged world — the upstream deploys only its own contracts — carries the seven

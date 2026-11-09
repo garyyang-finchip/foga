@@ -1,19 +1,21 @@
 import type { Catalog } from "../tools/catalog.js";
 import type { Caller } from "../tools/types.js";
-import { anchorPlan, cellChannelId, currentEligibility, marketOf, reconcileAnchors, roleNow } from "./flows.js";
+import { anchorPlan, cellChannelId, currentEligibility, marketOf, reconcileAnchors, reconcileDisclosures, roleNow } from "./flows.js";
 import type { Node } from "./node.js";
 
 /**
- * The flows watcher (ERC-8489, 0.9.0; docs/flows.md, "What the node does on its own"): on its pace it looks for the two
+ * The flows watcher (ERC-8489, 0.9.0; docs/flows.md, "What the node does on its own"): on its pace it looks for the
  * things a cell owes its channels and does one of them a tick — a publication not anchored yet (the documents were
- * published while the channel did not exist, or by a build before 0.9.0) is anchored, and a market the configuration
- * says to join is joined once the cell is eligible. Nothing to do is nothing sent; a refusal is recorded and the next
- * check is after the pace, so a cell that cannot be admitted (NOT_SATISFIED, an UNDETERMINABLE condition) does not
- * ask the chain every tick. Each act is `flow_anchor` or `flow_admit` through the catalog, as the caller `watcher`.
+ * published while the channel did not exist, or by a build before 0.9.0) is anchored; a publication anchored but not
+ * recorded as disclosed, while the cell serves its documents at a public URL, is recorded (0.9.1; what the chain holds
+ * already is recorded first, nothing twice); and a market the configuration says to join is joined once the cell is
+ * eligible. Nothing to do is nothing sent; a refusal is recorded and the next check is after the pace, so a cell that
+ * cannot be admitted (NOT_SATISFIED, an UNDETERMINABLE condition) does not ask the chain every tick. Each act is
+ * `flow_anchor`, `flow_disclose` or `flow_admit` through the catalog, as the caller `watcher`.
  */
 export interface FlowsWatch {
   checked: boolean;
-  action: "none" | "skipped" | "anchored" | "admitted" | "pending" | "refused";
+  action: "none" | "skipped" | "anchored" | "disclosed" | "admitted" | "pending" | "refused";
   reason: string;
   nextCheckAt: number | null;
 }
@@ -60,7 +62,16 @@ export async function flowsTick(node: Node, catalog: Catalog, caller: Caller, no
     return settle("skipped", `publication ${plan.objectRef.slice(0, 10)}… not anchored: the cell does not hold SUBMIT now (${role.outcome ?? `call failed: ${role.error}`})`);
   }
 
-  // 2. the market: admitted for the configured roles once eligible
+  // 2. the disclosure: a publication anchored by this cell and served at a public URL, not yet recorded as disclosed to the
+  //    public (anchored by the extension of a running cell, or by a build before the record existed)
+  if (cfg.disclose && node.config.runtime.http.publicUrl && known?.anchoredBy === "this cell" && !(await reconcileDisclosures(node, channelId, known.objectRef))) {
+    const r = await catalog.invoke(node, "flow_disclose", {}, caller, { mode: "act" });
+    if (r.ok) return settle("disclosed", `${known.objectRef.slice(0, 10)}… to the public in ${channelId.slice(0, 10)}…`);
+    if (r.gate === "pending") return settle("pending", r.reason);
+    return settle("refused", `disclose: ${r.gate}: ${r.reason}`);
+  }
+
+  // 3. the market: admitted for the configured roles once eligible
   const market = cfg.market.join ? marketOf(node) : null;
   if (market) {
     const subject = k.flows.subjectOf(node.cell.address);
@@ -78,7 +89,7 @@ export async function flowsTick(node: Node, catalog: Catalog, caller: Caller, no
       return settle("refused", `admit: ${r.gate}: ${r.reason}`);
     }
   }
-  return settle("skipped", `publication anchored${market ? ", market roles held" : ""}`);
+  return settle("skipped", `publication anchored${cfg.disclose && node.config.runtime.http.publicUrl ? " and disclosed" : ""}${market ? ", market roles held" : ""}`);
 }
 
 /** The watcher's words in a tick line: nothing between checks, one clause when it checked and did something. */

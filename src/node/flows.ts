@@ -225,9 +225,30 @@ export async function reconcileAnchors(node: Node, manifest = readManifest(docum
   return { objectRef, anchoredBy: "this cell" };
 }
 
-/** Whether the current publication is disclosed to the public already. */
+/** Whether the current publication is disclosed to the public already (the store's fact). */
 export function disclosedToPublic(node: Node, objectRef: string): boolean {
   return disclosures(node).some((d) => d.objectRef.toLowerCase() === objectRef.toLowerCase() && d.audience === PUBLIC_AUDIENCE_CANONICAL);
+}
+
+/**
+ * The disclosure as the chain has it: when the store holds no record of the object's disclosure to the public, the channel's
+ * disclosure records are read and a DISCLOSED record to the public audience is recorded (txHash empty: recovered, not sent),
+ * so a store from before the record — or one that lost the fact — never records the same disclosure twice.
+ */
+export async function reconcileDisclosures(node: Node, channelId: string, objectRef: string): Promise<boolean> {
+  if (disclosedToPublic(node, objectRef)) return true;
+  const k = node.kernel;
+  const count = await k.flows.disclosureCount(channelId).catch(() => 0);
+  for (let i = count - 1; i >= 0; i--) {
+    const d = await k.flows.disclosureAt(channelId, i).catch(() => null);
+    if (!d) break;
+    if (d.kind === 0 && d.objectRef.toLowerCase() === objectRef.toLowerCase() && d.audienceRef.toLowerCase() === PUBLIC_AUDIENCE.toLowerCase()) {
+      recordDisclosure(node, { objectRef, audience: PUBLIC_AUDIENCE_CANONICAL, txHash: "", at: d.at });
+      node.store.journal("flows-disclosure-recovered", { objectRef, channelId });
+      return true;
+    }
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------- the market
