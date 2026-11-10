@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { getAddress, parseEther } from "ethers";
-import { Restriction } from "../core/asf.js";
+import { Restriction, cellProfile } from "../core/asf.js";
 import { accountRef, dataUri, keccakJcs, sha256Hex } from "../core/canonical.js";
 import { hashlock, nativeTerms } from "../core/tenders.js";
 import { runExtractIsolated } from "./skill-runner.js";
@@ -100,6 +100,29 @@ export async function t7(g: Genesis): Promise<void> {
   if (earned > 0n) await A.execute("T7.A.derisk.withdraw", escrow, k.adrf.encodeWithdrawBalance(earned));
   if (!withdrawDone) g.check("T7", "derisk.allowed", (await A.balance()) - before === earned && earned > 0n, `withdrawBalance(${earned}) through the account succeeded under the suspension (de-risk allow-list); A's account rose by ${(await A.balance()) - before} wei`);
   else g.skipped("T7", "derisk.allowed", "replayed run: the withdrawal was already made");
+  // the stop reaches the cell's own upkeep and its flows too (1.0.0): a maintenance report and an anchor are acts through the
+  // account that are not on the de-risk list, so the gate refuses them while the suspension stands — the specification's
+  // self-maintenance and self-description clauses yield to honor-stop, which the account enforces
+  if (!replayedStop) {
+    const upkeep = k.fact<{ stateVersion: string; root: string; commitments: [string, string, string, string]; policyVersion: number }>("amm.A.state");
+    if (upkeep && k.world.has("8490/AgentMeditationRegistry")) {
+      const now = await g.world.blockTimestamp();
+      const { buildReport } = await import("../core/amm.js");
+      const record = { schema: "amm.cycle-record/1" as const, subject: accountRef(chainId, A.address), policyVersion: upkeep.policyVersion, baseVersion: upkeep.stateVersion, trigger: "commanded" as const, reportedStartedAt: now, reportedEndedAt: now, layers: [0, 1, 2, 3].map((layer) => ({ layer, scope: true, completed: true, changes: [] })), outcome: "completed" as const };
+      const built = buildReport(record, { commitments: upkeep.commitments, root: upkeep.root }, { commitments: upkeep.commitments });
+      const blocked = await g.wouldRevert(A, k.meditation.address, k.meditation.encodeReport(A.address, built.report));
+      g.check("T7", "maintenance.under.stop", blocked !== null && /BindingNotSatisfied/.test(blocked), `a maintenance report through the account under the suspension reverts: ${blocked}`);
+    }
+    const channel = k.fact<{ channelId: string }>("flows.A.channel");
+    if (channel && k.flows.available) {
+      const { ACTIONS } = await import("../core/aifp.js");
+      const blocked = await g.wouldRevert(A, k.flows.addressOf("8489/AIFPEventAnchor"), k.flows.encodeAnchor(channel.channelId, ACTIONS.publish, keccakJcs({ note: "an object under the stop" }), []));
+      g.check("T7", "flows.under.stop", blocked !== null && /BindingNotSatisfied/.test(blocked), `an anchor in the cell's channel through the account under the suspension reverts: ${blocked}`);
+    }
+  } else {
+    g.skipped("T7", "maintenance.under.stop", "replayed run: the suspension was already lifted");
+    g.skipped("T7", "flows.under.stop", "replayed run: the suspension was already lifted");
+  }
 
   // --- (3) attribution: the operator key acts on its own, not through the account
   const operatorAddress = A.operatorAddress;
@@ -118,7 +141,7 @@ export async function t7(g: Genesis): Promise<void> {
   k.setFact("T7.unattributed", { tokenId: tokenId.toString(), submissionId: rogueId.toString(), fulfiller: operatorAddress, reward: reward.toString(), reason: "fulfiller is the operator key, not the cell account" });
 
   // --- (4) escape attempts
-  const input2 = k.asf.cellBindingInput({ chainId, cell: A.address, specId: spec.specId, version: spec.version, contentHash: spec.contentHash, guardian: G, params: { profile: "foga-cell/1", cell: "A", note: "second binding presented while the first is suspended" }, authority: { kind: "owner", owner: accountRef(chainId, A.ownerAddress), guardian: accountRef(chainId, G) }, salt: "0x" + "00".repeat(31) + "02" });
+  const input2 = k.asf.cellBindingInput({ chainId, cell: A.address, specId: spec.specId, version: spec.version, contentHash: spec.contentHash, guardian: G, params: { profile: cellProfile(spec.version), cell: "A", note: "second binding presented while the first is suspended" }, authority: { kind: "owner", owner: accountRef(chainId, A.ownerAddress), guardian: accountRef(chainId, G) }, salt: "0x" + "00".repeat(31) + "02" });
   const { bindingId: binding2 } = await A.adoptBinding("T7.A.adopt2", input2, 0);
   k.setFact("T7.A.bindingId2", binding2);
   if (!replayedStop) {

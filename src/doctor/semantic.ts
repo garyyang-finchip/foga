@@ -57,21 +57,21 @@ const RULES: { test: RegExp; ercs: string[] }[] = [
   { test: tok("dispute", "case", "ruling", "refund", "call1", "call2", "file", "finding", "service", "provider", "balances", "conforms", "released", "deposited", "charged", "held"), ercs: ["8471"] },
   { test: tok("8004", "identity", "histories", "inherit"), ercs: ["8004"] },
   { test: tok("meditation", "maintenance", "cycle", "amm", "pulse", "enrolled", "stateRoot", "checkpoint", "layerStatus", "controller", "floor", "demand"), ercs: ["8490"] },
-  { test: tok("flow", "flows", "aifp", "paradigm", "channel", "admit", "admission", "anchor", "disclosure", "redistribute", "market"), ercs: ["8489"] },
+  { test: tok("flow", "flows", "aifp", "paradigm", "channel", "admit", "admission", "anchored", "superseded", "disclosure", "disclosed", "redistribute", "market"), ercs: ["8489"] },
 ];
 
 /** Steps and the standards they are about, used when a check name says nothing. */
 const STEP_ERCS: Record<string, string[]> = {
-  T0: ["8419", "8468", "8436", "8471"],
-  T1: ["8004", "8434", "8468", "8419", "8444", "8454"],
-  T2: ["8338", "8444", "8454", "8434"],
-  T3: ["8414", "8444", "8338"],
+  T0: ["8419", "8468", "8436", "8471", "8489", "8490"],
+  T1: ["8004", "8434", "8468", "8419", "8444", "8454", "8489", "8490"],
+  T2: ["8338", "8444", "8454", "8434", "8489", "8490"],
+  T3: ["8414", "8444", "8338", "8489"],
   T4: ["8447", "8436", "8414", "8454"],
   T5: ["8436", "8447", "8414"],
   T6: ["8471", "8436", "8338"],
-  T7: ["8468", "8414", "8434"],
+  T7: ["8468", "8414", "8434", "8489", "8490"],
   T8: ["8454"],
-  T9: ["8434", "8004", "8444", "8338", "8419", "8447"],
+  T9: ["8434", "8004", "8444", "8338", "8419", "8447", "8489", "8490"],
 };
 
 export function ercsOf(check: GenesisCheck): string[] {

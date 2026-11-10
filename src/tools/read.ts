@@ -51,7 +51,7 @@ export const world_describe: ReadCapability = {
 export const identity_resolve: ReadCapability = {
   name: "identity_resolve",
   title: "Resolve an identity",
-  description: "The ten-ERC view of an address: ERC-8004 agent, ERC-8434 state in the reference and backing registries, ERC-8444 agent record, KYA level under the cell's standing scheme, ERC-8468 status when the address is a cell account.",
+  description: "The multi-ERC view of an address: ERC-8004 agent, ERC-8434 state in the reference and backing registries, ERC-8444 agent record, KYA level under the cell's standing scheme, ERC-8468 status when the address is a cell account.",
   action: "read",
   visibility: "public",
   principal: "none",
@@ -445,12 +445,12 @@ export const safety_status: ReadCapability = {
 };
 
 /** The texts a caller (or a model) may read rules from; each ships in the package, so no vendor checkout is needed. */
-export const SPEC_TEXTS = ["foga-cell-v1", "policy", "compatibility-matrix", "cell-config-schema"] as const;
+export const SPEC_TEXTS = ["foga-cell-v2", "foga-cell-v1", "policy", "compatibility-matrix", "cell-config-schema"] as const;
 
 export const spec_read: ReadCapability = {
   name: "spec_read",
   title: "Read a rule text",
-  description: "The texts the cell acts under: the FOGA-Cell-v1 safety specification it adopted, its own policy block, the compatibility matrix of the ten standards, and the schema of the cell configuration.",
+  description: "The texts the cell acts under: the FOGA cell safety specification it adopted (v1 at birth before 1.0.0, v2 since), its own policy block, the compatibility matrix of the twelve standards, and the schema of the cell configuration.",
   action: "read",
   visibility: "public",
   principal: "none",
@@ -461,7 +461,8 @@ export const spec_read: ReadCapability = {
     const { fogaCellSpecification } = await import("../core/asf.js");
     const { CellConfigSchema } = await import("../node/config.js");
     const { repoRoot } = await import("../util/fs.js");
-    if (name === "foga-cell-v1") return { name, mediaType: "application/json", text: JSON.stringify(fogaCellSpecification(), null, 2) };
+    if (name === "foga-cell-v1") return { name, mediaType: "application/json", text: JSON.stringify(fogaCellSpecification(1), null, 2) };
+    if (name === "foga-cell-v2") return { name, mediaType: "application/json", text: JSON.stringify(fogaCellSpecification(2), null, 2) };
     if (name === "policy") return { name, mediaType: "application/json", text: JSON.stringify(node.config.policy, null, 2) };
     if (name === "cell-config-schema") return { name, mediaType: "application/schema+json", text: JSON.stringify(z.toJSONSchema(CellConfigSchema, { target: "draft-2020-12", io: "input" }), null, 2) };
     const path = join(repoRoot(), "docs", "compatibility-matrix.md");

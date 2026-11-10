@@ -246,7 +246,8 @@ test("ERC-8490: enrollment at birth, commanded cycles, version semantics, demand
         try {
           await waitForHttp(`${running.url}/healthz`);
           const manifest = (await (await fetch(`${running.url}/.well-known/foga-cell.json`)).json()) as any;
-          assert.deepEqual(manifest.world.extensions, ["ERC-8489", "ERC-8490"], "the registries are extensions of this world");
+          assert.deepEqual(manifest.world.extensions, [], "since 1.0.0 the registries are part of the base set, not extensions");
+          assert.ok(manifest.covenants.includes("ERC-8490"));
           assert.equal(manifest.maintenance.registry, registry);
           assert.equal(manifest.maintenance.disclosure, "full");
           assert.equal(manifest.maintenance.documents, `${running.url}/documents/maintenance/`);

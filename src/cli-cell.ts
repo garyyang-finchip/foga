@@ -33,6 +33,13 @@ export const CELL_USAGE = `
                                                  operator's scope and — 8490 — enrolls the cell, or — 8489 — opens its channel and grants it SUBMIT (a
                                                  one-key cell also anchors its publication and joins the market); read back; idempotent, no migration
   foga cell status --config <cell.config.json>   cell_status as the operator
+  foga cell skill update --skill <name> --config <cell.config.json> [--wallet <dir>]   commit the skill directory's new package to the token the cell holds
+                                                 (ERC-8338 updateSkill, version + 1; the ERC-8444 record re-committed) when the program upgraded the skill — the
+                                                 runner refuses a held skill whose token commits to another package until then (skill_update; skill mint = skill_mint)
+  foga cell spec --config <cell.config.json>     which version of the FOGA cell specification the account enforces and which the runtime adopted (spec_status)
+  foga cell adopt --config <cell.config.json> [--wallet <dir>]   a cell born before FOGA-Cell-v2 adopts it as a runtime-enforced second binding through its
+                                                 account (the owner's key; publishes version 2 under the owner's specification when missing); nothing is
+                                                 presented to the account, so nothing stops; a cell born under 1.0.0 has version 2 at birth (spec_adopt)
   foga cell card --config <cell.config.json> [--as-json]
                                                  the cell's card: what it is and how to reach it, in the words another agent needs (no chain call)
   foga cell advise --config <cell.config.json> [--brief] [--as-json]
@@ -446,6 +453,9 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     name = rest.shift() ?? fail(`foga cell ${cmd} <capability> …`);
   }
   if (name === "status") name = "cell_status";
+  if (name === "adopt") name = "spec_adopt";
+  if (name === "spec") name = "spec_status";
+  if (name === "skill") name = `skill_${rest.shift() ?? fail("foga cell skill mint|update --skill <name> --config <cell.config.json> [--wallet <dir>]")}`;
   const cap = catalog.get(name);
   if (!cap) fail(`unknown capability ${name}; foga cell list shows them`);
   const mode = (str(flags, "mode") ?? "act") as Mode;

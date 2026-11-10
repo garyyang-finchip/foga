@@ -1,11 +1,11 @@
 # foga-probe
 
-Probe one address against the ten-ERC agent stack at one block and produce a canonical report.
+Probe one address against the twelve-ERC agent stack at one block and produce a canonical report.
 
 ## What the skill does
 
 Given a subject address, a block number and the world's address book, read — at that block and only through
-view calls — what each of the ten registries says about the subject, and emit one JSON document in RFC 8785
+view calls — what each of the twelve registries says about the subject, and emit one JSON document in RFC 8785
 canonical form. The report is deterministic: two independent runs against the same chain, block and inputs
 produce byte-identical output. That is what makes it usable as the known answer of a hashlock tender
 (ERC-8414, profile x-hashlock-v1): the demander runs it first and commits `sha256(report)`; a fulfiller runs it
@@ -23,9 +23,12 @@ again and settles by revealing the same bytes.
 
 ## Output
 
-`foga.probe/1` — see `probe.schema.json`. Sections, one per standard: erc8004, erc8434, erc8419, erc8468,
-erc8444, erc8454, erc8338, erc8414, erc8447, erc8436, erc8471. Every number is a decimal string, every address
-is lower-case, the block hash is included so a report is bound to one chain history.
+`foga.probe/2` — see `probe.schema.json`. Sections, one per standard: erc8004, erc8434, erc8419, erc8468,
+erc8444, erc8454, erc8338, erc8414, erc8447, erc8436, erc8471, erc8489, erc8490. Every number is a decimal string,
+every address is lower-case, every four-valued outcome and every status is given by name, the block hash is included
+so a report is bound to one chain history. The eleven sections of `foga.probe/1` are unchanged; version 2 adds
+erc8489 (the channels the subject is the authority of, the objects it anchored, its roles in the world's default
+market) and erc8490 (its enrollment, state version, policy version and each layer's timeliness at the block).
 
 ## Rules
 

@@ -1,6 +1,6 @@
 # Build: from ten repositories to one bundle
 
-`foga build` turns the ten locked reference implementations (plus FOGA's local contracts) into `artifacts/bundle.json`, a single machine-independent file that every other command reads. Nothing else in FOGA needs the Solidity sources.
+`foga build` turns the twelve locked reference implementations (plus FOGA's local contracts) into `artifacts/bundle.json`, a single machine-independent file that every other command reads. Nothing else in FOGA needs the Solidity sources.
 
 ## Inputs
 

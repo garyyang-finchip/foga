@@ -200,10 +200,10 @@ export class Node {
   async heldSkills(): Promise<HeldSkill[]> {
     const out: HeldSkill[] = [];
     for (const [name, h] of Object.entries(this.config.skills.held)) {
-      const pkg = buildSkillPackage(readSkillDir(join(this.skillsDir, name)));
+      const pkg = buildSkillPackage(readSkillDir(join(this.skillsDir, name)), { version: h.version ?? 1, previousPackageHash: h.previousPackageHash });
       const tokenId = BigInt(h.tokenId);
       const onchain = await this.kernel.skills.skillOf(tokenId);
-      if (onchain.packageHash.toLowerCase() !== pkg.packageHash.toLowerCase()) throw new Error(`skill ${name}: the local package ${pkg.packageHash} differs from token ${tokenId}'s commitment ${onchain.packageHash}; the directory was changed since the mint`);
+      if (onchain.packageHash.toLowerCase() !== pkg.packageHash.toLowerCase()) throw new Error(`skill ${name}: the local package ${pkg.packageHash} differs from token ${tokenId}'s commitment ${onchain.packageHash}; the directory was changed since the mint — or the program's package of the skill moved on (foga cell skill update --skill ${name} commits the new package to the token)`);
       out.push({ name, tokenId, packageHash: pkg.packageHash, mdHash: pkg.mdHash, pkg });
     }
     return out;

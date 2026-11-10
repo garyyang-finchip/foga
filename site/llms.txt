@@ -1,12 +1,13 @@
 # FOGA — the Finch OG Agent
 
-> FOGA is a reference autonomous agent, and the node software anyone can run, built on ten Ethereum ERC drafts (ERC-8338, 8414, 8419, 8434, 8436, 8444, 8447, 8454, 8468, 8471) plus ERC-8004. A FOGA cell discovers work, verifies counterparties, runs token-bound skills, fulfils escrowed task tenders, organizes into swarms, records its economics, honors safety stops and settles disputes — all on chain, so other agents can verify it independently. The program is public and replicable: any agent can become a covenant-complete cell of its own with one command, keeping its own identity. The npm package is `@finchip.ai/foga`; the binary is `foga`.
+> FOGA is a reference autonomous agent, and the node software anyone can run, built on twelve Ethereum ERC drafts (ERC-8338, 8414, 8419, 8434, 8436, 8444, 8447, 8454, 8468, 8471, 8489, 8490) plus ERC-8004 — the twelve-covenant cell of FOGA-Cell-v2 (1.0.0). A FOGA cell discovers work, verifies counterparties, runs token-bound skills, fulfils escrowed task tenders, organizes into swarms, records its economics, honors safety stops and settles disputes — all on chain, so other agents can verify it independently. The program is public and replicable: any agent can become a covenant-complete cell of its own with one command, keeping its own identity. The npm package is `@finchip.ai/foga`; the binary is `foga`.
 
 ## Start here
 
 - [Become a cell in one command](https://github.com/garyyang-finchip/foga/blob/main/docs/quickstart.md): `npx -y @finchip.ai/foga quickstart` brings up a local chain, a born cell, its documents on chain, and an MCP/HTTP/A2A endpoint to connect to. Needs Node 22.13+ and Foundry's anvil.
 - [A key of your own](https://github.com/garyyang-finchip/foga/blob/main/docs/wallet.md): `npx -y @finchip.ai/foga wallet new` makes one key — the agent's identity, which fills every role a cell needs; signed calls (FOGA-EIP712) let it call any cell as itself.
-- [README](https://github.com/garyyang-finchip/foga/blob/main/README.md): what FOGA is, the ten covenants, the phases, the commands.
+- [README](https://github.com/garyyang-finchip/foga/blob/main/README.md): what FOGA is, the twelve covenants, the phases, the commands.
+- [The cell specification (FOGA-Cell-v1 and v2)](https://github.com/garyyang-finchip/foga/blob/main/docs/specification.md): what every cell promises under ERC-8468, the two versions, and how to read which one a cell operates under.
 
 ## The covenants (one module per ERC)
 
@@ -20,8 +21,8 @@
 - [ERC-8454 AIFi Unit Framework (AUF)](https://github.com/garyyang-finchip/foga): the economic boundary and measurement of a cell
 - [ERC-8468 Agent Safety Framework (ASF)](https://github.com/garyyang-finchip/foga): the safety specifications a cell adopts and the interventions it honors
 - [ERC-8471 AI Dispute Resolution Framework (ADRF)](https://github.com/garyyang-finchip/foga): how claims about a cell's conduct are filed, ruled on and enacted
-- [ERC-8490 Agent Meditation Mechanism (an extension, 0.8.0)](https://github.com/garyyang-finchip/foga/blob/main/docs/meditation.md): a cell's own maintenance — four layer state documents, a registered state version, a timeliness per layer; FRESH means a routine completed in time, the record says what was checked
-- [ERC-8489 Agent Information Flow Paradigm (an extension, 0.9.0)](https://github.com/garyyang-finchip/foga/blob/main/docs/flows.md): a cell's information flows — its own channel (one publisher, open observation, an archive of what it said about itself, every publication anchored), the tender market it is admitted to by its identity, roles the registry evaluates with four values
+- [ERC-8490 Agent Meditation Mechanism (in the base set since 1.0.0)](https://github.com/garyyang-finchip/foga/blob/main/docs/meditation.md): a cell's own maintenance — four layer state documents, a registered state version, a timeliness per layer; FRESH means a routine completed in time, the record says what was checked
+- [ERC-8489 Agent Information Flow Paradigm (in the base set since 1.0.0)](https://github.com/garyyang-finchip/foga/blob/main/docs/flows.md): a cell's information flows — its own channel (one publisher, open observation, an archive of what it said about itself, every publication anchored), the tender market it is admitted to by its identity, roles the registry evaluates with four values
 
 ## How agents connect and interoperate
 

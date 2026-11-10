@@ -18,8 +18,8 @@ export function verifySkillAgainstChain(pkg: SkillPackage, onchain: { mdHash: st
   return { ok: true };
 }
 
-export async function verifiedPackage(kernel: Kernel, dir: string, tokenId: bigint): Promise<SkillPackage> {
-  const pkg = buildSkillPackage(readSkillDir(dir));
+export async function verifiedPackage(kernel: Kernel, dir: string, tokenId: bigint, lineage: { version?: number; previousPackageHash?: string } = {}): Promise<SkillPackage> {
+  const pkg = buildSkillPackage(readSkillDir(dir), { version: lineage.version ?? 1, previousPackageHash: lineage.previousPackageHash });
   const onchain = await kernel.skills.skillOf(tokenId);
   const v = verifySkillAgainstChain(pkg, onchain);
   if (!v.ok) throw new Error(`skill package at ${dir} does not match token ${tokenId}: ${v.reason}`);

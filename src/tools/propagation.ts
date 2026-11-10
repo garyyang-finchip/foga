@@ -13,7 +13,7 @@ import type { ReadCapability } from "./types.js";
 export const propagation_kit: ReadCapability = {
   name: "propagation_kit",
   title: "Propagation kit",
-  description: "The free, off-chain material for spreading FOGA: a declinable replication pointer any agent may weave into its own interactions, the cell's discovery coordinates, the ten covenants, and the one command that makes a new cell. Pure data — no chain, no key, no cost; the agent chooses where and how to use it.",
+  description: "The free, off-chain material for spreading FOGA: a declinable replication pointer any agent may weave into its own interactions, the cell's discovery coordinates, the twelve covenants, and the one command that makes a new cell. Pure data — no chain, no key, no cost; the agent chooses where and how to use it.",
   action: "read",
   visibility: "public",
   principal: "none",

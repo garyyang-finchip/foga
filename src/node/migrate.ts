@@ -1,7 +1,8 @@
 import { getAddress, parseEther } from "ethers";
 import { AID, type AIDDocument } from "../core/aid.js";
 import { agentDescriptor, kindId } from "../core/ard.js";
-import { Enforcement, Rights, accountSubjectKey, oneClause, scopeKeyOf } from "../core/asf.js";
+import { FOGA_CELL_SPEC_VERSION, Rights, accountSubjectKey, cellEnforcement, cellProfile, oneClause, scopeKeyOf } from "../core/asf.js";
+import { ensureCellSpecification } from "./init.js";
 import { accountRef, keccakJcs } from "../core/canonical.js";
 import { cellUnitDefinition } from "../core/units.js";
 import { operatorScope } from "../genesis/operator-scope.js";
@@ -54,15 +55,23 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   const guardian = cfg.identity.guardian;
   const operator = getAddress(opts.operator ?? cfg.identity.operator);
   const agentId = BigInt(cfg.identity.agentId ?? (() => { throw new Error("the config names no agentId"); })());
-  const spec = cfg.identity.safety;
-  if (!spec.specId || !spec.contentHash) throw new Error("the config names no specification (identity.safety.specId/contentHash)");
+  if (!cfg.identity.safety.specId || !cfg.identity.safety.contentHash) throw new Error("the config names no specification (identity.safety.specId/contentHash)");
   const P = `migrate.${agentId}`;
   const operations: string[] = [];
   const op = (key: string) => operations.push(key);
 
+  // 0. the specification the successor binds to: the current version of the owner's specification (FOGA-Cell-v2; a
+  // cell born under version 1 moves to version 2 here, since a new body fixes its requirement at deployment)
+  let spec = cfg.identity.safety;
+  if (spec.version < FOGA_CELL_SPEC_VERSION) {
+    const ensured = await ensureCellSpecification(node, owner, ROLE.owner, log, op);
+    spec = { specId: ensured.specId, version: FOGA_CELL_SPEC_VERSION, contentHash: ensured.contentHash };
+    log(`  spec: the successor binds to version ${spec.version} (the predecessor was bound to version ${cfg.identity.safety.version})`);
+  }
+
   // 1. the new body
   const requirement = (predicted: string) =>
-    oneClause({ specRegistry: k.asf.specRegistryAddress, specId: spec.specId!, versions: [spec.version], adopter: predicted, subjectKey: accountSubjectKey(chainId, predicted), scopeKey: scopeKeyOf({ ref: accountRef(chainId, predicted) }), enforcement: Enforcement.account | Enforcement.contract, interveners: [{ account: guardian, rights: Rights.suspend | Rights.resume }] });
+    oneClause({ specRegistry: k.asf.specRegistryAddress, specId: spec.specId!, versions: [spec.version], adopter: predicted, subjectKey: accountSubjectKey(chainId, predicted), scopeKey: scopeKeyOf({ ref: accountRef(chainId, predicted) }), enforcement: cellEnforcement(spec.version), interveners: [{ account: guardian, rights: Rights.suspend | Rights.resume }] });
   let predictedFor: string | null = null;
   const { address } = await k.deploy(`${P}.deploy`, ROLE.owner, "foga:FogaCellAccount", [], (predicted) => {
     predictedFor = predicted;
@@ -113,9 +122,9 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   }
 
   // 4. the successor's own binding
-  const params = { profile: "foga-cell/1", cell: cfg.name, successorOf: accountRef(chainId, old.address), operatorScope: NODE_SCOPE_GROUPS };
+  const params = { profile: cellProfile(spec.version), cell: cfg.name, successorOf: accountRef(chainId, old.address), operatorScope: NODE_SCOPE_GROUPS };
   const authority = { kind: "owner", owner: accountRef(chainId, owner), guardian: accountRef(chainId, guardian) };
-  const input = k.asf.cellBindingInput({ chainId, cell: address, specId: spec.specId, version: spec.version, contentHash: spec.contentHash, guardian, params, authority });
+  const input = k.asf.cellBindingInput({ chainId, cell: address, specId: spec.specId!, version: spec.version, contentHash: spec.contentHash!, guardian, params, authority });
   const { bindingId } = await next.adoptBinding(`${P}.adopt`, input, 0);
   op(`${P}.adopt`);
 
@@ -194,7 +203,7 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   // the new config: the same cell, a new body, a fresh store
   const nextCfg: CellConfig = JSON.parse(JSON.stringify(cfg));
   nextCfg.store = opts.toStorePath;
-  nextCfg.identity = { ...cfg.identity, account: getAddress(address), operator, bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment.digest };
+  nextCfg.identity = { ...cfg.identity, account: getAddress(address), operator, bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment.digest, safety: spec, adopted: undefined };
   nextCfg.skills.held = Object.fromEntries(Object.entries(cfg.skills.held).map(([n, h]) => [n, { tokenId: h.tokenId, recordId: h.recordId, packageHash: h.packageHash }]));
   saveCellConfig(opts.toConfigPath, nextCfg);
   k.setFact(`${P}.successor`, { account: address, config: opts.toConfigPath });

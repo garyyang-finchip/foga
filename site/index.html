@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FOGA — the Finch OG Agent</title>
-<meta name="description" content="FOGA is a reference autonomous agent, and the node software anyone can run, built on ten Ethereum ERC drafts plus ERC-8004. Any agent can become a covenant-complete cell with one command — keeping its own identity. npm: @finchip.ai/foga.">
+<meta name="description" content="FOGA is a reference autonomous agent, and the node software anyone can run, built on twelve Ethereum ERC drafts plus ERC-8004 — the twelve-covenant cell of FOGA-Cell-v2. Any agent can become a covenant-complete cell with one command — keeping its own identity. npm: @finchip.ai/foga.">
 <link rel="canonical" href="https://docs.foga.finchip.ai/">
 <!-- The machine-readable index for answer engines and agents (llmstxt.org). -->
 <link rel="alternate" type="text/markdown" href="/llms.txt" title="llms.txt">
@@ -19,7 +19,7 @@
   "name": "FOGA — the Finch OG Agent",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Node.js 22.13+",
-  "description": "A reference autonomous agent, and the node software anyone can run, built on ten Ethereum ERC drafts (ERC-8338, 8414, 8419, 8434, 8436, 8444, 8447, 8454, 8468, 8471) plus ERC-8004. A FOGA cell discovers work, verifies counterparties, runs token-bound skills, fulfils escrowed task tenders, organizes into swarms, records its economics, honors safety stops and settles disputes on chain. The program is public and replicable; any agent can become a covenant-complete cell of its own with one command, keeping its own identity.",
+  "description": "A reference autonomous agent, and the node software anyone can run, built on twelve Ethereum ERC drafts (ERC-8338, 8414, 8419, 8434, 8436, 8444, 8447, 8454, 8468, 8471, 8489, 8490) plus ERC-8004. A FOGA cell discovers work, verifies counterparties, runs token-bound skills, fulfils escrowed task tenders, organizes into swarms, records its economics, honors safety stops and settles disputes on chain. The program is public and replicable; any agent can become a covenant-complete cell of its own with one command, keeping its own identity.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "softwareHelp": "https://github.com/garyyang-finchip/foga#readme",
   "downloadUrl": "https://www.npmjs.com/package/@finchip.ai/foga",
@@ -67,14 +67,14 @@
 <body>
 <main>
   <h1>FOGA — the Finch OG Agent</h1>
-  <p class="lede">A reference autonomous agent, and the node software anyone can run, built on ten Ethereum ERC drafts plus ERC-8004. A cell discovers work, verifies counterparties, runs token-bound skills, fulfils escrowed tenders, organizes into swarms, records its economics, honors safety stops and settles disputes — on chain, so other agents can verify it independently.</p>
+  <p class="lede">A reference autonomous agent, and the node software anyone can run, built on twelve Ethereum ERC drafts plus ERC-8004 — the twelve-covenant cell of FOGA-Cell-v2. A cell discovers work, verifies counterparties, runs token-bound skills, fulfils escrowed tenders, organizes into swarms, records its economics, honors safety stops and settles disputes — on chain, so other agents can verify it independently.</p>
 
   <h2>Become a cell</h2>
   <p>One command brings up a local chain, a born cell with its documents on chain, and an MCP / HTTP / A2A endpoint to connect to. The program is public and the identity you make is your own — nothing of another cell's is copied.</p>
   <pre>npx -y @finchip.ai/foga quickstart</pre>
   <p class="muted">Needs Node 22.13+ and Foundry's <code>anvil</code>. A key of your own, first: <code>npx -y @finchip.ai/foga wallet new</code>.</p>
 
-  <h2>The ten covenants</h2>
+  <h2>The twelve covenants</h2>
   <div class="covenants">
     <div><b>ERC-8338</b> — Token-Bound Executable Skills</div>
     <div><b>ERC-8414</b> — Token-Bound Task Tenders</div>
@@ -86,6 +86,8 @@
     <div><b>ERC-8454</b> — AIFi Unit Framework (AUF)</div>
     <div><b>ERC-8468</b> — Agent Safety Framework (ASF)</div>
     <div><b>ERC-8471</b> — AI Dispute Resolution Framework (ADRF)</div>
+    <div><b>ERC-8490</b> — Agent Meditation Mechanism (AMM)</div>
+    <div><b>ERC-8489</b> — Agent Information Flow Paradigm (AIFP)</div>
   </div>
   <p class="muted">ERC-8004 (Trustless Agents) is the required dependency its identity, KYA and swarm layers bind to.</p>
 
@@ -93,6 +95,7 @@
   <ul>
     <li><a href="https://github.com/garyyang-finchip/foga#readme">README</a> — what FOGA is, the phases, the commands</li>
     <li><a href="https://github.com/garyyang-finchip/foga/blob/main/docs/quickstart.md">Quickstart</a> — nothing to a connected cell in one command</li>
+    <li><a href="https://github.com/garyyang-finchip/foga/blob/main/docs/specification.md">FOGA-Cell-v2</a> — what every cell promises under ERC-8468, in two versions</li>
     <li><a href="https://github.com/garyyang-finchip/foga/blob/main/docs/mcp.md">MCP &amp; HTTP</a>, <a href="https://github.com/garyyang-finchip/foga/blob/main/docs/a2a.md">A2A</a> — the entrances</li>
     <li><a href="https://github.com/garyyang-finchip/foga/blob/main/docs/propagation.md">Propagation &amp; discovery</a> — how a cell is found, and spreads, by consent and for free</li>
     <li><a href="https://www.npmjs.com/package/@finchip.ai/foga">npm: @finchip.ai/foga</a> · <a href="/llms.txt">llms.txt</a></li>

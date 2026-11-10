@@ -19,10 +19,24 @@ const wei = z.string().regex(/^\d+$/, "a decimal amount in wei");
 const uint = z.string().regex(/^\d+$/, "a decimal integer");
 
 export const SafetySchema = z.object({
-  /** The ASF specification the cell adopts; `foga cell init` publishes FOGA-Cell-v1 and fills this in when absent. */
+  /** The ASF specification the cell's account is bound to; `foga cell init` publishes the owner's specification (versions 1 and 2) and fills this in when absent (version 2 since 1.0.0). */
   specId: bytes32.optional(),
   version: z.number().int().positive().default(1),
   contentHash: bytes32.optional(),
+});
+
+/**
+ * A later version of the specification adopted by a running cell whose account's requirement is pinned to an earlier
+ * one (the requirement is fixed at deployment): a second binding, enforced by the runtime, adopted through the account
+ * by `spec_adopt` (`foga cell adopt`). A cell born under the current version has none.
+ */
+export const AdoptedSchema = z.object({
+  specId: bytes32,
+  version: z.number().int().positive(),
+  contentHash: bytes32,
+  bindingId: bytes32,
+  enforcement: z.number().int().nonnegative(),
+  adoptedAt: z.string(),
 });
 
 export const StandingSchema = z.object({
@@ -43,6 +57,7 @@ export const IdentitySchema = z.object({
   unitId: uint.optional(),
   documentDigest: bytes32.optional(),
   safety: SafetySchema.prefault({}),
+  adopted: AdoptedSchema.optional(),
   standing: StandingSchema.optional(),
   /** The ERC-8434 liveness window the account keeps (seconds); the registry's default when absent. */
   livenessWindow: z.number().int().positive().optional(),
@@ -91,6 +106,9 @@ export const HeldSkillSchema = z.object({
   recordId: bytes32.optional(),
   unitId: uint.optional(),
   packageHash: bytes32.optional(),
+  /** The package version the token holds (ERC-8338 `updateSkill` moves it; 1 at the mint) and the package it supersedes, so the package is rebuilt from the directory with the same lineage (`skill_update`, 1.0.0). */
+  version: z.number().int().positive().optional(),
+  previousPackageHash: bytes32.optional(),
 });
 
 export const SkillsSchema = z.object({
@@ -355,7 +373,7 @@ export function newCellConfig(p: { name: string; world: string; store: string; o
     rpc: p.rpc,
     store: p.store,
     identity: { owner: p.owner, operator: p.operator, guardian: p.guardian, safety: { version: 1 } },
-    presence: { name: `FOGA cell ${p.name}`, description: p.description ?? `Cell ${p.name}: an address acting under the ten-ERC stack`, endpoints: {} },
+    presence: { name: `FOGA cell ${p.name}`, description: p.description ?? `Cell ${p.name}: an address acting under the twelve-ERC stack`, endpoints: {} },
     skills: { dir: p.skillsDir ?? "scenarios/skills", inputDir: p.inputDir ?? "scenarios/fixtures", held: {}, offered: [] },
     policy: {},
     runtime: {},

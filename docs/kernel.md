@@ -9,7 +9,7 @@
 | `kernel/store.ts` | `OperationStore`: the operation table (each row bound to the request that claimed it), the job table, the decision records of the node (docs/node.md), scenario facts and an append-only journal in one SQLite file (`node:sqlite`, WAL, `synchronous=FULL`). `:memory:` for tests. |
 | `kernel/tx.ts` | `TxManager`: exactly-once sending by idempotency key, one operation at a time per signer, receipt recovery, re-send and fee-replacement rules with a persisted limit and a fee cap, fault injection. |
 | `kernel/cell.ts` | `Cell`: one FogaCellAccount driven through its owner and operator keys (`deploy`, `execute`, `admin`, `adoptBinding`, `status`). |
-| `kernel/kernel.ts` | `Kernel`: a world, a store, the signers, the ten modules opened on that world, `call` / `deploy` / `transfer`, facts, `memo`, evidence. |
+| `kernel/kernel.ts` | `Kernel`: a world, a store, the signers, the twelve modules opened on that world, `call` / `deploy` / `transfer`, facts, `memo`, evidence. |
 | `kernel/errors.ts` | `RevertDecoder`: custom errors across every world ABI, `Error(string)`, `Panic`, and `CallFailed` unwrapping. |
 
 ## Exactly once

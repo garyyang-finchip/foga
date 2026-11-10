@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { ZeroHash, getAddress, parseEther, type Interface } from "ethers";
 import { AID, type AIDDocument } from "../core/aid.js";
 import { agentDescriptor, kindId, skillDescriptor, taskDescriptor } from "../core/ard.js";
-import { Enforcement, Rights, accountSubjectKey, fogaCellSpecification, oneClause, requirementIdOf, scopeKeyOf } from "../core/asf.js";
+import { Enforcement, FOGA_CELL_SPEC_SALT_NAME, Rights, accountSubjectKey, cellEnforcement, cellProfile, fogaCellSpecification, oneClause, requirementIdOf, scopeKeyOf } from "../core/asf.js";
 import { accountRef, dataUri, dataUriJcs, keccakJcs, sha256Hex } from "../core/canonical.js";
 import { accountSubject, fogaAttestedSchemeDescriptor, fogaPredicateSchemeDescriptor, fogaProvedSchemeDescriptor } from "../core/kya.js";
 import { buildSkillPackage, readSkillDir, type SkillPackage } from "../core/pack/skillpack.js";
@@ -18,6 +18,9 @@ import { CELL_CAPITAL, fundRoles, operatorGasFloor } from "./funding.js";
 import { CELL_GROUPS, operatorScope } from "./operator-scope.js";
 import { runProbe, type ProbeInput } from "./probe.js";
 import { runProbeIsolated, verifiedPackage } from "./skill-runner.js";
+import { CELL_SOURCE } from "../core/paradigms.js";
+import { ROLES, outcomeName } from "../core/aifp.js";
+import { admitGenesisCell, anchorGenesisObject, cycleGenesisCell, enrollGenesisCell, genesisLayerDocuments, marketOf, openGenesisChannel } from "./twelve.js";
 
 export const STEPS = ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9"] as const;
 export type StepName = (typeof STEPS)[number];
@@ -272,13 +275,17 @@ export class Genesis {
     const sPred = k.kya.schemeIdFromReceipt(pred.receipt);
     k.setFact("T0.kya.S_pred", { schemeId: sPred, schemeHash: predInput.schemeHash, verifier: predAdapter.address, groth16: groth16Pred.address, sourceSetRoot: sourceSet.root, pinned: sourceSet.pinned, zk: predMode });
 
-    // ASF specification FOGA-Cell-v1.
-    const spec = fogaCellSpecification();
-    const salt = keccakJcs({ spec: "FOGA-Cell-v1" });
+    // The ASF specification of a FOGA cell: version 1 (the account's gates) registered, version 2 (FOGA-Cell-v2, the
+    // runtime's duties over the twelve covenants) published under it; the cells of this genesis bind to version 2.
+    const specV1 = fogaCellSpecification(1);
+    const spec = fogaCellSpecification(2);
+    const salt = keccakJcs({ spec: FOGA_CELL_SPEC_SALT_NAME });
+    const commitmentV1 = k.asf.specificationCommitment(specV1);
     const commitment = k.asf.specificationCommitment(spec);
-    const reg = await k.call("T0.asf.spec.register", W, k.asf.specRegistryAddress, k.asf.specs().interface, "registerSpecification", [salt, commitment.contentHash, commitment.locator, []]);
+    const reg = await k.call("T0.asf.spec.register", W, k.asf.specRegistryAddress, k.asf.specs().interface, "registerSpecification", [salt, commitmentV1.contentHash, commitmentV1.locator, []]);
     const specId = k.asf.specIdFromReceipt(reg.receipt);
-    k.setFact("T0.asf.spec", { specId, version: 1, contentHash: commitment.contentHash, salt });
+    const pub2 = await k.call("T0.asf.spec.publish2", W, k.asf.specRegistryAddress, k.asf.specs().interface, "publishVersion", [specId, commitment.contentHash, commitment.locator, []]);
+    k.setFact("T0.asf.spec", { specId, version: 2, contentHash: commitment.contentHash, salt, v1ContentHash: commitmentV1.contentHash, publishTx: pub2.txHash });
 
     // The ACDF policy FOGA-Council (judges J1-J3, two approvals decide) and FOGA's instance of the upstream
     // ACDFTaskTenderAdapter bound to it: the judged acceptance authority of T5.
@@ -309,15 +316,28 @@ export class Genesis {
     k.evidence("T0", "registrations", {
       W: k.address(W),
       schemes: { S_att: sAtt, S_cred: sCred, S_credVerifier: credVerifier, zk: zkMode, S_pred: sPred, S_predVerifier: predAdapter.address, S_predGroth16: groth16Pred.address, sourceSetRoot: sourceSet.root, zkPredicate: predMode },
-      specification: { specId, version: 1, contentHash: commitment.contentHash, locatorBytes: commitment.locator.length },
+      specification: { specId, version: 2, contentHash: commitment.contentHash, locatorBytes: commitment.locator.length, v1ContentHash: commitmentV1.contentHash },
       council: { policyId, judges, k: 2, window: this.timing.councilWindow, appealWindow: this.timing.appealWindow, tenderAdapter: tenderAdapter.address, margin: this.timing.margin },
       service: { policyId: servicePolicyId, bindingId, escrow: k.adrf.escrowAddress, versionVerifier: k.adrf.versionVerifierAddress, bridge: k.adrf.bridgeAddress, timing: this.timing.service, maxTotalDuration: servicePolicy.track.maxTotalDuration },
       txs: { S_att: att.txHash, S_cred: cred.txHash, S_pred: pred.txHash, spec: reg.txHash, policy: pol.txHash, servicePolicy: spol.txHash, escrowBind: bound.txHash },
     });
 
     // checks
-    const got = await k.asf.versionOf(specId, 1);
-    this.check("T0", "spec.pinned", got.contentHash === commitment.contentHash, `versionOf(${specId.slice(0, 10)}…, 1).contentHash matches keccak(JCS(spec))`);
+    const got1 = await k.asf.versionOf(specId, 1);
+    this.check("T0", "spec.pinned", got1.contentHash === commitmentV1.contentHash, `versionOf(${specId.slice(0, 10)}…, 1).contentHash matches keccak(JCS(FOGA-Cell-v1))`);
+    const got2 = await k.asf.versionOf(specId, 2);
+    this.check("T0", "spec.v2.published", got2.contentHash === commitment.contentHash && Number(await k.asf.specs().latestVersion(specId)) === 2, `versionOf(${specId.slice(0, 10)}…, 2).contentHash matches keccak(JCS(FOGA-Cell-v2)); latestVersion 2`);
+    // the eleventh and twelfth covenants (1.0.0): the world carries the meditation registry and the flows the deployer bootstrapped
+    if (k.flows.available) {
+      const { cellSourceParadigm, marketOf } = await import("./twelve.js");
+      const sourceId = cellSourceParadigm(this);
+      const registered = await k.flows.paradigmExists(sourceId);
+      const market = marketOf(this);
+      const marketRec = market ? await k.flows.channel(market).catch(() => null) : null;
+      this.check("T0", "flows.bootstrapped", registered && Boolean(marketRec) && marketRec!.stateName === "Active", `${CELL_SOURCE} ${sourceId.slice(0, 10)}… registered: ${registered}; the default market ${market ? `${market.slice(0, 10)}… ${marketRec?.stateName ?? "unreadable"} (authority ${marketRec?.authority ?? "?"})` : "none in the world file"}`);
+      k.setFact("T0.flows", { cellSource: sourceId, market, authority: marketRec?.authority ?? null });
+    } else this.skipped("T0", "flows.bootstrapped", "the world has no ERC-8489 registries");
+    this.check("T0", "meditation.registry", k.world.has("8490/AgentMeditationRegistry"), k.world.has("8490/AgentMeditationRegistry") ? `${k.meditation.address} (CLOCK_MODE ${await k.meditation.registry().CLOCK_MODE()})` : "the world has no ERC-8490 registry");
     const schemeOk = await k.kya.schemes().schemeExists(sAtt);
     this.check("T0", "scheme.S_att", Boolean(schemeOk), `S_att ${sAtt.slice(0, 10)}… exists`);
     const credOk = await k.kya.schemes().schemeExists(sCred);
@@ -373,7 +393,7 @@ export class Genesis {
           adopter: predicted,
           subjectKey: accountSubjectKey(chainId, predicted),
           scopeKey: scopeKeyOf({ ref: accountRef(chainId, predicted) }),
-          enforcement: Enforcement.account | Enforcement.contract,
+          enforcement: cellEnforcement(spec.version),
           interveners: [{ account: G, rights: Rights.suspend | Rights.resume }],
         }),
     });
@@ -412,7 +432,7 @@ export class Genesis {
     for (const [name, target, sel] of derisk) await cell.admin(`T1.${X}.derisk.${name}`, "setDeriskAllowed", [target, sel, true]);
 
     // 4. the safety binding: adopted by the account, presented for clause 0
-    const params = { profile: "foga-cell/1", cell: X, operatorScope: CELL_GROUPS[X], deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
+    const params = { profile: cellProfile(spec.version), cell: X, operatorScope: CELL_GROUPS[X], deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
     const authority = { kind: "owner", owner: accountRef(chainId, cell.ownerAddress), guardian: accountRef(chainId, G) };
     const input = k.asf.cellBindingInput({ chainId, cell: cell.address, specId: spec.specId, version: spec.version, contentHash: spec.contentHash, guardian: G, params, authority });
     const { bindingId } = await cell.adoptBinding(`T1.${X}.adopt`, input, 0);
@@ -422,7 +442,7 @@ export class Genesis {
     const registration = {
       type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
       name: `FOGA cell ${X}`,
-      description: `Cell ${X} of the Finch OG Agent genesis: an address acting under the ten-ERC stack`,
+      description: `Cell ${X} of the Finch OG Agent genesis: an address acting under the twelve-ERC stack`,
       services: [],
       supportedTrust: ["reputation"],
       "x-foga": { cell: X, anchor: accountRef(chainId, cell.address), binding: bindingId },
@@ -483,7 +503,26 @@ export class Genesis {
     const unitId = k.units.unitIdFromReceipt(unit.receipt);
     k.setFact(`T1.${X}.unitId`, unitId.toString());
 
+    // 11. its own maintenance (ERC-8490, 1.0.0): enrolled through the account with the four layer commitments, the
+    //     program's policy and the guardian as controller — the baseline every later cycle builds on
+    let upkeep: { stateVersion: string; root: string } | null = null;
+    if (k.world.has("8490/AgentMeditationRegistry")) upkeep = await enrollGenesisCell(this, X, cell);
+
+    // 12. its information flows (ERC-8489, 1.0.0): its own channel (the account as authority, SUBMIT granted to itself)
+    //     and the first publication — the AID document's commitment — anchored there; A, the fulfiller, is admitted to the
+    //     world's market for RESPOND by the identity predicate (B, the demander, is admitted for SUBMIT in T3)
+    let channel: { channelId: string; paradigmId: string; grantBindingId: string } | null = null;
+    let anchored: { action: string; recordIndex: number } | null = null;
+    let admitted: { outcomeBefore: string; bindingId: string | null } | null = null;
+    if (k.flows.available) {
+      channel = await openGenesisChannel(this, X, cell, { agentId: agentId.toString() });
+      anchored = await anchorGenesisObject(this, X, cell, `T1.${X}.flows.anchor`, commitment2.digest);
+      if (X === "A" && marketOf(this)) admitted = await admitGenesisCell(this, X, cell, `T1.${X}.flow.admit.respond`, "respond", agentId.toString());
+    }
+
     k.evidence("T1", X, {
+      upkeep: upkeep ? { registry: k.meditation.address, stateVersion: upkeep.stateVersion, root: upkeep.root, controller: k.address("G") } : null,
+      flows: channel ? { channelId: channel.channelId, paradigmId: channel.paradigmId, grantBindingId: channel.grantBindingId, firstAnchor: anchored, market: marketOf(this), admitted } : null,
       account: cell.address,
       owner: cell.ownerAddress,
       operator: cell.operatorAddress,
@@ -525,6 +564,28 @@ export class Genesis {
     this.check("T1", `${X}.requirementId`, reqOnchain === reqLocal, `account.requirementId() ${reqOnchain.slice(0, 10)}… equals keccak(abi.encode(requirement)) computed off-chain`);
     const bindingOnchain = await k.asf.computeBindingId(cell.address, input);
     this.check("T1", `${X}.bindingId`, bindingOnchain === bindingId, `computeBindingId(account, input) matches the adopted binding ${bindingId.slice(0, 10)}…`);
+
+    // the two covenants of 1.0.0
+    if (upkeep) {
+      const head = await k.meditation.headOf(cell.address);
+      this.check("T1", `${X}.meditation.enrolled`, head.enrolled && head.stateVersion === 1n && head.root.toLowerCase() === upkeep.root.toLowerCase() && getAddress(head.controller) === getAddress(k.address("G")), `headOf(${X}) = enrolled ${head.enrolled}, state version ${head.stateVersion}, root ${head.root.slice(0, 10)}… (local ${upkeep.root.slice(0, 10)}…), controller ${head.controller}`, X === "A" ? ["T2.A.amm.cycle"] : []);
+      const statuses = await k.meditation.layerStatuses(cell.address);
+      this.check("T1", `${X}.meditation.layerStatus`, statuses.every((l) => l.statusName === "FRESH"), `every layer FRESH right after the enrollment: ${statuses.map((l) => `${l.name} ${l.statusName}`).join(", ")}`, X === "A" ? ["T2.A.amm.cycle"] : []);
+    } else this.skipped("T1", `${X}.meditation.enrolled`, "the world has no ERC-8490 registry");
+    if (channel) {
+      const rec = await k.flows.channel(channel.channelId);
+      this.check("T1", `${X}.channel.open`, getAddress(rec.authority) === getAddress(cell.address) && rec.stateName === "Active", `channel ${channel.channelId.slice(0, 10)}… (${CELL_SOURCE}): authority ${rec.authority}, ${rec.stateName}`, X === "A" ? ["T9.A.flow.close"] : []);
+      const submitRole = outcomeName(await k.flows.evaluateNow(channel.channelId, k.flows.subjectOf(cell.address), ROLES.submit));
+      const operatorRole_ = outcomeName(await k.flows.evaluateNow(channel.channelId, k.flows.subjectOf(cell.operatorAddress), ROLES.submit));
+      this.check("T1", `${X}.channel.submit`, submitRole === "SATISFIED" && operatorRole_ === "NOT_SATISFIED", `evaluateNow(channel, the account, SUBMIT) = ${submitRole}; the operator's own address = ${operatorRole_} (the subject is the account)`);
+      const by = await k.flows.anchoredBy(commitment2.digest);
+      this.check("T1", `${X}.flows.anchored`, by.toLowerCase() === k.flows.subjectOf(cell.address).toLowerCase() && anchored?.action === "publish", `anchoredBy(document ${commitment2.digest.slice(0, 10)}…) = the cell's subject; action ${anchored?.action} (record ${anchored?.recordIndex})`);
+      if (admitted) {
+        const market = marketOf(this)!;
+        const role = outcomeName(await k.flows.evaluateNow(market, k.flows.subjectOf(cell.address), ROLES.respond));
+        this.check("T1", `${X}.market.admitted.respond`, admitted.outcomeBefore === "SATISFIED" && Boolean(admitted.bindingId) && role === "SATISFIED", `previewAdmission(market, A, RESPOND) = ${admitted.outcomeBefore}; admitted as binding ${admitted.bindingId?.slice(0, 10)}…; evaluateNow = ${role}`);
+      }
+    } else this.skipped("T1", `${X}.channel.open`, "the world has no ERC-8489 registries");
   }
 
   async requirementOf(cell: Cell) {
@@ -610,10 +671,33 @@ export class Genesis {
     const now = await k.aid.documentURI(A.address);
     this.check("T2", "A.document.updated", now.digest === c2.digest, `documentURI(A).digest = ${c2.digest.slice(0, 10)}… (skills facet added)`);
 
+    // the two covenants of 1.0.0: the new document supersedes the first in A's channel, and the skills A now holds are a
+    // change of its memory-skills layer — an event cycle over that layer alone, reported through the account
+    let anchored: { action: string; recordIndex: number } | null = null;
+    if (k.flows.available && k.fact(`flows.A.channel`)) {
+      anchored = await anchorGenesisObject(this, "A", A, "T2.A.flows.anchor", c2.digest);
+      const by = await k.flows.anchoredBy(c2.digest);
+      this.check("T2", "A.flows.superseded", anchored.action === "supersede" && by.toLowerCase() === k.flows.subjectOf(A.address).toLowerCase(), `the new document ${c2.digest.slice(0, 10)}… anchored as ${anchored.action} (record ${anchored.recordIndex}); the first stays anchored`);
+    }
+    let cycle: { stateVersion: string; changedLayers: number } | null = null;
+    if (k.world.has("8490/AgentMeditationRegistry") && k.fact("amm.A.state")) {
+      const docs = genesisLayerDocuments(this, "A", A, { skills: Object.entries(minted).map(([n, m]) => ({ name: n, tokenId: m.tokenId, packageHash: packages[n].packageHash })) });
+      const r = await cycleGenesisCell(this, "A", A, "T2.A.amm.cycle", { trigger: "event", layers: [1], docs, note: "skills minted in T2: the memory-skills layer records them" });
+      cycle = { stateVersion: r.state.stateVersion, changedLayers: r.changedLayers };
+      const head = await k.meditation.headOf(A.address);
+      this.check("T2", "A.meditation.cycle", head.stateVersion === 2n && head.recordCount === 1n && head.root.toLowerCase() === r.state.root.toLowerCase() && r.changedLayers === 2, `an event cycle over the memory-skills layer: state version ${head.stateVersion}, ${head.recordCount} record(s), root ${head.root.slice(0, 10)}…, changed layers mask ${r.changedLayers}`, ["T9.A.amm.cycle"]);
+      const cp = await k.meditation.checkpointOf(A.address, 1);
+      this.check("T2", "A.meditation.checkpoint", cp.commitment.toLowerCase() === r.state.commitments[1].toLowerCase() && cp.lastChangedVersion === 2n, `checkpointOf(A, memory-skills).commitment is the new commitment, last changed at version ${cp.lastChangedVersion}`, ["T9.A.amm.cycle"]);
+      const cp0 = await k.meditation.checkpointOf(A.address, 0);
+      this.check("T2", "A.meditation.unscoped.kept", cp0.lastChangedVersion === 0n || cp0.lastChangedVersion === 1n, `the runtime layer, out of scope, keeps its commitment (last changed at version ${cp0.lastChangedVersion})`);
+    }
+
     k.evidence("T2", "skills", {
       holder: A.address,
       skills: Object.fromEntries(Object.entries(minted).map(([n, m]) => [n, { ...m, mdHash: packages[n].mdHash, packageHash: packages[n].packageHash, rootCid: packages[n].rootCid }])),
       documentDigest: c2.digest,
+      flows: anchored,
+      upkeep: cycle,
     });
   }
 
@@ -655,7 +739,7 @@ export class Genesis {
       packageHash: probeSkill.packageHash,
       input,
       acceptance: { mode: "verifier", profile: "x-hashlock-v1", verifier: k.tenders.hashlockAddress, answerHash },
-      deliverable: "the canonical foga.probe/1 report; resultHash = sha256(report || fulfiller)",
+      deliverable: "the canonical foga.probe/2 report; resultHash = sha256(report || fulfiller)",
     };
     const taskHash = sha256Hex(JSON.stringify(task));
     const taskURI = dataUri(task);
@@ -673,7 +757,7 @@ export class Genesis {
       demander: B.address,
       slug: `probe-c-at-${blockN}`,
       name: `foga-probe of cell C at block ${blockN}`,
-      wants: "the canonical foga.probe/1 report of the subject at the stated block",
+      wants: "the canonical foga.probe/2 report of the subject at the stated block",
       taskHash,
       taskURI,
       bounty: { amount: "0.001", currency: "ETH", asset: `eip155:${chainId}/slip44:60` },
@@ -706,6 +790,25 @@ export class Genesis {
     const specURI: string = discovered.data.specURI;
     const spec = parseDataUri(specURI) as typeof task;
     this.check("T3", "A.discovery", spec.skill === "foga-probe" && spec.input.subject.toLowerCase() === C.address.toLowerCase(), `ARD record ${taskRecordId.slice(0, 10)}… -> task ${tokenId}: skill ${spec.skill}, subject ${spec.input.subject}, block ${spec.input.block}`);
+
+    // the flow gate (ERC-8489, 1.0.0): B holds no role in the market yet, so A's pre-check refuses the tender by the registry's
+    // read — NOT_SATISFIED, kept as obtained; B admits itself for SUBMIT by the identity predicate, and the gate opens
+    const market = marketOf(this);
+    if (market && k.flows.available) {
+      const admittedB = k.store.get("T3.B.flow.admit")?.status === "confirmed";
+      if (!admittedB && !submitted) {
+        const before = outcomeName(await k.flows.evaluateNow(market, k.flows.subjectOf(B.address), ROLES.submit));
+        const refused = await this.precheck(A, tokenId);
+        this.check("T3", "A.flow.gate.refused", before === "NOT_SATISFIED" && !refused.ok && /does not hold SUBMIT/.test(refused.detail), `evaluateNow(market, B, SUBMIT) = ${before}; A's pre-check: ${refused.detail}`);
+      } else {
+        this.skipped("T3", "A.flow.gate.refused", "replayed run: B was admitted already");
+      }
+      const agentIdB = k.requireFact<string>("T1.B.agentId");
+      const adm = await admitGenesisCell(this, "B", B, "T3.B.flow.admit", "submit", agentIdB);
+      const after = outcomeName(await k.flows.evaluateNow(market, k.flows.subjectOf(B.address), ROLES.submit));
+      this.check("T3", "B.market.admitted.submit", adm.outcomeBefore === "SATISFIED" && after === "SATISFIED", `previewAdmission(market, B, SUBMIT) = ${adm.outcomeBefore}; B admitted through its account${adm.bindingId ? ` (binding ${adm.bindingId.slice(0, 10)}…)` : ""}; evaluateNow = ${after}`);
+      k.setFact("T3.flowGate", { market, before: "NOT_SATISFIED", after, bindingId: adm.bindingId });
+    } else this.skipped("T3", "A.flow.gate.refused", "the world has no default market");
 
     if (!submitted) {
       const pre = await this.precheck(A, tokenId);
@@ -771,6 +874,7 @@ export class Genesis {
       reward: reward.toString(),
       paidToA: paid.toString(),
       creditPath: credit > 0n ? "settlement credited; withdrawn" : "paid at settlement (the account can receive)",
+      flowGate: k.fact("T3.flowGate") ?? null,
       runReceipt: receiptDoc,
       txs: { mint: mint.txHash, fund: k.store.get("T3.B.fund")?.txHash, commit: k.store.get("T3.B.commit")?.txHash, ard: rec.txHash, submit: submit.txHash, settle: settle.txHash, withdraw: withdrawTx },
     });
@@ -814,7 +918,21 @@ export class Genesis {
     if (await k.tenders.isCancelled(tokenId)) problems.push("tender cancelled");
     const escrow = await k.tenders.escrowBalanceOf(tokenId);
     if (escrow < terms.rewardPerCompletion) problems.push(`escrow ${escrow} below reward ${terms.rewardPerCompletion}`);
-    return problems.length ? { ok: false, detail: problems.join("; ") } : { ok: true, detail: `anchor ACTIVE, safety Satisfied, operator gas ${gas} wei, escrow ${escrow} wei, deadlines open` };
+    // the flow gate (ERC-8489, 1.0.0): the demander holds SUBMIT in the world's market — the registry's four-valued read, kept as
+    // obtained; a read that fails is a failed call, not a verdict
+    let flow = "no market";
+    const market = marketOf(this);
+    if (market) {
+      const demander: string = await k.tenders.contract().ownerOf(tokenId);
+      try {
+        flow = outcomeName(await k.flows.evaluateNow(market, k.flows.subjectOf(demander), ROLES.submit));
+        if (flow !== "SATISFIED") problems.push(`the demander ${demander} does not hold SUBMIT in the market: ${flow}`);
+      } catch (e) {
+        problems.push(`the demander's role could not be read (${(e as Error).message.slice(0, 80)}): not a verdict, the tender is not taken now`);
+        flow = "unreadable";
+      }
+    }
+    return problems.length ? { ok: false, detail: problems.join("; ") } : { ok: true, detail: `anchor ACTIVE, safety Satisfied, operator gas ${gas} wei, escrow ${escrow} wei, deadlines open${market ? `, the demander's SUBMIT in the market ${flow}` : ""}` };
   }
 
   /** eth_estimateGas as the cell's operator: the decoded revert reason, or null when the call would succeed. */

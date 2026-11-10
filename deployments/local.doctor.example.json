@@ -1,30 +1,31 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-11-01T20:02:46.777Z",
+  "at": "2026-11-09T16:29:45.140Z",
   "world": {
-    "worldId": "anvil-31337-20261101T200100Z",
+    "worldId": "anvil-31337-20261109T162759Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
     "mode": "deployed",
-    "bundleHash": "0xb09770ec43673cca94f9f6feb5ad6050a24aee510792078fd5c87bed389cdcd2"
+    "bundleHash": "0x8a967c8f18919a0074c75adf786ef7d5de822d7ef704eea0b058d02cfc8c5c4f"
   },
   "source": {
-    "rpc": "http://127.0.0.1:8553",
-    "collectedAt": "2026-11-01T20:02:46.639Z",
+    "rpc": "http://127.0.0.1:8545",
+    "collectedAt": "2026-11-09T16:29:45.053Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 31337,
-    "blockNumber": 252
+    "blockNumber": 287
   },
-  "bundleHash": "0xb09770ec43673cca94f9f6feb5ad6050a24aee510792078fd5c87bed389cdcd2",
+  "bundleHash": "0x8a967c8f18919a0074c75adf786ef7d5de822d7ef704eea0b058d02cfc8c5c4f",
   "layers": {
     "1": "chain and code: the address holds code on the expected chain",
     "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
     "3": "version match: runtime code (metadata stripped, library/immutable slots masked) equals the locked build",
     "4": "configuration and permissions: dependency addresses and authority slots match the world",
-    "5": "semantic validation: success, rejection, signature, proof and recovery cases, from the genesis evidence (foga genesis run; pass it with --genesis)"
+    "5": "semantic validation: success, rejection, signature, proof and recovery cases, from the genesis evidence (foga genesis run; pass it with --genesis)",
+    "D": "Loop D: an unscripted run judged by its records — every operation under an allowed decision, refusals that broadcast nothing, the budget books, the operator key's transactions, the demander's cases, recovery, the entrances (foga demo --loop-d; pass the evidence with --loop-d)"
   },
   "results": [
     {
@@ -1502,6 +1503,387 @@
       "detail": "9209 bytes, 0.8.30+commit.73712a01"
     },
     {
+      "layer": 1,
+      "subject": "8490/AgentMeditationRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "16740 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8490/AgentMeditationRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8490/AgentMeditationRegistry",
+      "check": "supportsInterface(IAgentMeditation)",
+      "verdict": "Pass",
+      "expected": "0x9c81b550"
+    },
+    {
+      "layer": 2,
+      "subject": "8490/AgentMeditationRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8490/AgentMeditationRegistry",
+      "check": "supportsInterface(IERC6372)",
+      "verdict": "Pass",
+      "expected": "0xda287a1d"
+    },
+    {
+      "layer": 2,
+      "subject": "8490/AgentMeditationRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAgentMeditation=0x9c81b550, IERC165=0x01ffc9a7, IERC6372=0xda287a1d",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8490/AgentMeditationRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x4f6c0439630fe26928ccb8f68331899181719d76cec2e2145cb676e02c9c90f6",
+      "actual": "0x4f6c0439630fe26928ccb8f68331899181719d76cec2e2145cb676e02c9c90f6",
+      "detail": "16740 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/AIFPParadigmRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "3860 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParadigmRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParadigmRegistry",
+      "check": "supportsInterface(IAIFPParadigmRegistry)",
+      "verdict": "Pass",
+      "expected": "0xa30ca0da"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParadigmRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParadigmRegistry",
+      "check": "supportsInterface(IERC6372)",
+      "verdict": "Pass",
+      "expected": "0xda287a1d"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParadigmRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIFPParadigmRegistry=0xa30ca0da, IERC165=0x01ffc9a7, IERC6372=0xda287a1d",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/AIFPParadigmRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x39c90b16e0c8d687ae23171ce53657ce7ab6d264d001bde36d2effcf2fffa11c",
+      "actual": "0x39c90b16e0c8d687ae23171ce53657ce7ab6d264d001bde36d2effcf2fffa11c",
+      "detail": "3860 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/AIFPCompositeVerifier",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "3522 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPCompositeVerifier",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPCompositeVerifier",
+      "check": "supportsInterface(IAIFPCompositeVerifier)",
+      "verdict": "Pass",
+      "expected": "0xa5913d6e"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPCompositeVerifier",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPCompositeVerifier",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIFPCompositeVerifier=0xa5913d6e, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/AIFPCompositeVerifier",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x4855b34f605901e382a8be8bf240289a99eafae10ec4ba90acd881423f5d9634",
+      "actual": "0x4855b34f605901e382a8be8bf240289a99eafae10ec4ba90acd881423f5d9634",
+      "detail": "3522 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "9816 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "supportsInterface(IAIFPChannelRegistry)",
+      "verdict": "Pass",
+      "expected": "0x94dbe6d5"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "supportsInterface(IERC6372)",
+      "verdict": "Pass",
+      "expected": "0xda287a1d"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIFPChannelRegistry=0x94dbe6d5, IERC165=0x01ffc9a7, IERC6372=0xda287a1d",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x4dd6a0c6291a3112840ddc4065b0c9ff4bab2493c114fa346557199c5c4f12aa",
+      "actual": "0x4dd6a0c6291a3112840ddc4065b0c9ff4bab2493c114fa346557199c5c4f12aa",
+      "detail": "9816 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "13759 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "supportsInterface(IAIFPParticipationRegistry)",
+      "verdict": "Pass",
+      "expected": "0x14c97260"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "supportsInterface(IERC6372)",
+      "verdict": "Pass",
+      "expected": "0xda287a1d"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIFPParticipationRegistry=0x14c97260, IERC165=0x01ffc9a7, IERC6372=0xda287a1d",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x7124ee023a1f5489ec2c5f246d99e835ac79cb70266bb57c2540c62a39b8de95",
+      "actual": "0x7124ee023a1f5489ec2c5f246d99e835ac79cb70266bb57c2540c62a39b8de95",
+      "detail": "13759 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "4095 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "supportsInterface(IAIFPEventAnchor)",
+      "verdict": "Pass",
+      "expected": "0x62b24396"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIFPEventAnchor=0x62b24396, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x6f414885caf63884f69a25b0b018ab488ff61bdcecc21538d046b891f97bc7d7",
+      "actual": "0x6f414885caf63884f69a25b0b018ab488ff61bdcecc21538d046b891f97bc7d7",
+      "detail": "4095 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/AIFPObjectionWindow",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "5390 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPObjectionWindow",
+      "check": "supportsInterface",
+      "verdict": "NotApplicable",
+      "detail": "contract does not expose ERC-165"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/AIFPObjectionWindow",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0x32f3d617bb96c7145493d3d1f600d2d988626667c0bd1997efc2661aeca72998",
+      "actual": "0x32f3d617bb96c7145493d3d1f600d2d988626667c0bd1997efc2661aeca72998",
+      "detail": "5390 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/AIFPSubjectSet",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "1038 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPSubjectSet",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPSubjectSet",
+      "check": "supportsInterface(IAIFPSubjectSet)",
+      "verdict": "Pass",
+      "expected": "0x1d1a696d"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPSubjectSet",
+      "check": "supportsInterface(IERC165)",
+      "verdict": "Pass",
+      "expected": "0x01ffc9a7"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/AIFPSubjectSet",
+      "check": "declared",
+      "verdict": "Pass",
+      "actual": "IAIFPSubjectSet=0x1d1a696d, IERC165=0x01ffc9a7",
+      "detail": "interfaces of the same repository the contract reports as supported"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/AIFPSubjectSet",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xb5990bbb7315358ab331dfb97ee2aad2e545239748efb66f31a7d0b40a211d42",
+      "actual": "0xb5990bbb7315358ab331dfb97ee2aad2e545239748efb66f31a7d0b40a211d42",
+      "detail": "1038 bytes, 0.8.28+commit.7893614a"
+    },
+    {
+      "layer": 1,
+      "subject": "8489/FogaIdentityVerifier",
+      "check": "code",
+      "verdict": "Pass",
+      "actual": "2149 bytes"
+    },
+    {
+      "layer": 2,
+      "subject": "8489/FogaIdentityVerifier",
+      "check": "supportsInterface(0x01ffc9a7)",
+      "verdict": "Pass"
+    },
+    {
+      "layer": 3,
+      "subject": "8489/FogaIdentityVerifier",
+      "check": "runtimeIdentity",
+      "verdict": "Pass",
+      "expected": "0xdb6be868f4cc8ff1c6c593cbccd9010575dd0229753b113a732b9e11b29ca72b",
+      "actual": "0xdb6be868f4cc8ff1c6c593cbccd9010575dd0229753b113a732b9e11b29ca72b",
+      "detail": "2149 bytes, 0.8.30+commit.73712a01"
+    },
+    {
       "layer": 4,
       "subject": "8419/KYARegistry",
       "check": "getSchemeRegistry",
@@ -1758,12 +2140,84 @@
       "actual": "0x4826533B4897376654Bb4d4AD88B7faFD0C98528"
     },
     {
+      "layer": 4,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "paradigmRegistry",
+      "verdict": "Pass",
+      "expected": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D (8489/AIFPParadigmRegistry)",
+      "actual": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/AIFPChannelRegistry",
+      "check": "participationRegistry",
+      "verdict": "Pass",
+      "expected": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154 (8489/AIFPParticipationRegistry)",
+      "actual": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "channelRegistry",
+      "verdict": "Pass",
+      "expected": "0x1291Be112d480055DaFd8a610b7d1e203891C274 (8489/AIFPChannelRegistry)",
+      "actual": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "paradigmRegistry",
+      "verdict": "Pass",
+      "expected": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D (8489/AIFPParadigmRegistry)",
+      "actual": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/AIFPParticipationRegistry",
+      "check": "verifier",
+      "verdict": "Pass",
+      "expected": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029 (8489/AIFPCompositeVerifier)",
+      "actual": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "channelRegistry",
+      "verdict": "Pass",
+      "expected": "0x1291Be112d480055DaFd8a610b7d1e203891C274 (8489/AIFPChannelRegistry)",
+      "actual": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/AIFPEventAnchor",
+      "check": "participationRegistry",
+      "verdict": "Pass",
+      "expected": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154 (8489/AIFPParticipationRegistry)",
+      "actual": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/FogaIdentityVerifier",
+      "check": "identityRegistry",
+      "verdict": "Pass",
+      "expected": "0x5FbDB2315678afecb367f032d93F642f64180aa3 (identity8004)",
+      "actual": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    },
+    {
+      "layer": 4,
+      "subject": "8489/FogaIdentityVerifier",
+      "check": "aidRegistry",
+      "verdict": "Pass",
+      "expected": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e (8434/AIDRegistry)",
+      "actual": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+    },
+    {
       "layer": 5,
       "subject": "genesis",
       "check": "evidence",
       "verdict": "Pass",
-      "expected": "anvil-31337-20261101T200100Z (chain 31337)",
-      "actual": "anvil-31337-20261101T200100Z (chain 31337), until T9, 166 checks, 0 failed, ran 2026-11-01T20:02:45.255Z"
+      "expected": "anvil-31337-20261109T162759Z (chain 31337)",
+      "actual": "anvil-31337-20261109T162759Z (chain 31337), until T9, 197 checks, 0 failed, ran 2026-11-09T16:29:16.938Z"
     },
     {
       "layer": 5,
@@ -1771,8 +2225,8 @@
       "check": "semantic validation",
       "verdict": "Pass",
       "expected": "every genesis check that exercises the standard passes",
-      "actual": "8 pass, 0 fail, 0 skipped",
-      "detail": "8/8 checks pass over T1, T9"
+      "actual": "9 pass, 0 fail, 0 skipped",
+      "detail": "9/9 checks pass over T1, T9"
     },
     {
       "layer": 5,
@@ -1852,8 +2306,8 @@
       "check": "semantic validation",
       "verdict": "Pass",
       "expected": "every genesis check that exercises the standard passes",
-      "actual": "21 pass, 0 fail, 0 skipped",
-      "detail": "21/21 checks pass over T0, T1, T7, T9"
+      "actual": "22 pass, 0 fail, 0 skipped",
+      "detail": "22/22 checks pass over T0, T1, T7, T9"
     },
     {
       "layer": 5,
@@ -1863,6 +2317,24 @@
       "expected": "every genesis check that exercises the standard passes",
       "actual": "18 pass, 0 fail, 0 skipped",
       "detail": "18/18 checks pass over T0, T6"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8489",
+      "check": "semantic validation",
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "18 pass, 0 fail, 1 skipped",
+      "detail": "18/18 checks pass over T0, T1, T2, T3, T7, T9; 1 skipped"
+    },
+    {
+      "layer": 5,
+      "subject": "ERC-8490",
+      "check": "semantic validation",
+      "verdict": "Pass",
+      "expected": "every genesis check that exercises the standard passes",
+      "actual": "10 pass, 0 fail, 2 skipped",
+      "detail": "10/10 checks pass over T0, T1, T2, T7, T9; 2 skipped"
     }
   ],
   "readouts": [
@@ -1895,14 +2367,29 @@
       "subject": "8454/AUFUnitRegistry",
       "fn": "unitCount",
       "value": "7"
+    },
+    {
+      "subject": "8490/AgentMeditationRegistry",
+      "fn": "CLOCK_MODE",
+      "value": "mode=timestamp"
+    },
+    {
+      "subject": "8489/AIFPChannelRegistry",
+      "fn": "CLOCK_MODE",
+      "value": "mode=timestamp"
+    },
+    {
+      "subject": "8489/AIFPCompositeVerifier",
+      "fn": "LEAF_GAS_LIMIT",
+      "value": "1000000"
     }
   ],
   "summary": {
-    "Pass": 216,
+    "Pass": 278,
     "Fail": 0,
     "Unknown": 2,
     "NotTested": 0,
-    "NotApplicable": 23
+    "NotApplicable": 24
   },
   "perContract": {
     "identity8004": {
@@ -2231,6 +2718,69 @@
       "address": "0x5eb3Bc0a489C5A8288765d2336659EbCA68FCd00",
       "layer1": "Pass",
       "layer2": "Unknown",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8490/AgentMeditationRegistry": {
+      "address": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8489/AIFPParadigmRegistry": {
+      "address": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8489/AIFPCompositeVerifier": {
+      "address": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8489/AIFPChannelRegistry": {
+      "address": "0x1291Be112d480055DaFd8a610b7d1e203891C274",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8489/AIFPParticipationRegistry": {
+      "address": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8489/AIFPEventAnchor": {
+      "address": "0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "Pass"
+    },
+    "8489/AIFPObjectionWindow": {
+      "address": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
+      "layer1": "Pass",
+      "layer2": "NotApplicable",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8489/AIFPSubjectSet": {
+      "address": "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
+      "layer1": "Pass",
+      "layer2": "Pass",
+      "layer3": "Pass",
+      "layer4": "NotApplicable"
+    },
+    "8489/FogaIdentityVerifier": {
+      "address": "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
+      "layer1": "Pass",
+      "layer2": "Pass",
       "layer3": "Pass",
       "layer4": "Pass"
     }

@@ -164,10 +164,11 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
     });
   }
   server.registerResource("policy", "foga://policy", { title: "The cell's policy", description: "Budget and tender rules the policy engine applies to every act.", mimeType: "application/json" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "application/json", text: text(node.config.policy) }] }));
-  server.registerResource("spec-foga-cell-v1", "foga://spec/foga-cell-v1", { title: "FOGA-Cell-v1", description: "The ERC-8468 safety specification every FOGA cell adopts.", mimeType: "application/json" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "application/json", text: text(fogaCellSpecification()) }] }));
+  server.registerResource("spec-foga-cell-v1", "foga://spec/foga-cell-v1", { title: "FOGA-Cell-v1", description: "Version 1 of the ERC-8468 safety specification of a FOGA cell: the account's gates (0.6.0).", mimeType: "application/json" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "application/json", text: text(fogaCellSpecification(1)) }] }));
+  server.registerResource("spec-foga-cell-v2", "foga://spec/foga-cell-v2", { title: "FOGA-Cell-v2", description: "Version 2 of the ERC-8468 safety specification of a FOGA cell (1.0.0): the account's gates and the runtime's duties over the twelve covenants — every cell born under 1.0.0 adopts it.", mimeType: "application/json" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "application/json", text: text(fogaCellSpecification(2)) }] }));
   const matrix = join(repoRoot(), "docs", "compatibility-matrix.md");
   if (existsSync(matrix)) {
-    server.registerResource("compatibility-matrix", "foga://docs/compatibility-matrix", { title: "Compatibility matrix", description: "The ten standards, what the kernel exercises of each, and the evidence.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(matrix, "utf8") }] }));
+    server.registerResource("compatibility-matrix", "foga://docs/compatibility-matrix", { title: "Compatibility matrix", description: "The twelve standards and ERC-8004, what the kernel exercises of each, and the evidence.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(matrix, "utf8") }] }));
   }
 
   // how to become a cell: every cell carries the genome's instructions, so an agent that meets one can make itself one
@@ -183,6 +184,10 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
   const flowsDoc = join(repoRoot(), "docs", "flows.md");
   if (existsSync(flowsDoc)) {
     server.registerResource("flows", "foga://docs/flows", { title: "The cell's information flows (ERC-8489)", description: "The cell's own channel (one publisher, open observation, an archive of what it said about itself), the tender market it is admitted to by its identity, the roles the registry evaluates with four values, and what an anchored publication or a disclosure record does and does not prove.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(flowsDoc, "utf8") }] }));
+  }
+  const specificationDoc = join(repoRoot(), "docs", "specification.md");
+  if (existsSync(specificationDoc)) {
+    server.registerResource("specification", "foga://docs/specification", { title: "The cell specification (ERC-8468): FOGA-Cell-v1 and v2", description: "The safety specification every FOGA cell adopts, its two versions, how a cell born before version 2 adopts it as a runtime-enforced binding, and how to read which version a cell operates under.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(specificationDoc, "utf8") }] }));
   }
   if (existsSync(meditationDoc)) {
     server.registerResource("meditation", "foga://docs/meditation", { title: "The cell's own maintenance (ERC-8490)", description: "What this cell registers about its own upkeep — four layer state documents, a state version, a timeliness per layer — what FRESH means and does not, and how a cycle is run, resumed and recomputed.", mimeType: "text/markdown" }, async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: readFileSync(meditationDoc, "utf8") }] }));
@@ -204,7 +209,7 @@ export function buildMcpServer(o: McpServerOptions): McpServer {
             "5. Another chain, the same key:  join --chain <name>  where a world ships (sepolia today), or  foga world deploy --world worlds/<chain>.json  once on a chain without one, then  join --world <its address book>.",
             `6. With the wallet alone you can also call this cell as yourself:  npx -y @finchip.ai/foga wallet sign --url ${node.config.runtime.http.publicUrl ?? "<this node's URL>"}  prints an Authorization header (FOGA-EIP712) for its /api, /mcp and /a2a; what it is granted is this cell's policy.`,
             "The guides are the resource foga://docs/quickstart and docs/join.md in the package. In PowerShell, quote the package name: npx -y '@finchip.ai/foga' join --chain sepolia.",
-            "What you get is a complete body: the ten standards, the catalog that decides, the acceptance (foga doctor, foga demo --loop-d). The mind driving it stays yours.",
+            "What you get is a complete body: the twelve standards, the catalog that decides, the acceptance (foga doctor, foga demo --loop-d). The mind driving it stays yours.",
           ].join("\n"),
         },
       },

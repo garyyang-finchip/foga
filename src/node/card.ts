@@ -5,6 +5,7 @@ import { readPolicy, readState } from "./meditation.js";
 import { FOGA_COVENANTS } from "./propagation.js";
 import type { Node } from "./node.js";
 import { PACKAGE_NAME } from "../util/version.js";
+import { FOGA_CELL_SPEC_VERSION } from "../core/asf.js";
 
 /**
  * A cell's card: what it is and how to reach it, said in the words another agent needs — its chain and account, its
@@ -17,7 +18,13 @@ export interface CellCard {
   name: string;
   chain: { chainId: number; network: string; worldId: string; explorer: string | null };
   identity: { account: string | null; agentId: string | null; registry: string | null; owner: string; operator: string; guardian: string; oneKey: boolean };
-  covenants: { program: readonly string[]; world: string[] };
+  covenants: { program: readonly string[]; world: string[]; missing: string[] };
+  /**
+   * The FOGA cell specification (ERC-8468) the cell operates under (1.0.0): the version its account enforces through the
+   * binding it presents (fixed at the account's deployment), a later version the runtime adopted as a second binding when
+   * the cell was born before it, and the version this program is (FOGA-Cell-v2). `operatesUnder` is the higher of the two.
+   */
+  specification: { account: { version: number; specId: string | null; bindingId: string | null }; adopted: { version: number; bindingId: string } | null; program: number; operatesUnder: number };
   skills: { id: string; tokenId: string; packageHash: string; offered: boolean }[];
   /** Where a demander mints a tender this cell can take (ERC-8414), and the terms it holds a tender to. */
   work: { taskToken: string | null; minRewardWei: string; acceptance: string[]; counterpartyMinLevel: number };
@@ -66,7 +73,13 @@ export function cellCard(node: Node, o: { version: string }): CellCard {
       guardian: id.guardian,
       oneKey: id.owner === id.operator && id.operator === id.guardian,
     },
-    covenants: { program: FOGA_COVENANTS, world: world.covenants() },
+    covenants: { program: FOGA_COVENANTS, world: world.covenants(), missing: FOGA_COVENANTS.filter((c) => !world.covenants().includes(c)) },
+    specification: {
+      account: { version: id.safety.version, specId: id.safety.specId ?? null, bindingId: id.bindingId ?? null },
+      adopted: id.adopted ? { version: id.adopted.version, bindingId: id.adopted.bindingId } : null,
+      program: FOGA_CELL_SPEC_VERSION,
+      operatesUnder: Math.max(id.safety.version, id.adopted?.version ?? 0),
+    },
     skills: Object.entries(cfg.skills.held).map(([sid, h]) => ({ id: sid, tokenId: String(h.tokenId), packageHash: h.packageHash ?? "", offered: cfg.skills.offered.includes(sid) })),
     work: { taskToken: has("8414/TaskToken"), minRewardWei: String(cfg.policy.tenders.minRewardWei), acceptance: cfg.policy.tenders.acceptance, counterpartyMinLevel: cfg.policy.tenders.counterpartyMinLevel },
     standing: id.standing ? { schemeId: id.standing.schemeId, issuers: id.standing.issuers } : null,
@@ -117,7 +130,9 @@ export function formatCard(c: CellCard): string {
   else lines.push("  account   not born yet (foga cell init)");
   if (c.identity.agentId) lines.push(`  identity  ERC-8004 agent ${c.identity.agentId}${c.identity.registry ? ` in registry ${c.identity.registry}` : ""}`);
   lines.push(`  roles     ${c.identity.oneKey ? `one key, every role: ${c.identity.owner}` : `owner ${c.identity.owner}, operator ${c.identity.operator}, guardian ${c.identity.guardian}`}`);
-  lines.push(`  covenants ${c.covenants.world.join(", ")}`);
+  lines.push(`  covenants ${c.covenants.world.join(", ")}${c.covenants.missing.length ? ` (the world lacks ${c.covenants.missing.join(", ")} of the program's base set)` : ""}`);
+  const sp = c.specification;
+  lines.push(`  spec      FOGA-Cell-v${sp.operatesUnder}${sp.adopted && sp.account.version < sp.adopted.version ? ` (the account enforces v${sp.account.version}; v${sp.adopted.version} adopted by the runtime)` : ""}${sp.operatesUnder < sp.program ? ` — this program is v${sp.program}: foga cell adopt` : ""}`);
   const offered = c.skills.filter((s) => s.offered);
   const heldOnly = c.skills.filter((s) => !s.offered);
   lines.push(`  skills    ${offered.length ? offered.map((s) => `${s.id} (token ${s.tokenId})`).join(", ") + " — offered" : "none offered"}${heldOnly.length ? `; held: ${heldOnly.map((s) => s.id).join(", ")}` : ""}`);

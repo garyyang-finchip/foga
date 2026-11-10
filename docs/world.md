@@ -1,6 +1,6 @@
 # Worlds
 
-A **world** is one deployed (or attached) instance of the ten-ERC stack on one chain, described by a world file in `deployments/`. World files are the address books every later phase reads.
+A **world** is one deployed (or attached) instance of the twelve-ERC stack on one chain, described by a world file in `deployments/`. World files are the address books every later phase reads.
 
 ## World configs (`worlds/*.json`)
 
@@ -38,7 +38,7 @@ The world file is written after every step. `foga world deploy --resume` re-read
 
 ## The ERC-8004 stand-in
 
-`contracts/src/Identity8004Stub.sol` implements the surface the ten reference implementations call on the Identity Registry — `register()` / `register(string)` / `register(string, MetadataEntry[])`, `ownerOf`, `getAgentWallet`, `setAgentWallet(agentId, newWallet, deadline, signature)`, `unsetAgentWallet`, `getMetadata`, `setMetadata`, `setAgentURI`, `tokenURI`, ERC-721 transfers and approvals, ERC-165 — with these documented choices:
+`contracts/src/Identity8004Stub.sol` implements the surface the reference implementations call on the Identity Registry — `register()` / `register(string)` / `register(string, MetadataEntry[])`, `ownerOf`, `getAgentWallet`, `setAgentWallet(agentId, newWallet, deadline, signature)`, `unsetAgentWallet`, `getMetadata`, `setMetadata`, `setAgentURI`, `tokenURI`, ERC-721 transfers and approvals, ERC-165 — with these documented choices:
 
 - agent ids start at 1 and never repeat;
 - `setAgentWallet` requires a signature by the new wallet (ECDSA, or ERC-1271 for contract wallets) over an EIP-712 digest in the stub's own domain (`Identity8004Stub`, version `1`), which is not the official domain;

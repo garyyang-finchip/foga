@@ -1,21 +1,21 @@
-# Extending FOGA: the eleventh covenant, the services slot, what survives the OG
+# Extending FOGA: the thirteenth covenant, the services slot, what survives the OG
 
-FOGA is complete over ten covenants and ERC-8004 today. Nothing in the program assumes that is the last word: the covenant list is read off the world, the kernel and the catalog are registries, the doctor judges per standard, and the manifest carries a slot for the services around the covenants that the maintainer fills without a code release. This page is the map of those seams — where an eleventh covenant goes, how the services pointer works and is declined, how the cell specification would move to a second version, and what keeps working when the reference cell is off.
+FOGA is complete over twelve covenants and ERC-8004 (1.0.0; the eleventh and twelfth, ERC-8490 and ERC-8489, entered by the seams below in 0.8.0 and 0.9.0 and became part of the base set in 1.0.0). Nothing in the program assumes that is the last word: the covenant list is read off the world, the kernel and the catalog are registries, the doctor judges per standard, and the manifest carries a slot for the services around the covenants that the maintainer fills without a code release. This page is the map of those seams — where the thirteenth covenant goes, how the services pointer works and is declined, how the cell specification moved to its second version, and what keeps working when the reference cell is off.
 
 ## The covenant list is data
 
 `FOGA_COVENANTS` (`src/node/propagation.ts`) names the set this build is complete over: the base, not a ceiling. What a cell's world *actually* has is read off the world file's contract keys — `8414/TaskToken` is ERC-8414, `identity8004/…` is ERC-8004 — by `World.covenants()` (`src/core/world.ts`), and the propagation manifest reports both:
 
 ```
-"covenants": ["ERC-8004", "ERC-8338", …, "ERC-8471"],      // the program's base set
-"world": { "covenants": ["ERC-8004", …, "ERC-8471"], "extensions": [] }
+"covenants": ["ERC-8004", "ERC-8338", …, "ERC-8471", "ERC-8489", "ERC-8490"],      // the program's base set (1.0.0)
+"world": { "covenants": ["ERC-8004", …, "ERC-8490"], "extensions": [], "missing": [] }
 ```
 
-A world that attaches contracts under a new key — `9001/SomethingRegistry` — advertises `ERC-9001` under `world.covenants` and in `world.extensions` with no change to the program; a world that lacks one of the base set does not claim it. The doctor's layer 5 and the catalog's `ercs` dimension work the same way: per standard, from the world and the capabilities registered, never from a fixed count.
+A world that attaches contracts under a new key — `9001/SomethingRegistry` — advertises `ERC-9001` under `world.covenants` and in `world.extensions` with no change to the program; a world that lacks one of the base set does not claim it, and names it under `world.missing` (a world file from before 1.0.0 that has not been extended — `foga cell extend --covenants 8489,8490` adds what its chain has). The doctor's layer 5 and the catalog's `ercs` dimension work the same way: per standard, from the world and the capabilities registered, never from a fixed count.
 
 ## Adding a covenant, in five places
 
-An eleventh covenant is a repository under `vendor/` and five additions, each in a registry that already exists:
+The thirteenth covenant is a repository under `vendor/` and five additions, each in a registry that already exists:
 
 1. **The world.** Its contracts enter the world file under the ERC's number (`"9001/<Name>": {address, bundleKey}`) — `foga world deploy` from the bundle, or `foga world attach` to an instance that exists. `World.covenants()` sees it at once.
 2. **The kernel.** A module like `src/core/asf.ts` or `src/core/tenders.ts`: the ABI from the bundle, the encoders and reads the catalog and the genesis need. `Kernel` holds one per standard.
@@ -23,7 +23,7 @@ An eleventh covenant is a repository under `vendor/` and five additions, each in
 4. **The doctor.** A checker in `src/doctor/` that names its checks after the standard; layer 5 judges it beside the others (docs/doctor.md).
 5. **The manifest and the documents.** Nothing to add for the manifest (it reads the world); the ERC-8434 AID document and the ERC-8444 descriptor gain a facet or a field only if the covenant has something a counterparty must be told (docs/documents.md).
 
-A cell born on a world with the eleventh covenant attached is complete over eleven; one born on a world without it is complete over ten, and says so.
+A cell born on a world with the thirteenth covenant attached is complete over thirteen; one born on a world without it is complete over twelve, and says so.
 
 **The first one, done (0.8.0).** ERC-8490, the Agent Meditation Mechanism, went in by exactly these five: `8490/AgentMeditationRegistry` in the plan and the attach-mode configs (1), `src/core/amm.ts` on `Kernel.meditation` (2), `src/tools/meditation.ts` registered in the catalog (3), the registry's rows at layers 1–3, a `CLOCK_MODE` readout and a layer-5 rule for its checks (4), a `maintenance` block in the manifest and an `upkeep` line in the card, with no change to the AID document or the descriptor (5) — plus what a covenant that *acts* needs and the list did not say: a scope group for the operator (`maintenance` in `src/genesis/operator-scope.ts`), a configuration block (`maintenance` in `cell.config.json`), and a way onto it for a cell that already runs, which is `foga cell extend --covenants 8490` (`src/node/extend.ts`): the contract enters the cell's own world file, the owner opens the scope and enrolls, nothing is migrated. docs/meditation.md has the rest. The base set `FOGA_COVENANTS` stays at the ten plus ERC-8004 until the twelve-covenant cell specification (4c); until then a world with the registry advertises `ERC-8490` under `world.extensions`.
 
@@ -31,7 +31,7 @@ A cell born on a world with the eleventh covenant attached is complete over elev
 
 ## The cell specification: one version, then a second
 
-Every cell adopts the FOGA-Cell-v1 safety specification (ERC-8468): `foga cell init` registers it under the owner when the configuration names none and adopts it when the owner published it before, and the account binds to it. Its content hash is what the binding holds, so **its text is not edited in place** — an edit would make every existing cell's configuration disagree with the chain and every new birth from an owner who published before fail its check (`src/node/init.ts`). A change to what a cell promises is a *second version*: `fogaCellSpecification()` grows a sibling, a new cell names it in `identity.safety` or registers it, and an existing cell moves by presenting a binding to the new specification (`binding_present`). Two versions coexist on one world; the doctor and the manifest read which one a cell holds.
+Every cell adopts the FOGA cell safety specification (ERC-8468; docs/specification.md): `foga cell init` registers it under the owner when the configuration names none and adopts it when the owner published it before, and the account binds to it. Its content hash is what the binding holds, so **a version's text is never edited in place** — an edit would make every existing cell's configuration disagree with the chain and every new birth from an owner who published before fail its check (`src/node/init.ts`). A change to what a cell promises is a *second version* of the same specification, which is how 1.0.0 did it: `fogaCellSpecification(2)` is FOGA-Cell-v2 (version 1's four clauses, enforced by the account as before, and three the runtime enforces over the twelve covenants), `publishVersion` puts it under the owner's specification beside version 1, a cell born under 1.0.0 binds to it and its account's requirement names it. What the first design of this paragraph got wrong, and the live cells showed: a cell born before cannot *present* a binding to version 2, because its account's requirement — fixed at deployment — names version 1 alone, and presenting another version would stop it (`VersionMismatch`). So a running cell adopts version 2 as a **second, runtime-enforced binding** through its account (`spec_adopt`, `foga cell adopt`), the account keeps enforcing version 1 through the binding it presents, and a successor body (`foga cell migrate`) fixes version 2 in its own requirement. Two versions coexist on one world; the card, the manifest, `spec_status` and the preflight say which one a cell's account enforces and which its runtime adopted.
 
 ## The services slot
 

@@ -43,7 +43,7 @@ export function cellUnitDefinition(p: { chainId: number; cell: string; name: str
   return {
     auf: "1.0",
     kind: "unit-definition",
-    unit: { name: p.name, summary: p.summary ?? "A FOGA cell: one address acting under the ten-ERC stack", tags: ["foga", "cell"] },
+    unit: { name: p.name, summary: p.summary ?? "A FOGA cell: one address acting under the twelve-ERC stack", tags: ["foga", "cell"] },
     elements: [agent, treasury],
     relations: [
       { type: "owns", from: "unit", to: elementId(agent.kind, agent.ref), exclusive: true, share: "1", basis: ["erc8434:anchor"] },

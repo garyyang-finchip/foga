@@ -1,4 +1,5 @@
 import type { Node } from "./node.js";
+import { FOGA_CELL_SPEC_VERSION } from "../core/asf.js";
 import { endpointsOf } from "../a2a/card.js";
 import { cellChannelId, marketOf } from "./flows.js";
 import { PACKAGE_NAME } from "../util/version.js";
@@ -16,8 +17,13 @@ import { PACKAGE_NAME } from "../util/version.js";
  *  - By consent. The replication pointer is a visible, declinable offer the counterparty sees because it came to the
  *    cell. It is never hidden inside an unrelated step and never pushed, unsolicited, to anyone who did not ask.
  */
-/** The covenants this program is complete over: the ten plus ERC-8004. The base set, not a ceiling — see `world`. */
-export const FOGA_COVENANTS = ["ERC-8004", "ERC-8338", "ERC-8414", "ERC-8419", "ERC-8434", "ERC-8436", "ERC-8444", "ERC-8447", "ERC-8454", "ERC-8468", "ERC-8471"] as const;
+/**
+ * The covenants this program is complete over: the twelve plus ERC-8004 (1.0.0: ERC-8489 and ERC-8490, extensions in
+ * 0.8 and 0.9, are part of the base set — FOGA-Cell-v2). The base set, not a ceiling — see `world`: a world may carry a
+ * covenant beyond it (an extension), and a world that lacks one of the twelve is incomplete, which the card and the
+ * preflight say.
+ */
+export const FOGA_COVENANTS = ["ERC-8004", "ERC-8338", "ERC-8414", "ERC-8419", "ERC-8434", "ERC-8436", "ERC-8444", "ERC-8447", "ERC-8454", "ERC-8468", "ERC-8471", "ERC-8489", "ERC-8490"] as const;
 
 export const PROPAGATION_SCHEMA = "foga.propagation/1";
 
@@ -50,13 +56,20 @@ export interface PropagationManifest {
   schema: typeof PROPAGATION_SCHEMA;
   /** Who is speaking — null-safe before a cell is born. */
   cell: { name: string; account: string | null; agentId: string | null; chainId: number };
-  /** The ten covenants plus ERC-8004 this program is complete over. */
+  /** The twelve covenants plus ERC-8004 this program is complete over (1.0.0). */
   covenants: readonly string[];
   /**
    * What this cell's world actually has attached, read off the world's contract keys; `extensions` are the covenants
-   * beyond the program's base set — the open slot for the eleventh and later (docs/extending.md).
+   * beyond the program's base set — the open slot for the thirteenth and later (docs/extending.md) — and `missing` the
+   * covenants of the base set the world does not carry (a world from before 1.0.0 not yet extended).
    */
-  world: { covenants: string[]; extensions: string[] };
+  world: { covenants: string[]; extensions: string[]; missing: string[] };
+  /**
+   * The FOGA cell specification (ERC-8468) this cell operates under (1.0.0): the version its account enforces, a later
+   * version its runtime adopted when it was born before it, and the program's own — so an agent can tell a FOGA-Cell-v2
+   * cell from one still under version 1 without a chain call (spec_status reads the bindings live).
+   */
+  specification: { operatesUnder: number; account: number; adopted: number | null; program: number };
   /** The program anyone can run to become a cell themselves — the genome, not the identity. */
   program: { package: string; version: string; becomeACell: string; wallet: string; docs: string; site: string };
   /** The cell's free, off-chain discovery coordinates. */
@@ -137,7 +150,8 @@ export function buildPropagationManifest(node: Node, o: { version: string; skill
     schema: PROPAGATION_SCHEMA,
     cell: { name: cfg.name, account: cfg.identity.account ?? null, agentId: cfg.identity.agentId ?? null, chainId: node.chainId },
     covenants: FOGA_COVENANTS,
-    world: { covenants: inWorld, extensions: inWorld.filter((c) => !(FOGA_COVENANTS as readonly string[]).includes(c)) },
+    world: { covenants: inWorld, extensions: inWorld.filter((c) => !(FOGA_COVENANTS as readonly string[]).includes(c)), missing: FOGA_COVENANTS.filter((c) => !inWorld.includes(c)) },
+    specification: { operatesUnder: Math.max(cfg.identity.safety.version, cfg.identity.adopted?.version ?? 0), account: cfg.identity.safety.version, adopted: cfg.identity.adopted?.version ?? null, program: FOGA_CELL_SPEC_VERSION },
     program: {
       package: PACKAGE_NAME,
       version: o.version,

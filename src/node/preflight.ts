@@ -1,4 +1,6 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
+import { FOGA_CELL_SPEC_VERSION } from "../core/asf.js";
+import { FOGA_COVENANTS } from "./propagation.js";
 import { join } from "node:path";
 import { formatEther, getAddress } from "ethers";
 import { accountSubject } from "../core/kya.js";
@@ -82,6 +84,15 @@ export async function preflight(node: Node, o: PreflightOptions = {}): Promise<P
     row("account", "anchor ACTIVE and binding Satisfied", anchor === "ACTIVE" && status.verdictName === "Satisfied" ? "Pass" : anchor === "STALE" ? "Warn" : "Fail", `anchor ${anchor}, binding ${status.verdictName}${status.reasonNames.length ? ` [${status.reasonNames.join(", ")}]` : ""}${anchor === "STALE" ? " (the next heartbeat restores it)" : ""}`);
   } catch (e) {
     row("account", "anchor ACTIVE and binding Satisfied", "Fail", (e as Error).message);
+  }
+  // the specification the cell operates under (1.0.0): version 2 enforced by the account (born under 1.0.0) or adopted by the runtime
+  {
+    const accountVersion = cfg.identity.safety.version;
+    const adopted = cfg.identity.adopted?.version ?? 0;
+    const under = Math.max(accountVersion, adopted);
+    const missingBase = FOGA_COVENANTS.filter((c) => !node.world.covenants().includes(c));
+    row("account", `the cell operates under FOGA-Cell-v${FOGA_CELL_SPEC_VERSION}`, under >= FOGA_CELL_SPEC_VERSION ? "Pass" : "Warn", under >= FOGA_CELL_SPEC_VERSION ? (accountVersion >= FOGA_CELL_SPEC_VERSION ? `the account's binding is to version ${accountVersion}` : `the account enforces version ${accountVersion} (fixed at its deployment); version ${adopted} is adopted as a runtime-enforced binding ${cfg.identity.adopted!.bindingId.slice(0, 10)}…`) : `bound to version ${accountVersion}; this program is version ${FOGA_CELL_SPEC_VERSION} — foga cell adopt adopts it (a second, runtime-enforced binding; nothing stops)`);
+    row("world", "the world carries the program's base set (twelve covenants and ERC-8004)", missingBase.length ? "Warn" : "Pass", missingBase.length ? `missing ${missingBase.join(", ")}: foga cell extend --covenants ${missingBase.map((c) => c.slice(4)).join(",")} adds what the chain has` : `${node.world.covenants().length} covenants in the world file`);
   }
   if (version >= 2) {
     try {

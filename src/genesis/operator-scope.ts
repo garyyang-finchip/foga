@@ -105,12 +105,16 @@ export const EXTENSION_GROUPS: Partial<Record<ScopeGroup, string>> = { maintenan
  */
 export const NODE_SCOPE_GROUPS: ScopeGroup[] = ["identity", "standing", "skills-provider", "labour", "demander", "service-provider", "maintenance", "flows"];
 
-/** The groups each genesis cell plays. A-prime (T9) takes the successor's groups: identity and what it inherits by adoption. */
+/**
+ * The groups each genesis cell plays. A-prime (T9) takes the successor's groups: identity and what it inherits by
+ * adoption. Since 1.0.0 every cell also keeps its own maintenance (ERC-8490) and takes part in the flows (ERC-8489),
+ * where the world has the registries (`operatorScope` leaves a group out otherwise).
+ */
 export const CELL_GROUPS: Record<CellName | "A-prime", ScopeGroup[]> = {
-  A: ["identity", "standing", "skills-provider", "labour", "organization-member", "service-provider"],
-  B: ["identity", "demander", "organization-coordinator", "organization-member"],
-  C: ["identity", "organization-member", "service-client"],
-  "A-prime": ["identity", "skills-provider", "labour", "service-provider"],
+  A: ["identity", "standing", "skills-provider", "labour", "organization-member", "service-provider", "maintenance", "flows"],
+  B: ["identity", "demander", "organization-coordinator", "organization-member", "maintenance", "flows"],
+  C: ["identity", "organization-member", "service-client", "maintenance", "flows"],
+  "A-prime": ["identity", "skills-provider", "labour", "service-provider", "maintenance", "flows"],
 };
 
 export interface ScopeList {
@@ -156,6 +160,8 @@ export const OWNER_EXECUTE_SCOPE: ScopeEntry[] = [
   { contract: "8489/AIFPChannelRegistry", fn: "setState(bytes32,uint8)" },
   { contract: "8489/AIFPParticipationRegistry", fn: "grant(bytes32,bytes32,bytes32,uint16,bytes32,uint8,bytes32,uint48,uint48)" },
   { contract: "8489/AIFPParadigmRegistry", fn: "registerParadigm(bytes,bytes32,bytes32,bytes32[],(uint16,bytes32)[],string)" },
+  // 1.0.0: a later version of the cell specification adopted as a second, runtime-enforced binding (spec_adopt)
+  { contract: "8468/ASFBindingRegistry", fn: "adopt((bytes32,bytes32,address,bytes32,uint32,bytes32,bytes32,string,bytes32,uint16,uint64,uint64,bytes32,bytes32,(address,uint8)[]))" },
 ];
 
 /** The owner-through-operator pairs on this world: the entries whose registry the world has (empty without any extension). */

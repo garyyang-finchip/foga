@@ -164,7 +164,7 @@ export async function extendWorld(o: ExtendWorldOptions): Promise<ExtendWorldRes
   };
 }
 
-/** The covenants a world file carries beyond the ten-ERC base, by number (every non-optional contract present). */
+/** The covenants a world file carries that this build knows as extensions in place, by number (every non-optional contract present); since 1.0.0 both are part of the base set, so this says which of them an older world file has gained. */
 export function worldExtensions(worldPath: string): string[] {
   const world = JSON.parse(readFileSync(worldPath, "utf8")) as WorldFile;
   return Object.keys(EXTENSIONS).filter((c) => EXTENSIONS[c].contracts.filter((x) => !x.optional).every((x) => Boolean(world.contracts[x.id])));

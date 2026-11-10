@@ -70,6 +70,67 @@ export const skill_mint: ActCapability = {
   },
 };
 
+/**
+ * The program's package of a skill moves on (foga-probe 1.x -> 2.0.0 with `foga.probe/2`, 1.0.0): the token the cell
+ * holds still commits to the old package, so the runner refuses the skill until the cell commits the new one. The
+ * update is ERC-8338's `updateSkill` through the account — the token's version moves, the new package names the old
+ * one as its predecessor — and the ERC-8444 skill record's descriptor is re-committed with the new package hash. The
+ * configuration keeps the lineage (version, previous package hash) so the package is rebuilt from the directory the
+ * same way the token holds it. The AUF unit names the token, not the package, and stays. The memory-skills state
+ * document (ERC-8490) changes with it, and the maintenance watcher records that in its next cycle.
+ */
+export const skill_update: ActCapability = {
+  name: "skill_update",
+  title: "Commit a skill's new package to the token the cell holds",
+  description: "When the skill directory's package differs from what the cell's ERC-8338 token commits to (the program upgraded the skill), update the token to the new package (version + 1, the old package as predecessor) through the account and re-commit the ERC-8444 skill record's descriptor; the configuration records the lineage. Refused when the token holds the directory's package already.",
+  action: "act",
+  visibility: "operator",
+  principal: "cell",
+  ercs: [8338, 8444],
+  input: z.object({ skill: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "a skill directory name"), priceEth: z.string().regex(/^\d+(\.\d+)?$/).optional(), jobId: zJobId }),
+  output: z.object({ skill: z.string(), tokenId: zUint, version: z.number(), previousPackageHash: zBytes32, mdHash: zBytes32, packageHash: zBytes32, recordId: zBytes32.nullable(), operations: z.array(z.string()), jobId: z.string() }),
+  async plan({ node }, input) {
+    const k = node.kernel;
+    const cell = node.body;
+    const chainId = node.chainId;
+    const held = node.config.skills.held[input.skill];
+    const gates: Gate[] = [];
+    const [aidState, status] = await Promise.all([k.aid.stateName(cell.address), cell.status()]);
+    gates.push(safetyGate(aidState, status, "plain"));
+    if (!held) {
+      gates.push(refused("policy", `the cell does not hold ${input.skill}; skill_mint mints it`));
+      return { job: { id: input.jobId ?? derivedJobId(`skill-update:${input.skill}`, { none: true }), kind: "skill-update", input: { skill: input.skill } }, gates, valueWei: 0n, steps: [], output: () => ({ skill: input.skill, tokenId: "0", version: 0, previousPackageHash: "0x" + "00".repeat(32), mdHash: "0x" + "00".repeat(32), packageHash: "0x" + "00".repeat(32), recordId: null, operations: [], jobId: "" }) };
+    }
+    const tokenId = BigInt(held.tokenId);
+    const onchain = await k.skills.skillOf(tokenId);
+    const files = readSkillDir(join(node.skillsDir, input.skill));
+    const asHeld = buildSkillPackage(files, { version: held.version ?? 1, previousPackageHash: held.previousPackageHash });
+    if (asHeld.packageHash.toLowerCase() === onchain.packageHash.toLowerCase()) gates.push(refused("policy", `token ${tokenId} commits to the directory's package ${onchain.packageHash.slice(0, 10)}… (v${onchain.version}) already; nothing to update`));
+    const nextVersion = Number(onchain.version) + 1;
+    const pkg = buildSkillPackage(files, { version: nextVersion, previousPackageHash: onchain.packageHash });
+    if (!gates.some((g) => !g.ok)) gates.push(ok("policy", `${input.skill}: token ${tokenId} v${onchain.version} ${onchain.packageHash.slice(0, 10)}… -> v${nextVersion} ${pkg.packageHash.slice(0, 10)}… (manifest ${String(pkg.manifest.skillVersion ?? "?")})`));
+    const packageURI = dataUriJcs({ skill: input.skill, version: pkg.version, mdHash: pkg.mdHash, packageHash: pkg.packageHash, rootCid: pkg.rootCid, previousPackageHash: onchain.packageHash, source: `${node.config.skills.dir}/${input.skill}` });
+    const jobId = input.jobId ?? derivedJobId(`skill-update:${input.skill}`, { packageHash: pkg.packageHash, cell: cell.address, version: nextVersion });
+    const steps: ActStep[] = [{ name: "update", kind: "plain", build: () => ({ target: k.skills.address, value: 0n, data: k.skills.encodeUpdate(tokenId, pkg), label: `updateSkill(${tokenId}, v${nextVersion})` }) }];
+    if (held.recordId) {
+      const price = input.priceEth ?? "0";
+      const descriptor = skillDescriptor({ chainId, controller: cell.address, slug: input.skill, name: input.skill, description: String(pkg.manifest.summary ?? input.skill), packageHash: pkg.packageHash, packageURI, price: { amount: price, currency: "ETH", asset: `eip155:${chainId}/slip44:60` } });
+      steps.push({ name: "record", kind: "plain", build: () => ({ target: k.ard.address, value: 0n, data: k.ard.encodeUpdateDescriptor(held.recordId!, descriptor), label: `ARD updateDescriptor(skill ${tokenId})` }) });
+    }
+    return {
+      job: { id: jobId, kind: "skill-update", input: { skill: input.skill, tokenId: tokenId.toString(), from: onchain.packageHash, to: pkg.packageHash, version: nextVersion } },
+      gates,
+      valueWei: 0n,
+      steps,
+      output: (confirmed) => {
+        node.config.skills.held[input.skill] = { ...held, packageHash: pkg.packageHash, version: nextVersion, previousPackageHash: onchain.packageHash };
+        node.saveConfig();
+        return { skill: input.skill, tokenId: tokenId.toString(), version: nextVersion, previousPackageHash: onchain.packageHash, mdHash: pkg.mdHash, packageHash: pkg.packageHash, recordId: held.recordId ?? null, operations: confirmed.map((c) => c.key), jobId };
+      },
+    };
+  },
+};
+
 export const aid_heartbeat: ActCapability = {
   name: "aid_heartbeat",
   title: "Heartbeat",
@@ -102,4 +163,4 @@ export const aid_heartbeat: ActCapability = {
   },
 };
 
-export const IDENTITY_CAPABILITIES: ActCapability[] = [skill_mint, aid_heartbeat];
+export const IDENTITY_CAPABILITIES: ActCapability[] = [skill_mint, skill_update, aid_heartbeat];

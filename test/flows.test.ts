@@ -302,7 +302,9 @@ test("ERC-8489: the world's flows, a cell's channel, anchors, the market's admis
         try {
           await waitForHttp(`${running.url}/healthz`);
           const manifest = (await (await fetch(`${running.url}/.well-known/foga-cell.json`)).json()) as any;
-          assert.deepEqual(manifest.world.extensions, ["ERC-8489", "ERC-8490"]);
+          assert.deepEqual(manifest.world.extensions, [], "since 1.0.0 the registries are part of the base set");
+          assert.deepEqual(manifest.world.missing, []);
+          assert.equal(manifest.specification.operatesUnder, 2);
           assert.equal(manifest.flows.channel, channelId);
           assert.equal(manifest.flows.market, marketId);
           assert.equal(manifest.flows.documents, `${running.url}/documents/flows/`);

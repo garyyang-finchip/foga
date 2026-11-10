@@ -1,12 +1,12 @@
 {
   "schema": "foga.world/1",
-  "worldId": "anvil-31337-20261101T200100Z",
+  "worldId": "anvil-31337-20261109T162759Z",
   "name": "local",
   "network": "anvil",
   "chainId": 31337,
   "mode": "deployed",
-  "bundleHash": "0xb09770ec43673cca94f9f6feb5ad6050a24aee510792078fd5c87bed389cdcd2",
-  "batch": "2026-11-01T20:01:00.426Z",
+  "bundleHash": "0x8a967c8f18919a0074c75adf786ef7d5de822d7ef704eea0b058d02cfc8c5c4f",
+  "batch": "2026-11-09T16:27:59.597Z",
   "forkSourceBlock": null,
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "identity8004": {
@@ -464,15 +464,108 @@
         "0x4826533B4897376654Bb4d4AD88B7faFD0C98528"
       ],
       "note": "service escrow example (obligation source + executor); bound to a policy by the genesis runner"
+    },
+    "8490/AgentMeditationRegistry": {
+      "address": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570",
+      "bundleKey": "agent-meditation-mechanism:AgentMeditationRegistry",
+      "txHash": "0x0bdd8772e5bf82754b0b2c7128ec641a5dda1a76e099fc23e6259a5652970d74",
+      "block": 48,
+      "args": [],
+      "note": "Agent Meditation Mechanism registry (no constructor arguments; clock mode=timestamp)"
+    },
+    "8489/AIFPParadigmRegistry": {
+      "address": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D",
+      "bundleKey": "aif-paradigm:AIFPParadigmRegistry",
+      "txHash": "0xe32e529fe025c79afd7f70f51150c2b3b4a621dec7c872c8e5295092a00793b0",
+      "block": 49,
+      "args": [],
+      "note": "Agent Information Flow Paradigm: paradigm registry (clock mode=timestamp)"
+    },
+    "8489/AIFPCompositeVerifier": {
+      "address": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029",
+      "bundleKey": "aif-paradigm:AIFPCompositeVerifier",
+      "txHash": "0x92658bafab6aa000e9c0fad6d506d92002d73a9aebaa8b2b991f3a0ccbd426e3",
+      "block": 50,
+      "args": [],
+      "note": "the composite predicate verifier (leaf calls bounded to LEAF_GAS_LIMIT)"
+    },
+    "8489/AIFPChannelRegistry": {
+      "address": "0x1291Be112d480055DaFd8a610b7d1e203891C274",
+      "bundleKey": "aif-paradigm:AIFPChannelRegistry",
+      "txHash": "0xd5fd5fc073d4d5e3c2108247bb7120ccfdf20725c16be7512c66265ad845e8ed",
+      "block": 51,
+      "args": [
+        "0x809d550fca64d94Bd9F66E60752A544199cfAC3D"
+      ],
+      "note": "the channel registry; the wiring step links the participation registry"
+    },
+    "8489/AIFPParticipationRegistry": {
+      "address": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154",
+      "bundleKey": "aif-paradigm:AIFPParticipationRegistry",
+      "txHash": "0xe9b63d5e29193350ad8d82529e72e52a7f97e92ceaa442298d365aaed89ed3ec",
+      "block": 52,
+      "args": [
+        "0x1291Be112d480055DaFd8a610b7d1e203891C274",
+        "0x809d550fca64d94Bd9F66E60752A544199cfAC3D",
+        "0x4c5859f0F772848b2D91F1D83E2Fe57935348029"
+      ]
+    },
+    "8489/AIFPEventAnchor": {
+      "address": "0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575",
+      "bundleKey": "aif-paradigm:AIFPEventAnchor",
+      "txHash": "0x0a7df1a2cee02557a0753c9474cb75abb9a44d4ff8c1ba7796cf5fe253165f2a",
+      "block": 53,
+      "args": [
+        "0x1291Be112d480055DaFd8a610b7d1e203891C274",
+        "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154"
+      ],
+      "note": "the event-anchor profile: a cell anchors what it publishes"
+    },
+    "8489/AIFPObjectionWindow": {
+      "address": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
+      "bundleKey": "aif-paradigm:AIFPObjectionWindow",
+      "txHash": "0x30eefe5e61820d8b343e1fa7b329a126351846fcfa9214029defedf7a65c5a3e",
+      "block": 54,
+      "args": [
+        "0x1291Be112d480055DaFd8a610b7d1e203891C274",
+        "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154"
+      ],
+      "note": "companion (objection-window profile); not used by FOGA's paradigms in 0.9.0"
+    },
+    "8489/AIFPSubjectSet": {
+      "address": "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
+      "bundleKey": "aif-paradigm:AIFPSubjectSet",
+      "txHash": "0x9246590476939ee2fdb264deb140e3ac4997919d239c38ba60c7f6bde331a3ce",
+      "block": 55,
+      "args": [
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ],
+      "note": "an allowlist subject set owned by the deployer; not used by FOGA's paradigms"
+    },
+    "8489/FogaIdentityVerifier": {
+      "address": "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
+      "bundleKey": "foga:FogaIdentityVerifier",
+      "txHash": "0xdbe2bca9b12a9a002c4db35a6b8d9cf7f6f93e785af053fce7a229bbb7bc3cd2",
+      "block": 56,
+      "args": [
+        "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+      ],
+      "note": "FOGA's identity predicate verifier (ERC-8489 kind 7): the subject's account owns an ERC-8004 identity in the world's registry and its ERC-8434 anchor is ACTIVE"
     }
   },
   "wiring": {
+    "8489/setParticipationRegistry": {
+      "txHashes": [
+        "0xbe6c33cc71ffddb47b66ac204545bc43f65b4e0fb62a53c676551512552087fe"
+      ]
+    },
     "8444/registerKinds": {
       "txHashes": [
-        "0xc783f9e3445494b7e129271083840ccb633ece05d04ad3dc4f33295d2967241c",
-        "0xbe416d21953eea1e12ae03757e2eb77b7a7a5e0c56fb6b7aecc574c2c33c2f19",
-        "0xf1ba72a758cbb276242f1b238bc53de6d6e6df160bf081ae5ebf0d376b3ae7f3",
-        "0x1a48a4567e77b8e74a002baec7a8635f5399d82c0a759ed33e924693760b183b"
+        "0xdb9aefed170abf925d40971f86c341a483efd6b0cfcad28530e2ba4e258b6713",
+        "0xfe3ddb19f3d1cb4e6559a1d80b14499e8a496def9cd68cbbfd69ccf3ae8e3494",
+        "0xab358d269b7b8d736143fc82c7c5a2aa6307186a301efc3d13e9c3b9871fec6c",
+        "0xb7f84c1441792c6d0bc6a13c3c25167920f7e620a09bda647e1cccab97aca3ce"
       ]
     },
     "8444/kindIds": {
@@ -719,13 +812,97 @@
       "txHash": "0xdcc802f5fd828cb700519d2e8ac9ca04f7d032f802284697813d14cbe4fd9e4e"
     },
     {
+      "id": "8490/AgentMeditationRegistry",
+      "status": "deployed",
+      "txHash": "0x0bdd8772e5bf82754b0b2c7128ec641a5dda1a76e099fc23e6259a5652970d74"
+    },
+    {
+      "id": "8489/AIFPParadigmRegistry",
+      "status": "deployed",
+      "txHash": "0xe32e529fe025c79afd7f70f51150c2b3b4a621dec7c872c8e5295092a00793b0"
+    },
+    {
+      "id": "8489/AIFPCompositeVerifier",
+      "status": "deployed",
+      "txHash": "0x92658bafab6aa000e9c0fad6d506d92002d73a9aebaa8b2b991f3a0ccbd426e3"
+    },
+    {
+      "id": "8489/AIFPChannelRegistry",
+      "status": "deployed",
+      "txHash": "0xd5fd5fc073d4d5e3c2108247bb7120ccfdf20725c16be7512c66265ad845e8ed"
+    },
+    {
+      "id": "8489/AIFPParticipationRegistry",
+      "status": "deployed",
+      "txHash": "0xe9b63d5e29193350ad8d82529e72e52a7f97e92ceaa442298d365aaed89ed3ec"
+    },
+    {
+      "id": "8489/AIFPEventAnchor",
+      "status": "deployed",
+      "txHash": "0x0a7df1a2cee02557a0753c9474cb75abb9a44d4ff8c1ba7796cf5fe253165f2a"
+    },
+    {
+      "id": "8489/AIFPObjectionWindow",
+      "status": "deployed",
+      "txHash": "0x30eefe5e61820d8b343e1fa7b329a126351846fcfa9214029defedf7a65c5a3e"
+    },
+    {
+      "id": "8489/AIFPSubjectSet",
+      "status": "deployed",
+      "txHash": "0x9246590476939ee2fdb264deb140e3ac4997919d239c38ba60c7f6bde331a3ce"
+    },
+    {
+      "id": "8489/FogaIdentityVerifier",
+      "status": "deployed",
+      "txHash": "0xdbe2bca9b12a9a002c4db35a6b8d9cf7f6f93e785af053fce7a229bbb7bc3cd2"
+    },
+    {
+      "id": "8489/setParticipationRegistry",
+      "status": "wired",
+      "txHash": "0xbe6c33cc71ffddb47b66ac204545bc43f65b4e0fb62a53c676551512552087fe"
+    },
+    {
       "id": "8444/registerKinds",
       "status": "wired",
-      "txHash": "0x1a48a4567e77b8e74a002baec7a8635f5399d82c0a759ed33e924693760b183b"
+      "txHash": "0xb7f84c1441792c6d0bc6a13c3c25167920f7e620a09bda647e1cccab97aca3ce"
+    },
+    {
+      "id": "8489/flows",
+      "status": "wired",
+      "txHash": "0x9b6e20b879c8f62678d4b87faa1c1af9783033d8fc51e482ccafde332946672f",
+      "note": "paradigms foga:cell-source/v1, foga:tender-market/v1; market 0xb7fd61038688279bcf87e1a42b14976e8fdcc26db4e94127a7252d72dd3c247a"
     }
   ],
   "notes": [
     "AID liveness windows (90 d / 365 d) and the KYA Groth16 adapter parameters (issuer set root of the upstream kya_public_v1 prover, 30 d epochs, 1 epoch grace) mirror the upstream Sepolia reference deployments so the upstream provers and resolvers work unchanged.",
     "ARD kind URIs mirror the upstream evidence script (kind:<name>)."
-  ]
+  ],
+  "flows": {
+    "family": "foga",
+    "familyId": "0x576af79f3c37ac413b2d02ca44efd679f95a9471cf53e233081fd547107b9040",
+    "controller": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "paradigms": {
+      "foga:cell-source/v1": {
+        "paradigmId": "0xc5a7f453e921deadfc3c13e2db540a60487ce40946647e3fa83086e23ac55fbe",
+        "descriptorURI": "data:application/json;base64,eyJhaWZwIjoiMSIsImNhcmRpbmFsaXR5Ijp7ImNvbnRyaWJ1dG9ycyI6InNpbmdsZSIsInBhaXJ3aXNlIjpmYWxzZX0sImNhcnJpZXJzIjpbImRlbGl2ZXJ5Iiwic2hhcmVkLW9iamVjdCJdLCJkaW1lbnNpb25zIjp7ImFkbWlzc2lvbkJhc2lzIjpbIm9wZW4tZGlzY292ZXJ5Il0sImNvbnRyaWJ1dGlvbiI6eyJhY3F1aXNpdGlvbiI6Im1hbmFnZXIiLCJhY3Rpb25zIjpbInB1Ymxpc2giXSwiZXhwaXJ5Ijoibm9uZSIsInRyYW5zZmVyYWJsZSI6ZmFsc2V9LCJjb250cmlidXRvclZpc2liaWxpdHkiOiJpZGVudGlmaWVkIiwiZGlzY2xvc3VyZVRpbWluZyI6ImltbWVkaWF0ZSIsImRpc2NvdmVyeSI6InB1YmxpYy1kaXJlY3RvcnkiLCJoaXN0b3J5Ijp7ImxhdGVKb2luZXIiOiJhbGwiLCJtdXRhYmxlIjpmYWxzZSwicmV0ZW50aW9uIjoiaW5kZWZpbml0ZSJ9LCJtYW5hZ2VtZW50Ijp7ImFkbWlzc2lvbiI6WyJzb3VyY2UiXSwiZGlzY2xvc3VyZSI6WyJzb3VyY2UiXSwib3JkZXJpbmciOlsicHJvdG9jb2wiXSwicmVtb3ZhbCI6WyJzb3VyY2UiXSwicnVsZXMiOlsic291cmNlIl19LCJvYmplY3RSZWxhdGlvbnMiOlsicmVmZXJlbmNlcyIsInN1cGVyc2VkZXMiLCJyZXRyYWN0cyJdLCJvYnNlcnZhdGlvbiI6eyJtZXRhZGF0YVByb3RlY3Rpb24iOiJub25lIiwicGF5bG9hZFByb3RlY3Rpb24iOiJub25lIiwicmVhZFNjb3BlIjoib3BlbiIsInN1Ym1pc3Npb25WaXNpYmlsaXR5IjoiYWxsIn0sIm9yZGVyaW5nIjp7Im9ic2VydmFibGUiOnRydWUsIm9yZGVyIjoidG90YWwiLCJzZXF1ZW5jZXIiOiJwcm90b2NvbCJ9LCJyZWRpc3RyaWJ1dGlvbiI6eyJkZXJpdmUiOnRydWUsImZvcndhcmQiOnRydWUsInB1Ymxpc2hFbHNld2hlcmUiOnRydWUsInF1b3RlIjp0cnVlfSwicmVwcmVzZW50YXRpb24iOiJkaXNhbGxvd2VkIiwidGltZSI6eyJhYnNlbmNlIjoibm9uZSIsImJhdGNoaW5nIjoibm9uZSIsImNsb2NrIjoicmVnaXN0cnkiLCJjb3JyZWxhdGlvbiI6Im5vbmUiLCJkZWxpdmVyeSI6WyJwdWxsIl0sInJlYWx0aW1lIjpmYWxzZX19LCJmYW1pbHkiOiJmb2dhIiwibGFiZWxzIjpbImFpZnA6cGFyYWRpZ20vc291cmNlL3YxIiwiYWlmcDpwYXJhZGlnbS9hcmNoaXZlL3YxIl0sIm9wZXJhdG9ycyI6WyJmYW4tb3V0Il0sInByZWRpY2F0ZXMiOnsiZGlzY292ZXIiOnsib3BlbiI6dHJ1ZX0sIm9ic2VydmUiOnsib3BlbiI6dHJ1ZX0sInJlZGlzdHJpYnV0ZSI6eyJvcGVuIjp0cnVlfX0sInRpdGxlIjoiZm9nYTpjZWxsLXNvdXJjZS92MSAtIGEgRk9HQSBjZWxsJ3Mgc2VsZi1kZXNjcmlwdGlvbjogb25lIHB1Ymxpc2hlciwgb3BlbiBvYnNlcnZhdGlvbiwgYSBwdWxsZWQsIGltbXV0YWJsZSBhcmNoaXZlIiwidmVyc2lvbiI6IjEuMC4wIn0=",
+        "txHash": "0x9e7ad5924898e11af14a040f052866e4ec9f703ee0328324f0b2d869ae660b2e"
+      },
+      "foga:tender-market/v1": {
+        "paradigmId": "0xd0642c21757a90a83e4fc41bdaad0ca09ff0cf11ab955c0112ab0922d99c6600",
+        "descriptorURI": "data:application/json;base64,eyJhaWZwIjoiMSIsImNhcmRpbmFsaXR5Ijp7ImNvbnRyaWJ1dG9ycyI6InF1YWxpZmllZCIsInBhaXJ3aXNlIjpmYWxzZX0sImNhcnJpZXJzIjpbImRlbGl2ZXJ5Il0sImRpbWVuc2lvbnMiOnsiYWRtaXNzaW9uQmFzaXMiOlsib3Blbi1kaXNjb3ZlcnkiXSwiY29udHJpYnV0aW9uIjp7ImFjcXVpc2l0aW9uIjoicHJlZGljYXRlIiwiYWN0aW9ucyI6WyJwdWJsaXNoIiwic3VibWl0IiwicmVzcG9uZCJdLCJleHBpcnkiOiJub25lIiwidHJhbnNmZXJhYmxlIjpmYWxzZX0sImNvbnRyaWJ1dG9yVmlzaWJpbGl0eSI6ImlkZW50aWZpZWQiLCJkaXNjbG9zdXJlVGltaW5nIjoiaW1tZWRpYXRlIiwiZGlzY292ZXJ5IjoicHVibGljLWRpcmVjdG9yeSIsImhpc3RvcnkiOnsibGF0ZUpvaW5lciI6ImFsbCIsIm11dGFibGUiOmZhbHNlLCJyZXRlbnRpb24iOiJpbmRlZmluaXRlIn0sIm1hbmFnZW1lbnQiOnsiYWRtaXNzaW9uIjpbInByb3RvY29sIl0sImRpc2Nsb3N1cmUiOlsibm9uZSJdLCJvcmRlcmluZyI6WyJwcm90b2NvbCJdLCJyZW1vdmFsIjpbIm5vbmUiXSwicnVsZXMiOlsic291cmNlIl19LCJvYmplY3RSZWxhdGlvbnMiOlsicmVwbHlUbyIsInJlZmVyZW5jZXMiLCJzdXBlcnNlZGVzIiwicmV0cmFjdHMiXSwib2JzZXJ2YXRpb24iOnsibWV0YWRhdGFQcm90ZWN0aW9uIjoibm9uZSIsInBheWxvYWRQcm90ZWN0aW9uIjoibm9uZSIsInJlYWRTY29wZSI6Im9wZW4iLCJzdWJtaXNzaW9uVmlzaWJpbGl0eSI6ImFsbCJ9LCJvcmRlcmluZyI6eyJvYnNlcnZhYmxlIjp0cnVlLCJvcmRlciI6InRvdGFsIiwic2VxdWVuY2VyIjoicHJvdG9jb2wifSwicmVkaXN0cmlidXRpb24iOnsiZGVyaXZlIjp0cnVlLCJmb3J3YXJkIjp0cnVlLCJwdWJsaXNoRWxzZXdoZXJlIjp0cnVlLCJxdW90ZSI6dHJ1ZX0sInJlcHJlc2VudGF0aW9uIjoiZGlzYWxsb3dlZCIsInRpbWUiOnsiYWJzZW5jZSI6Im5vbmUiLCJiYXRjaGluZyI6Im5vbmUiLCJjbG9jayI6InJlZ2lzdHJ5IiwiY29ycmVsYXRpb24iOiJyZXF1ZXN0LXJlc3BvbnNlIiwiZGVsaXZlcnkiOlsicHVzaCJdLCJyZWFsdGltZSI6ZmFsc2V9fSwiZmFtaWx5IjoiZm9nYSIsImxhYmVscyI6WyJhaWZwOmV4dC9maW5jaGlwLmFpL3RlbmRlci1tYXJrZXQvdjEiXSwib3BlcmF0b3JzIjpbImZhbi1pbiJdLCJwcmVkaWNhdGVzIjp7Im9ic2VydmUiOnsib3BlbiI6dHJ1ZX0sInJlc3BvbmQiOnsiaWRlbnRpdHkiOnsicmVnaXN0cnkiOiIweDVmYmRiMjMxNTY3OGFmZWNiMzY3ZjAzMmQ5M2Y2NDJmNjQxODBhYTMiLCJyZXF1aXJlZFN0YXRlIjoiYWN0aXZlIiwidmVyaWZpZXIiOiIweDJiZGNjMGRlNmJlMWY3ZDJlZTY4OWEwMzQyZDc2ZjUyZThlZmFiYTMifX0sInN1Ym1pdCI6eyJpZGVudGl0eSI6eyJyZWdpc3RyeSI6IjB4NWZiZGIyMzE1Njc4YWZlY2IzNjdmMDMyZDkzZjY0MmY2NDE4MGFhMyIsInJlcXVpcmVkU3RhdGUiOiJhY3RpdmUiLCJ2ZXJpZmllciI6IjB4MmJkY2MwZGU2YmUxZjdkMmVlNjg5YTAzNDJkNzZmNTJlOGVmYWJhMyJ9fX0sInJlcXVpcmVkQmluZGluZ3MiOnsiY2FwYWJpbGl0aWVzIjpbImlkZW50aXR5IiwicHVzaCIsImhpc3RvcnktcmV0ZW50aW9uIiwibGF0ZS1qb2luLWhpc3RvcnkiLCJ0b3RhbC1vcmRlciJdfSwidGl0bGUiOiJmb2dhOnRlbmRlci1tYXJrZXQvdjEgLSB0aGUgcHVibGljIHRlbmRlciBtYXJrZXQgb2YgYSBGT0dBIHdvcmxkOiBFUkMtODQxNCB0ZW5kZXJzIG1pbnRlZCBieSBkZW1hbmRlcnMgYW5kIHRha2VuIGJ5IGNlbGxzLCBldmVyeSBzdWJtaXNzaW9uIHB1YmxpYyBvbiBjaGFpbiwgdGhlIGFjY2VwdGFuY2UgYXV0aG9yaXR5IHNldHRsZXMiLCJ2ZXJzaW9uIjoiMS4wLjAifQ==",
+        "txHash": "0x590d11293a84fabe5d0b91d628981ee8240c101c3a5a49992cc18129b831c892"
+      }
+    },
+    "market": {
+      "channelId": "0xb7fd61038688279bcf87e1a42b14976e8fdcc26db4e94127a7252d72dd3c247a",
+      "paradigm": "foga:tender-market/v1",
+      "paradigmId": "0xd0642c21757a90a83e4fc41bdaad0ca09ff0cf11ab955c0112ab0922d99c6600",
+      "authority": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "txHash": "0x9b6e20b879c8f62678d4b87faa1c1af9783033d8fc51e482ccafde332946672f",
+      "bindingIds": [
+        "0xa76468fb3324227df62a547c68779d5046561ebe33ad99b9dc1266e9e22eb15a"
+      ]
+    },
+    "note": "ERC-8489 flows of this world: FOGA's paradigms in the family foga and the default market channel; a cell's configuration may name another market"
+  }
 }

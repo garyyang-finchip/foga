@@ -17,7 +17,7 @@ const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2 c
 usage:
   foga vendor sync [--only <repo,repo>]          fetch the locked upstream sources into vendor/
   foga vendor verify                             check vendor/ against vendor/LOCK.json
-  foga build [--verify] [--solc-dir <dir>]       compile the ten reference implementations into artifacts/bundle.json
+  foga build [--verify] [--solc-dir <dir>]       compile the twelve reference implementations into artifacts/bundle.json
   foga world deploy --world <config.json> [--rpc <url>] [--out <file>] [--resume] [--gas-multiplier <x>] [--allow-chain-mismatch] [--no-flows]
                                                  deploy-mode config: the whole stack; attach-mode config: attach what it
                                                  lists and deploy the reference contracts it does not (deployer = W);

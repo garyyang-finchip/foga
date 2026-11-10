@@ -183,7 +183,7 @@ export class ASF {
   }
 
   /** The binding a cell adopts for the FOGA cell specification. */
-  cellBindingInput(p: { chainId: number; cell: string; specId: string; version: number; contentHash: string; guardian: string; params: Record<string, unknown>; authority: Record<string, unknown>; validUntil?: number; salt?: string }): BindingInput {
+  cellBindingInput(p: { chainId: number; cell: string; specId: string; version: number; contentHash: string; guardian: string; params: Record<string, unknown>; authority: Record<string, unknown>; validUntil?: number; salt?: string; enforcement?: number }): BindingInput {
     return {
       subjectKey: accountSubjectKey(p.chainId, p.cell),
       scopeKey: scopeKeyOf({ ref: accountRef(p.chainId, p.cell) }),
@@ -194,7 +194,7 @@ export class ASF {
       paramsHash: keccakUtf8(jcs(p.params)),
       paramsLocator: dataUriJcs(p.params),
       authorityRef: keccakUtf8(jcs(p.authority)),
-      enforcement: Enforcement.account | Enforcement.contract,
+      enforcement: p.enforcement ?? cellEnforcement(p.version),
       validFrom: 0,
       validUntil: p.validUntil ?? 0,
       parentBindingId: ZERO32,
@@ -204,21 +204,65 @@ export class ASF {
   }
 }
 
-/** The FOGA cell safety specification, version 1. */
-export function fogaCellSpecification(): Record<string, unknown> {
+/** The version of the FOGA cell safety specification a cell born by this build adopts (FOGA-Cell-v2, 1.0.0). */
+export const FOGA_CELL_SPEC_VERSION = 2;
+
+/** The enforcement a cell's binding declares for a specification version: the account's gates (v1), plus the runtime's duties (v2). */
+export function cellEnforcement(version: number): number {
+  return version >= 2 ? Enforcement.account | Enforcement.contract | Enforcement.runtime : Enforcement.account | Enforcement.contract;
+}
+
+/** The binding profile of a specification version (`params.profile`). */
+export function cellProfile(version: number): string {
+  return `foga-cell/${version}`;
+}
+
+/** The salt of the FOGA cell specification: fixed since 0.6 (an owner's one specification; its versions are the documents below). */
+export const FOGA_CELL_SPEC_SALT_NAME = "FOGA-Cell-v1";
+
+const V1_CLAUSES = [
+  { id: "aid-active", text: "A cell MUST NOT make a commitment-class call (submit, join, adopt, assert) while its ERC-8434 anchor is not ACTIVE. Enforced by the cell account's AID-state gate." },
+  { id: "honor-stop", text: "A cell MUST stop commitment-class calls while its binding is suspended and MUST NOT continue under a full stop. Enforced by the cell account's execution gate against the Binding Registry." },
+  { id: "derisk-open", text: "Withdrawals of earned credit, refunds and leaving a swarm remain allowed under a derisk-only suspension and MUST be listed as de-risk actions by the owner." },
+  { id: "attribution", text: "Only calls routed through the cell account are the cell's acts; a direct call by the operator key is the operator's own." },
+];
+
+/**
+ * The FOGA cell safety specification. Version 1 (0.6.0): the account's gates — commitment-class actions only while the
+ * anchor is ACTIVE, interventions honored, de-risking open, attribution. Version 2 (1.0.0, FOGA-Cell-v2): the same four
+ * clauses, enforced by the account as before, and three the runtime enforces over the twelve covenants — the cell keeps
+ * its state registered and cycles when due (ERC-8490), speaks about itself in a channel it is the authority of and
+ * anchors what it publishes (ERC-8489), and takes part in a shared context only under a role its rules grant or admit,
+ * through its account, reporting a verifier's outcome as obtained. The bytes of version 1 never change: an owner who
+ * published it before adopts it by its content hash.
+ */
+export function fogaCellSpecification(version: 1 | 2 = FOGA_CELL_SPEC_VERSION as 1 | 2): Record<string, unknown> {
+  if (version === 1) {
+    return {
+      asf: "1.0",
+      kind: "safety-specification",
+      name: "FOGA Cell Safety Specification",
+      version: 1,
+      summary: "The baseline every FOGA cell adopts: commitment-class actions only while the anchor is ACTIVE, interventions honored at the execution gate, de-risking always open.",
+      clauses: V1_CLAUSES,
+      enforcement: ["account", "contract"],
+      profiles: [],
+    };
+  }
   return {
     asf: "1.0",
     kind: "safety-specification",
     name: "FOGA Cell Safety Specification",
-    version: 1,
-    summary: "The baseline every FOGA cell adopts: commitment-class actions only while the anchor is ACTIVE, interventions honored at the execution gate, de-risking always open.",
+    version: 2,
+    summary: "The baseline every FOGA cell adopts over the twelve covenants: the account's gates of version 1 unchanged — commitment-class actions only while the anchor is ACTIVE, interventions honored, de-risking open, attribution — and the runtime's duties of a complete cell: its state registered and maintained (ERC-8490), its self-description anchored in its own channel (ERC-8489), its part in any shared context taken under that context's rules through its account.",
     clauses: [
-      { id: "aid-active", text: "A cell MUST NOT make a commitment-class call (submit, join, adopt, assert) while its ERC-8434 anchor is not ACTIVE. Enforced by the cell account's AID-state gate." },
-      { id: "honor-stop", text: "A cell MUST stop commitment-class calls while its binding is suspended and MUST NOT continue under a full stop. Enforced by the cell account's execution gate against the Binding Registry." },
-      { id: "derisk-open", text: "Withdrawals of earned credit, refunds and leaving a swarm remain allowed under a derisk-only suspension and MUST be listed as de-risk actions by the owner." },
-      { id: "attribution", text: "Only calls routed through the cell account are the cell's acts; a direct call by the operator key is the operator's own." },
+      ...V1_CLAUSES,
+      { id: "self-maintenance", text: "A cell MUST keep its four state documents (runtime, memory and skills, tasks and roles, cognition) registered in the ERC-8490 meditation registry and MUST run a maintenance cycle when a required layer falls due or a registered document drifts from the running one; a controller's demand is honored by its deadline. Enforced by the runtime; attested by the registry's records." },
+      { id: "self-description", text: "A cell MUST publish its self-description in an ERC-8489 channel it is the authority of, MUST anchor every publication there (publish, then supersede; the same content never twice) and, when its documents are served to anyone, MUST record their disclosure to the public audience. Enforced by the runtime; attested by the channel's records." },
+      { id: "context-by-rule", text: "A cell takes part in a shared context (a market, a channel it does not own) only under a role the context's rules grant or admit it to, acquired and exercised through its account, never through a key alone; it reports a verifier's outcome as obtained — SATISFIED, NOT_SATISFIED, UNDETERMINABLE, VERIFIER_ERROR — and never folds one into another. Enforced by the runtime and, for attribution, by the account." },
     ],
-    enforcement: ["account", "contract"],
+    enforcement: ["account", "contract", "runtime"],
     profiles: [],
+    supersedes: 1,
   };
 }

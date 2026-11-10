@@ -56,7 +56,7 @@ test("documents: built, served, published on chain once, read back; a public URL
     assert.equal(aid.facets[0].digest, keccakJcs(registration), "the identity facet is the registration's digest");
     const card = JSON.parse(readFileSync(join(docsDir, "agent-card.json"), "utf8"));
     assert.deepEqual(card.supportedInterfaces, [], "no A2A URL without a public URL");
-    assert.deepEqual(card.skills.map((s: { id: string }) => s.id).sort(), ["finch-extract-verify@1.0.0", "foga-probe@1.1.0"].sort());
+    assert.deepEqual(card.skills.map((s: { id: string }) => s.id).sort(), ["finch-extract-verify@1.0.0", "foga-probe@2.0.0"].sort());
     assert.equal(card.provider.organization, "Test Org");
     assert.equal(card.capabilities.streaming, false);
     const serverJson = JSON.parse(readFileSync(join(docsDir, "server.json"), "utf8"));

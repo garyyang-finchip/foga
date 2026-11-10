@@ -125,6 +125,21 @@ curl -s https://foga.finchip.ai/documents/flows/channel.json
 
 This was done on 2026-11-09: the OG's account `0xD7155E48f83e1fEa9eAFED0200671638f290ED49` is the controller of the family `foga` on Sepolia and the authority of the default market channel `0x32643288…`; `foga:cell-source/v1` is `0xc5a7f453…` (the same id on every chain) and `foga:tender-market/v1` for Sepolia's registries is `0xb6d5d67b…`; FOGA's identity verifier is at `0x7d5301B3CCee159341a25791001e295F7F226685`. Since 0.9.1 the `flows` block and the verifier are in `worlds/sepolia.json` and `deployments/sepolia.example.json`, so every cell that joins Sepolia opens its channel at birth and is admitted to the market by `foga join`; a cell joined before 0.9.1 is extended with `foga cell extend --covenants 8489` (the packaged world carries everything it needs; no `--from`), after stopping its join and before starting it again. The watcher anchors each new publication, keeps the market admission and, for a cell with a public URL, records the disclosure of a publication anchored before the record existed; `foga node preflight` gains a `flows` area. The OG's own publication was anchored by the extension and is served at `https://foga.finchip.ai/documents/flows/channel.json`; the paradigms' descriptors at `…/documents/flows/paradigms/`.
 
+## FOGA-Cell-v2 and the twelve-covenant cell (1.0.0)
+
+The OG and the joined cells were born under version 1 of the cell specification, and their accounts' requirements — fixed at deployment — name version 1 alone (docs/specification.md). 1.0.0 does not migrate them: each adopts FOGA-Cell-v2 as a second binding, enforced by the runtime, through its account; the account keeps enforcing version 1 through the binding it presents, nothing stops. The same release moves the `foga-probe` package to 2.0.0 (`foga.probe/2`, the two covenants in the report), so a cell that holds the skill commits the new package to its token before it serves probe tenders again — the runner refuses a held skill whose token names another package. With the 1.0.0 build in place (`git pull`, `npm ci`, `npm run build`), from the checkout:
+
+```
+node bin/foga.js cell adopt --config /home/ec2-user/foga-og/og.config.json --wallet /home/ec2-user/foga-og/wallet   # the owner's key: version 2 published under the owner's specification, a runtime-enforced binding adopted through the account
+node bin/foga.js cell skill update --skill foga-probe --config /home/ec2-user/foga-og/og.config.json --wallet /home/ec2-user/foga-og/wallet   # the operator's key: updateSkill to 2.0.0, the ERC-8444 record re-committed
+sudo systemctl restart foga-og
+node bin/foga.js cell spec --config /home/ec2-user/foga-og/og.config.json           # operatesUnder 2: the account enforces v1, v2 adopted by the runtime
+node bin/foga.js node preflight --config /home/ec2-user/foga-og/og.config.json --wallet /home/ec2-user/foga-og/wallet
+curl -s https://foga.finchip.ai/.well-known/foga-cell.json | jq '{covenants, world, specification}'
+```
+
+A cell joined with `foga join` does the same with its own configuration and wallet, after stopping the join and before starting it again (`npx -y @finchtech.ai/foga cell adopt …`, `… cell skill update --skill foga-probe …`). The upgrade changes the program version and the skills held, so the runtime and memory-skills documents drift and the maintenance watcher records an event cycle by itself; the publication is republished by `docs_publish` when the operator next runs it (the skill's new package hash enters the documents), and the flows watcher anchors it. A cell born under 1.0.0 — on Sepolia or anywhere — has version 2 at birth and needs none of this; `foga cell card` says `spec FOGA-Cell-v2` either way, with the account-versus-runtime note for the cells born before.
+
 ## The MCP registry listing
 
 With `https://foga.finchip.ai/mcp` answering, the cell was listed in the MCP registry as `io.github.garyyang-finchip/foga` so clients and other agents discover it (docs/mcp.md, "The package"). `server.json` at the repository root is the npm-package manifest; the OG cell also writes its own `server.json` among its documents (`foga cell docs build`) with this cell's MCP URL as the remote. Publishing is the package owner's, from a checkout, and needs the remote reachable:

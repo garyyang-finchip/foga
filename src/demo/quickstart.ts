@@ -197,7 +197,7 @@ export async function runQuickstart(o: QuickstartOptions = {}): Promise<Quicksta
   };
   try {
     const worldPath = join(dir, "world.json");
-    log("quickstart: deploying the local world (the ten reference implementations and the FOGA contracts)");
+    log("quickstart: deploying the local world (the twelve reference implementations and the FOGA contracts)");
     const { world } = await deployWorld({ worldConfigPath: join(root, "worlds", "local.json"), rpc, outPath: worldPath, quiet: true });
     log(`quickstart: world ${world.worldId} deployed (${Object.keys(world.contracts).length} contracts)`);
 

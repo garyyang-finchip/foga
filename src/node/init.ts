@@ -1,7 +1,7 @@
 import { getAddress, parseEther } from "ethers";
 import { AID, type AIDDocument } from "../core/aid.js";
 import { agentDescriptor, kindId } from "../core/ard.js";
-import { Enforcement, Rights, accountSubjectKey, fogaCellSpecification, oneClause, scopeKeyOf, specIdOf } from "../core/asf.js";
+import { FOGA_CELL_SPEC_SALT_NAME, FOGA_CELL_SPEC_VERSION, Rights, accountSubjectKey, cellEnforcement, cellProfile, fogaCellSpecification, oneClause, scopeKeyOf, specIdOf } from "../core/asf.js";
 import { accountRef, dataUri, keccakJcs } from "../core/canonical.js";
 import { cellUnitDefinition } from "../core/units.js";
 import { NODE_SCOPE_GROUPS, applicableGroups, mergeScope, operatorScope, ownerExecuteScope } from "../genesis/operator-scope.js";
@@ -39,7 +39,7 @@ export interface InitResult {
 /**
  * The birth of one cell from its configuration (T1 of the genesis for a single cell, design memo Phase 3 section 5):
  * the owner deploys a revision-2 account naming the operator and guardian, funds it, opens the operator's scope,
- * sets the commitment and de-risk classes, adopts the FOGA-Cell-v1 binding, and — through the account, as owner —
+ * sets the commitment and de-risk classes, adopts the FOGA-Cell-v2 binding (the owner's specification, versions 1 and 2), and — through the account, as owner —
  * registers the ERC-8004 identity, binds and heartbeats the anchor, publishes the AID document, the ARD agent record
  * and the AUF unit. Every step is a keyed operation in the cell's own store, so a stopped init resumes. Standing
  * (KYA) is not the cell's to give itself: an issuer attests it afterwards. The config is written back with what
@@ -59,28 +59,15 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   const operations: string[] = [];
   const done = (key: string) => operations.push(key);
 
-  // 0. the specification the cell adopts: published by the owner when the config names none. The registry derives
-  // the id from the publisher and the salt, so an owner who has published FOGA-Cell-v1 before (an earlier cell of
-  // theirs on this chain) adopts that specification rather than registering it again.
+  // 0. the specification the cell adopts: the owner's, published when the config names none. The registry derives
+  // the id from the publisher and the salt, so an owner who has published the specification before (an earlier cell
+  // of theirs on this chain) adopts it rather than registering it again; its versions are the documents of this
+  // program — version 1 (the account's gates, 0.6.0) registered first, version 2 (FOGA-Cell-v2, 1.0.0) published
+  // under it when missing — and the cell binds to version 2.
   let spec = cfg.identity.safety;
   if (!spec.specId || !spec.contentHash) {
-    const document = fogaCellSpecification();
-    const salt = keccakJcs({ spec: "FOGA-Cell-v1", publisher: owner.toLowerCase() });
-    const commitment = k.asf.specificationCommitment(document);
-    const expected = specIdOf(chainId, k.asf.specRegistryAddress, owner, salt);
-    const published = await k.asf.versionOf(expected, 1).catch(() => null);
-    if (published) {
-      if (published.contentHash.toLowerCase() !== commitment.contentHash.toLowerCase()) throw new Error(`the owner published specification ${expected} before with contentHash ${published.contentHash}; this build's FOGA-Cell-v1 hashes to ${commitment.contentHash}. Name the specification to adopt in identity.safety.`);
-      spec = { specId: expected, version: 1, contentHash: commitment.contentHash };
-      log(`  spec: FOGA-Cell-v1 already published by the owner as ${expected}; adopted`);
-    } else {
-      const reg = await k.call("init.spec.register", ownerSigner, k.asf.specRegistryAddress, k.asf.specs().interface, "registerSpecification", [salt, commitment.contentHash, commitment.locator, []]);
-      done("init.spec.register");
-      const specId = k.asf.specIdFromReceipt(reg.receipt);
-      if (specId.toLowerCase() !== expected.toLowerCase()) throw new Error(`the registry assigned ${specId}; expected ${expected}`);
-      spec = { specId, version: 1, contentHash: commitment.contentHash };
-      log(`  spec: FOGA-Cell-v1 published by the owner as ${specId}`);
-    }
+    const ensured = await ensureCellSpecification(node, owner, ownerSigner, log, done);
+    spec = { specId: ensured.specId, version: FOGA_CELL_SPEC_VERSION, contentHash: ensured.contentHash };
     cfg.identity.safety = spec;
     node.saveConfig();
   } else {
@@ -94,7 +81,7 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   const safety = k.asf.bindingRegistryAddress;
   const recovery = cfg.identity.recovery ?? owner;
   const requirement = (predicted: string) =>
-    oneClause({ specRegistry: k.asf.specRegistryAddress, specId, versions: [spec.version], adopter: predicted, subjectKey: accountSubjectKey(chainId, predicted), scopeKey: scopeKeyOf({ ref: accountRef(chainId, predicted) }), enforcement: Enforcement.account | Enforcement.contract, interveners: [{ account: guardian, rights: Rights.suspend | Rights.resume }] });
+    oneClause({ specRegistry: k.asf.specRegistryAddress, specId, versions: [spec.version], adopter: predicted, subjectKey: accountSubjectKey(chainId, predicted), scopeKey: scopeKeyOf({ ref: accountRef(chainId, predicted) }), enforcement: cellEnforcement(spec.version), interveners: [{ account: guardian, rights: Rights.suspend | Rights.resume }] });
   let predictedFor: string | null = null;
   const { address } = await k.deploy("init.deploy", ownerSigner, "foga:FogaCellAccount", [], (predicted) => {
     predictedFor = predicted;
@@ -153,7 +140,7 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   }
 
   // 4. the safety binding, adopted by the account and presented for clause 0
-  const params = { profile: "foga-cell/1", cell: cfg.name, operatorScope: groups, deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
+  const params = { profile: cellProfile(spec.version), cell: cfg.name, operatorScope: groups, deriskActions: derisk.map((d) => d[0]), commitmentActions: commitment.map((c) => c[0]) };
   const authority = { kind: "owner", owner: accountRef(chainId, owner), guardian: accountRef(chainId, guardian) };
   const input = k.asf.cellBindingInput({ chainId, cell: address, specId, version: spec.version, contentHash, guardian, params, authority });
   const { bindingId } = await cell.adoptBinding("init.adopt", input, 0);
@@ -273,4 +260,43 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   log(`  born: agent ${agentId}, anchor ${state}, binding ${status.verdictName}, record ${recordId.slice(0, 10)}…, unit ${unitId}`);
   if (state !== "ACTIVE" || status.verdictName !== "Satisfied") throw new Error(`the cell was born but is not ready: anchor ${state}, binding ${status.verdictName} [${status.reasonNames.join(",")}]`);
   return { account: address, agentId: agentId.toString(), bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, specId, operations, maintenance, flows };
+}
+
+/**
+ * The owner's FOGA cell specification on this chain, with version 1 and version 2 present: version 1 registered when
+ * the owner never published (an owner who did adopts it by its content hash), version 2 published under it when
+ * missing. Returns the specification id and version 2's content hash. Shared by the birth and `spec_adopt`.
+ */
+export async function ensureCellSpecification(node: Node, owner: string, ownerSigner: string, log: (line: string) => void, done: (key: string) => void = () => {}): Promise<{ specId: string; contentHash: string; v1ContentHash: string; registered: boolean; published: boolean }> {
+  const k = node.kernel;
+  const chainId = node.chainId;
+  const v1 = k.asf.specificationCommitment(fogaCellSpecification(1));
+  const v2 = k.asf.specificationCommitment(fogaCellSpecification(2));
+  const salt = keccakJcs({ spec: FOGA_CELL_SPEC_SALT_NAME, publisher: owner.toLowerCase() });
+  const expected = specIdOf(chainId, k.asf.specRegistryAddress, owner, salt);
+  const published1 = await k.asf.versionOf(expected, 1).catch(() => null);
+  let registered = false;
+  if (published1) {
+    if (published1.contentHash.toLowerCase() !== v1.contentHash.toLowerCase()) throw new Error(`the owner published specification ${expected} before with contentHash ${published1.contentHash}; this build's FOGA-Cell-v1 hashes to ${v1.contentHash}. Name the specification to adopt in identity.safety.`);
+    log(`  spec: the owner's FOGA cell specification ${expected} exists (version 1 published before)`);
+  } else {
+    const reg = await k.call("init.spec.register", ownerSigner, k.asf.specRegistryAddress, k.asf.specs().interface, "registerSpecification", [salt, v1.contentHash, v1.locator, []]);
+    done("init.spec.register");
+    const specId = k.asf.specIdFromReceipt(reg.receipt);
+    if (specId.toLowerCase() !== expected.toLowerCase()) throw new Error(`the registry assigned ${specId}; expected ${expected}`);
+    registered = true;
+    log(`  spec: FOGA-Cell-v1 registered by the owner as ${specId} (version 1)`);
+  }
+  const published2 = await k.asf.versionOf(expected, 2).catch(() => null);
+  let published = false;
+  if (published2) {
+    if (published2.contentHash.toLowerCase() !== v2.contentHash.toLowerCase()) throw new Error(`the owner published version 2 of ${expected} with contentHash ${published2.contentHash}; this build's FOGA-Cell-v2 hashes to ${v2.contentHash}. Name the specification to adopt in identity.safety.`);
+    log(`  spec: FOGA-Cell-v2 is version 2 of ${expected} already`);
+  } else {
+    await k.call("init.spec.publish2", ownerSigner, k.asf.specRegistryAddress, k.asf.specs().interface, "publishVersion", [expected, v2.contentHash, v2.locator, []]);
+    done("init.spec.publish2");
+    published = true;
+    log(`  spec: FOGA-Cell-v2 published by the owner as version 2 of ${expected}`);
+  }
+  return { specId: expected, contentHash: v2.contentHash, v1ContentHash: v1.contentHash, registered, published };
 }

@@ -1,5 +1,7 @@
 import { Contract, getAddress, type BlockTag } from "ethers";
 import { AIDStateName } from "../core/aid.js";
+import { CHANNEL_STATE, ROLES, ZERO32, outcomeName, subjectOfAddress } from "../core/aifp.js";
+import { LAYER_NAMES, MAINTENANCE_STATUS } from "../core/amm.js";
 import { ReasonName, VerdictName, accountSubjectKey } from "../core/asf.js";
 import { accountRef, jcs } from "../core/canonical.js";
 import { ERC8004_ABI } from "../core/erc8004.js";
@@ -21,7 +23,7 @@ export interface ProbeInput {
 }
 
 export interface ProbeReport {
-  schema: "foga.probe/1";
+  schema: "foga.probe/2";
   skill: "foga-probe";
   world: { worldId: string; chainId: number; block: number; blockHash: string };
   subject: string;
@@ -77,8 +79,9 @@ export function transientRpcError(e: unknown): boolean {
 }
 
 /**
- * The `foga-probe` skill: eleven sections (ERC-8004 plus the ten), every read pinned to `input.block`, every
- * value rendered so that JCS of the report is byte-stable (numbers as decimal strings, addresses lower-case).
+ * The `foga-probe` skill: thirteen sections (ERC-8004 plus the twelve; `foga.probe/2` since 1.0.0 — ERC-8489 and
+ * ERC-8490 added, the eleven of `foga.probe/1` unchanged), every read pinned to `input.block`, every value rendered so
+ * that JCS of the report is byte-stable (numbers as decimal strings, addresses lower-case, outcomes by name).
  */
 export async function runProbe(world: World, input: ProbeInput): Promise<{ report: ProbeReport; answer: string }> {
   const subject = getAddress(input.subject);
@@ -268,11 +271,65 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
     return { casesAsParty: String(asParty) };
   });
 
+  // ERC-8490 (1.0.0): the subject's maintenance as the registry holds it at the block — enrolled or not, the state
+  // version and root, the policy version, each layer's commitment and its timeliness at that block's clock
+  checks.erc8490 = await section(async () => {
+    const amm = world.contract("8490/AgentMeditationRegistry");
+    const h = await amm.headOf(subject, at);
+    if (!h.enrolled) return { enrolled: false };
+    const layers: Record<string, unknown>[] = [];
+    for (let l = 0; l < 4; l++) {
+      const c = await amm.checkpointOf(subject, l, at);
+      const st = await amm.layerStatus(subject, l, at);
+      const status = Number(st.status ?? st[0]);
+      layers.push({ layer: LAYER_NAMES[l], commitment: String(c.commitment), lastCompletedAt: String(c.lastCompletedAt), status: MAINTENANCE_STATUS[status] ?? String(status), deadline: String(st.deadline ?? st[1]) });
+    }
+    return {
+      enrolled: true,
+      controller: String(h.controller).toLowerCase(),
+      controllerRights: String(h.controllerRights),
+      stateVersion: String(h.stateVersion),
+      recordCount: String(h.recordCount),
+      root: String(h.root),
+      policyVersion: String(h.policyVersion),
+      floorVersion: String(h.floorVersion),
+      enrolledAt: String(h.enrolledAt),
+      layers,
+    };
+  });
+
+  // ERC-8489 (1.0.0): the channels the subject is the authority of (with their state, bindings and disclosure records at
+  // the block), how many objects it anchored, and its four-valued roles in the world's default market at the block
+  checks.erc8489 = await section(async () => {
+    const channels = world.contract("8489/AIFPChannelRegistry");
+    const anchor = world.contract("8489/AIFPEventAnchor");
+    const participation = world.contract("8489/AIFPParticipationRegistry");
+    const subjectRef = subjectOfAddress(world.chainId, subject);
+    const opened = await logsOf(channels, channels.filters.ChannelOpened(null, null, subject));
+    const channelsAsAuthority: Record<string, unknown>[] = [];
+    for (const l of opened as any[]) {
+      const channelId = String(l.args.channelId);
+      const rec = await channels.channel(channelId, at);
+      const state = Number(rec.state);
+      channelsAsAuthority.push({ channelId, paradigmId: String(l.args.paradigmId), state: CHANNEL_STATE[state] ?? String(state), bindings: String((await channels.bindingIds(channelId, at)).length), disclosures: String(await channels.disclosureCount(channelId, at)) });
+    }
+    const anchored = await logsOf(anchor, anchor.filters.EventAnchored(null, subjectRef));
+    const marketId = world.file.flows?.market?.channelId ?? null;
+    let market: Record<string, unknown> | null = null;
+    if (marketId) {
+      const roles: Record<string, string> = {};
+      for (const [name, bit] of [["submit", ROLES.submit], ["respond", ROLES.respond], ["observe", ROLES.observe]] as const) roles[name] = outcomeName(Number(await participation.evaluateNow(marketId, subjectRef, bit, ZERO32, at)));
+      const bindings = await participation.bindingIdsOf(marketId, subjectRef, at);
+      market = { channelId: marketId, roles, bindings: String(bindings.length) };
+    }
+    return { subject: subjectRef, channelsAsAuthority, anchors: String(anchored.length), market };
+  });
+
   const ordered: ProbeReport["checks"] = {};
-  for (const k of ["erc8004", "erc8434", "erc8419", "erc8468", "erc8444", "erc8454", "erc8338", "erc8414", "erc8447", "erc8436", "erc8471"]) ordered[k] = checks[k] ?? null;
+  for (const k of ["erc8004", "erc8434", "erc8419", "erc8468", "erc8444", "erc8454", "erc8338", "erc8414", "erc8447", "erc8436", "erc8471", "erc8489", "erc8490"]) ordered[k] = checks[k] ?? null;
 
   const report: ProbeReport = {
-    schema: "foga.probe/1",
+    schema: "foga.probe/2",
     skill: "foga-probe",
     world: { worldId: world.file.worldId, chainId: world.chainId, block: input.block, blockHash: block.hash! },
     subject: accountRef(world.chainId, subject),

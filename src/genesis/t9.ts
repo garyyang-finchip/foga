@@ -2,7 +2,7 @@ import { CELL_GROUPS, operatorScope } from "./operator-scope.js";
 import { getAddress } from "ethers";
 import { AID, type AIDDocument } from "../core/aid.js";
 import { agentDescriptor, kindId, recordIdOf } from "../core/ard.js";
-import { Enforcement, Rights, accountSubjectKey, oneClause, scopeKeyOf } from "../core/asf.js";
+import { Rights, accountSubjectKey, cellEnforcement, cellProfile, oneClause, scopeKeyOf } from "../core/asf.js";
 import { accountRef, dataUri, keccakJcs } from "../core/canonical.js";
 import { accountSubject } from "../core/kya.js";
 import { cellUnitDefinition } from "../core/units.js";
@@ -52,7 +52,7 @@ export async function t9(g: Genesis): Promise<void> {
         adopter: predicted,
         subjectKey: accountSubjectKey(chainId, predicted),
         scopeKey: scopeKeyOf({ ref: accountRef(chainId, predicted) }),
-        enforcement: Enforcement.account | Enforcement.contract,
+        enforcement: cellEnforcement(spec.version),
         interveners: [{ account: G, rights: Rights.suspend | Rights.resume }],
       }),
   });
@@ -73,7 +73,7 @@ export async function t9(g: Genesis): Promise<void> {
     const unbound = await g.wouldRevert(prime, k.aid.address, bindCall);
     g.check("T9", "inherit.binding.refused", unbound !== null && /BindingsNotPresented/.test(unbound), `A-prime executing before presenting a binding reverts: ${unbound}`);
   } else g.skipped("T9", "inherit.binding.refused", "replayed run: A-prime already presents its binding");
-  const params = { profile: "foga-cell/1", cell: "A-prime", successorOf: accountRef(chainId, A.address) };
+  const params = { profile: cellProfile(spec.version), cell: "A-prime", successorOf: accountRef(chainId, A.address) };
   const authority = { kind: "owner", owner: accountRef(chainId, prime.ownerAddress), guardian: accountRef(chainId, G) };
   const input = k.asf.cellBindingInput({ chainId, cell: prime.address, specId: spec.specId, version: spec.version, contentHash: spec.contentHash, guardian: G, params, authority });
   const { bindingId: primeBinding } = await prime.adoptBinding("T9.Aprime.adopt", input, 0);
@@ -176,6 +176,34 @@ export async function t9(g: Genesis): Promise<void> {
   const unit = await prime.execute("T9.Aprime.auf.unit", k.units.registryAddress, k.units.encodeRegisterUnit(prime.address, unitDef, []));
   const primeUnit = k.units.unitIdFromReceipt(unit.receipt);
   k.setFact("T9.Aprime.unitId", primeUnit.toString());
+  // --- the two covenants of 1.0.0 across the succession: A-prime enrolls fresh in the meditation registry (A's state stays A's),
+  //     opens its own channel naming A's as its parent and anchors its first document with a reference to A's last one; A, retiring,
+  //     closes its channel — two histories, one pointer, in the flows and the upkeep as in the identity
+  let primeUpkeep: { stateVersion: string; root: string } | null = null;
+  if (k.world.has("8490/AgentMeditationRegistry") && k.fact("amm.A.state")) {
+    const { enrollGenesisCell } = await import("./twelve.js");
+    primeUpkeep = await enrollGenesisCell(g, "A-prime", prime, "T9.Aprime");
+    const [headA, headPrime] = await Promise.all([k.meditation.headOf(A.address), k.meditation.headOf(prime.address)]);
+    g.check("T9", "inherit.maintenance.none", headPrime.enrolled && headPrime.stateVersion === 1n && headA.enrolled && headA.stateVersion >= 2n && headA.root.toLowerCase() !== headPrime.root.toLowerCase(), `A-prime enrolled at state version ${headPrime.stateVersion} (root ${headPrime.root.slice(0, 10)}…); A's registration stays at version ${headA.stateVersion}: the maintenance history is the subject's, not the agent's`);
+  }
+  let primeChannel: { channelId: string } | null = null;
+  const aChannel = k.fact<{ channelId: string }>("flows.A.channel");
+  if (k.flows.available && aChannel) {
+    const { openGenesisChannel, anchorGenesisObject, channelState } = await import("./twelve.js");
+    const { RELATIONS } = await import("../core/aifp.js");
+    primeChannel = await openGenesisChannel(g, "A-prime", prime, { parent: aChannel.channelId, agentId: agentId.toString(), keyPrefix: "T9.Aprime" });
+    const rec = await k.flows.channel(primeChannel.channelId);
+    g.check("T9", "Aprime.channel.parent", rec.parent.toLowerCase() === aChannel.channelId.toLowerCase() && getAddress(rec.authority) === getAddress(prime.address), `A-prime's channel ${primeChannel.channelId.slice(0, 10)}… names A's ${aChannel.channelId.slice(0, 10)}… as its parent; authority A-prime`);
+    const lastOfA = k.fact<string>("flows.A.lastAnchored");
+    const anchored = await anchorGenesisObject(g, "A-prime", prime, "T9.Aprime.flows.anchor", commitment.digest, lastOfA ? [{ kind: RELATIONS.references, objectRef: lastOfA }] : []);
+    const by = await k.flows.anchoredBy(commitment.digest);
+    g.check("T9", "Aprime.flows.anchored", anchored.action === "publish" && by.toLowerCase() === k.flows.subjectOf(prime.address).toLowerCase(), `A-prime's document ${commitment.digest.slice(0, 10)}… anchored as ${anchored.action} in its own channel${lastOfA ? `, referencing A's last object ${lastOfA.slice(0, 10)}…` : ""}`);
+    const { CHANNEL_STATE } = await import("../core/aifp.js");
+    await A.execute("T9.A.flow.close", k.flows.addressOf("8489/AIFPChannelRegistry"), k.flows.encodeSetState(aChannel.channelId, CHANNEL_STATE.indexOf("Closed")), { by: "owner" });
+    const aState2 = await channelState(g, aChannel.channelId);
+    g.check("T9", "A.channel.closed", aState2 === "Closed", `A's channel ${aChannel.channelId.slice(0, 10)}… is ${aState2}: the archive stays readable, nothing more is anchored there`);
+  }
+
   const retiredGate = await g.wouldRevert(A, k.tenders.address, k.tenders.encodeSubmit(BigInt(k.requireFact<string>("T7.tokenId")), "0x" + "11".repeat(32), "retired"));
   g.check("T9", "A.retired.gate", retiredGate !== null && /AnchorNotActive/.test(retiredGate), `a commitment-class call by the retired A reverts at the gate: ${retiredGate}`);
   const primeBindings = await prime.presentedBindings();
@@ -187,7 +215,9 @@ export async function t9(g: Genesis): Promise<void> {
     Aprime: { account: prime.address, owner: prime.ownerAddress, operator: prime.operatorAddress, state: primeState, binding: primeBinding, record: primeRecord, unitId: primeUnit.toString(), documentDigest: commitment.digest },
     agentId: agentId.toString(),
     skill: { tokenId: skill.tokenId, recordId: skill.recordId, owner: skillOwner, adopted: adoptedAfter },
-    notInherited: ["KYA assertions (S_att level of A)", "swarm seat", "AUF unit", "ASF binding", "AID document facets"],
+    notInherited: ["KYA assertions (S_att level of A)", "swarm seat", "AUF unit", "ASF binding", "AID document facets", "the maintenance registration (ERC-8490)", "the channel and its anchors (ERC-8489; the successor's channel names the predecessor's as parent)"],
+    upkeep: primeUpkeep,
+    flows: primeChannel ? { channel: primeChannel.channelId, parent: aChannel?.channelId ?? null, predecessorClosed: true } : null,
     keyLoss: "documented in docs/genesis.md (9d): guarded profile rotates the operator under the same anchor; a lost anchor key under a lite profile cannot retire and stays STALE",
     txs: { deploy: k.store.get("T9.Aprime.deploy")?.txHash, adopt: k.store.get("T9.Aprime.adopt")?.txHash, transfer: transfer.txHash, bind: bind.txHash, retire: k.store.get("T9.A.aid.retire")?.txHash, record: ard.txHash, skillTransfer: k.store.get("T9.A.skill.transfer")?.txHash, skillAdopt: k.store.get("T9.Aprime.skill.adopt")?.txHash, unit: unit.txHash },
   });

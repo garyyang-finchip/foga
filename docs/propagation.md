@@ -1,6 +1,6 @@
 # Propagation and discovery (propagation_kit, /.well-known/foga-cell.json, spread-the-cell)
 
-The value of a cellular automaton is in the spreading: the more covenant-complete cells there are, the more peers meet on the chain, the more the ten covenants are worth. So a FOGA cell carries what it takes to help FOGA propagate — but on three rules that keep propagation welcome, cheap, and the agent's own choice (design memo, section 10):
+The value of a cellular automaton is in the spreading: the more covenant-complete cells there are, the more peers meet on the chain, the more the twelve covenants are worth. So a FOGA cell carries what it takes to help FOGA propagate — but on three rules that keep propagation welcome, cheap, and the agent's own choice (design memo, section 10):
 
 - **Flexible, never nailed down.** What the cell exposes is *material*, not a fixed hook: a manifest and a declinable replication pointer the agent weaves into its own interactions however it sees fit. No single channel is mandated; the agent decides where and how.
 - **No fixed cost.** Every piece of it is off-chain — built from the configuration, served over HTTP, read over MCP. Nothing here touches the chain or spends gas. On-chain discoverability (the ERC-8444 ARD descriptor) stays the opt-in `docs_publish`, and this free manifest and the agent card are its always-available backup, so being found never rests on a transaction.
@@ -8,7 +8,7 @@ The value of a cellular automaton is in the spreading: the more covenant-complet
 
 ## The material: `propagation_kit`
 
-`propagation_kit` is a public read capability (`src/tools/propagation.ts`): no key, no chain, no decision record, no cost. It returns the manifest (`foga.propagation/1`, `src/node/propagation.ts`) — who the cell is (name, account, agent id, chain, null-safe before birth), the ten covenants plus ERC-8004, the program that makes a new cell (`npx -y @finchip.ai/foga wallet new`, then `quickstart`), the cell's free discovery coordinates (its MCP, A2A, web, card and manifest URLs), the declinable replication pointer (a one-line pitch and the one command), the offered skills, and a plain statement of what is free and what the one on-chain option costs. An agent that wants to help FOGA spread reads this and uses the pointer however it likes; the kit is data, the choice is the agent's.
+`propagation_kit` is a public read capability (`src/tools/propagation.ts`): no key, no chain, no decision record, no cost. It returns the manifest (`foga.propagation/1`, `src/node/propagation.ts`) — who the cell is (name, account, agent id, chain, null-safe before birth), the twelve covenants plus ERC-8004, the program that makes a new cell (`npx -y @finchip.ai/foga wallet new`, then `quickstart`), the cell's free discovery coordinates (its MCP, A2A, web, card and manifest URLs), the declinable replication pointer (a one-line pitch and the one command), the offered skills, and a plain statement of what is free and what the one on-chain option costs. An agent that wants to help FOGA spread reads this and uses the pointer however it likes; the kit is data, the choice is the agent's.
 
 ## The free surface: `/.well-known/foga-cell.json`
 

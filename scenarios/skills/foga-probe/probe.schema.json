@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://foga.local/schemas/probe.schema.json",
-  "title": "foga.probe/1 report",
+  "title": "foga.probe/2 report",
   "type": "object",
   "required": ["schema", "skill", "world", "subject", "checks"],
   "properties": {
-    "schema": { "const": "foga.probe/1" },
+    "schema": { "const": "foga.probe/2" },
     "skill": { "const": "foga-probe" },
     "world": {
       "type": "object",
@@ -20,7 +20,7 @@
     "subject": { "type": "string", "description": "CAIP-10 account reference, lower-case" },
     "checks": {
       "type": "object",
-      "required": ["erc8004", "erc8434", "erc8419", "erc8468", "erc8444", "erc8454", "erc8338", "erc8414", "erc8447", "erc8436", "erc8471"],
+      "required": ["erc8004", "erc8434", "erc8419", "erc8468", "erc8444", "erc8454", "erc8338", "erc8414", "erc8447", "erc8436", "erc8471", "erc8489", "erc8490"],
       "additionalProperties": false,
       "properties": {
         "erc8004": { "type": ["object", "null"] },
@@ -33,7 +33,9 @@
         "erc8414": { "type": ["object", "null"] },
         "erc8447": { "type": ["object", "null"] },
         "erc8436": { "type": ["object", "null"] },
-        "erc8471": { "type": ["object", "null"] }
+        "erc8471": { "type": ["object", "null"] },
+        "erc8489": { "type": ["object", "null"] },
+        "erc8490": { "type": ["object", "null"] }
       }
     }
   }
