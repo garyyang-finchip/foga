@@ -4,6 +4,10 @@
 
 - (nothing yet)
 
+## 1.0.1 — 2026-11-10 (the genesis's replayed run over the two covenants)
+
+- **A replayed genesis says what the first run did.** CI's third genesis run — the full replay after the crash-and-resume, nothing sent, the end state re-checked — failed two of the 1.0.0 checks: a cell's market admission re-read `previewAdmission` on the replay, and for A, whose identity had moved to A-prime in T9, the predicate no longer held (NOT_SATISFIED) although the binding of the first run stands; and "every layer FRESH right after the enrollment" was re-read after the genesis had moved the clock by weeks (T5–T7), when the layers are OVERDUE. The admission helper now fixes the preview's outcome the first time (a memo under the operation's key) and replays a started operation whatever the preview says now; the timeliness check is made while the enrollment is fresh and recorded as skipped on a replay (`until T3.B.mint`), like the other checks that depend on a passing state. The full CI sequence — deploy, the crashed run, the resumed run, the doctor, the replayed run, the attach-mode rehearsal with its genesis and doctor, the pack smoke — passes locally. Nothing in a running cell changes.
+
 ## 1.0.0 — 2026-11-10 (4c: the twelve-covenant cell — FOGA-Cell-v2, ERC-8489 and ERC-8490 in the base set, foga.probe/2, the genesis over both covenants)
 
 - **The base set is twelve covenants and ERC-8004.** `FOGA_COVENANTS` (`src/node/propagation.ts`) names ERC-8489 and ERC-8490 beside the ten; the propagation manifest's `world` block gains `missing` (the covenants of the base set a world does not carry — a world file from before 1.0.0 not yet extended), the card says it too, and the preflight has a row for it. `world.extensions` is empty on a complete world: the slot for the thirteenth covenant is open (docs/extending.md). The genesis cells play the `maintenance` and `flows` scope groups; wording that said "ten" says "twelve".

@@ -193,9 +193,10 @@ export async function admitGenesisCell(g: Genesis, X: string, cell: Cell, key: s
   if (!predicate) throw new Error(`the market paradigm has no predicate for ${role}`);
   const subject = k.flows.subjectOf(cell.address);
   const evidence = [k.flows.identityEvidence(cell.address, agentId)];
-  const preview = await k.flows.previewAdmission(market, subject, ROLES[role], predicate.predicateHex, evidence);
-  const outcomeBefore = outcomeName(preview);
-  if (preview !== OUTCOME.SATISFIED) return { outcomeBefore, bindingId: null };
+  // the preview is the first run's: a replayed run (the identity may have moved since, T9) re-sends nothing and says what was read then
+  const outcomeBefore = await k.memo(`${key}.preview`, async () => outcomeName(await k.flows.previewAdmission(market, subject, ROLES[role], predicate.predicateHex, evidence)));
+  const started = Boolean(k.store.get(key)); // sent or confirmed before: the keyed operation recovers or replays it
+  if (!started && outcomeBefore !== outcomeName(OUTCOME.SATISFIED)) return { outcomeBefore, bindingId: null };
   const done = await cell.execute(key, k.flows.addressOf("8489/AIFPParticipationRegistry"), k.flows.encodeAdmit(market, ROLES[role], predicate.predicateHex, evidence));
   return { outcomeBefore, bindingId: k.flows.roleBindingIdFromReceipt(done.receipt) };
 }

@@ -570,7 +570,8 @@ export class Genesis {
       const head = await k.meditation.headOf(cell.address);
       this.check("T1", `${X}.meditation.enrolled`, head.enrolled && head.stateVersion === 1n && head.root.toLowerCase() === upkeep.root.toLowerCase() && getAddress(head.controller) === getAddress(k.address("G")), `headOf(${X}) = enrolled ${head.enrolled}, state version ${head.stateVersion}, root ${head.root.slice(0, 10)}… (local ${upkeep.root.slice(0, 10)}…), controller ${head.controller}`, X === "A" ? ["T2.A.amm.cycle"] : []);
       const statuses = await k.meditation.layerStatuses(cell.address);
-      this.check("T1", `${X}.meditation.layerStatus`, statuses.every((l) => l.statusName === "FRESH"), `every layer FRESH right after the enrollment: ${statuses.map((l) => `${l.name} ${l.statusName}`).join(", ")}`, X === "A" ? ["T2.A.amm.cycle"] : []);
+      // the timeliness is read while the enrollment is fresh: the genesis moves the clock by weeks later (T5-T7), so a replayed run says nothing about it
+      this.check("T1", `${X}.meditation.layerStatus`, statuses.every((l) => l.statusName === "FRESH"), `every layer FRESH right after the enrollment: ${statuses.map((l) => `${l.name} ${l.statusName}`).join(", ")}`, ["T3.B.mint"]);
     } else this.skipped("T1", `${X}.meditation.enrolled`, "the world has no ERC-8490 registry");
     if (channel) {
       const rec = await k.flows.channel(channel.channelId);
