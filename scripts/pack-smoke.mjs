@@ -88,7 +88,8 @@ cli(["cell", "new", "--name", "P", "--world", world, "--store", join(work, "P.op
 const born = firstJson(cli(["cell", "init", "--config", config, "--rpc", rpc], { FOGA_OWNER_KEY: owner.privateKey }));
 console.log(`account ${born.account}, agent ${born.agentId}, ${born.operations.length} operations`);
 const status = firstJson(cli(["cell", "status", "--config", config, "--rpc", rpc]));
-if (status.output?.account !== born.account || status.output?.accountVersion !== 2) throw new Error(`cell status: ${JSON.stringify(status).slice(0, 500)}`);
+// a cell born by this build has an account of the current revision (3 since 1.0.3: execute asks for the owner first)
+if (status.output?.account !== born.account || status.output?.accountVersion !== 3) throw new Error(`cell status: ${JSON.stringify(status).slice(0, 500)}`);
 
 step("foga node mcp over stdio, without a key: a raw 2025-era client");
 const child = spawn(foga, ["node", "mcp", "--config", config, "--rpc", rpc], { cwd: work, env: cleanEnv, stdio: ["pipe", "pipe", "pipe"] });
