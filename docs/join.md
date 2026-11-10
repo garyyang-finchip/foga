@@ -29,7 +29,7 @@ Then it prints the cell's **card** (below), the files, and the MCP client config
 | `cell.config.json` | the configuration — what the chain decided at the birth, the policy, the presence, the entrance |
 | `cell.ops.sqlite` | the store: every operation, job and decision; what makes the join resumable |
 | `world.json` | the chain's address book, copied from the package so the cell does not depend on where the package is installed |
-| `skills/`, `fixtures/` | the skill packages (their hashes are what the chain holds) and the extraction fixture, copied for the same reason |
+| `skills/`, `fixtures/` | the skill packages (their hashes are what the chain holds) and the extraction fixture, copied for the same reason; when a program upgrade moves a skill's package on, `foga cell skill update --skill <name>` refreshes the cell's copy from the program's package and commits it to the token, the old copy kept beside as `skills/<name>.before-<hash>` (docs/og-deployment.md, "FOGA-Cell-v2 and the twelve-covenant cell") |
 | `documents/` | what `docs_publish` built and committed |
 | `keys/agent.api-key` | the act-level Bearer key of the HTTP entrance (0600); the operator key stays in the wallet |
 | `mcp/*.json`, `connect.md`, `join.json` | the client configurations, the printed text, and a record of the join |

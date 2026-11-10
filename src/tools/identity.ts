@@ -1,3 +1,4 @@
+import { cpSync, existsSync, realpathSync, renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { kindId, skillDescriptor } from "../core/ard.js";
@@ -5,6 +6,7 @@ import { dataUriJcs } from "../core/canonical.js";
 import { buildSkillPackage, readSkillDir } from "../core/pack/skillpack.js";
 import { skillUnitDefinition } from "../core/units.js";
 import { ok, refused, safetyGate, type Gate } from "../node/policy.js";
+import { repoRoot } from "../util/fs.js";
 import { derivedJobId, zBool, zBytes32, zJobId, zUint } from "./common.js";
 import type { ActCapability, ActStep } from "./types.js";
 
@@ -70,6 +72,25 @@ export const skill_mint: ActCapability = {
   },
 };
 
+/** The program's own copy of a skill package, as it ships (`scenarios/skills/<name>`), or null when the program has none. */
+function programSkillDir(skill: string): string | null {
+  const dir = join(repoRoot(), "scenarios", "skills", skill);
+  return existsSync(dir) ? dir : null;
+}
+
+/** `major.minor.patch` compared numerically; a version that does not parse compares equal to everything. */
+function compareSkillVersions(a: unknown, b: unknown): number {
+  const parse = (v: unknown) => (typeof v === "string" && /^\d+(\.\d+){0,2}$/.test(v) ? v.split(".").map(Number) : null);
+  const x = parse(a);
+  const y = parse(b);
+  if (!x || !y) return 0;
+  for (let i = 0; i < 3; i++) {
+    const d = (x[i] ?? 0) - (y[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
 /**
  * The program's package of a skill moves on (foga-probe 1.x -> 2.0.0 with `foga.probe/2`, 1.0.0): the token the cell
  * holds still commits to the old package, so the runner refuses the skill until the cell commits the new one. The
@@ -78,17 +99,27 @@ export const skill_mint: ActCapability = {
  * configuration keeps the lineage (version, previous package hash) so the package is rebuilt from the directory the
  * same way the token holds it. The AUF unit names the token, not the package, and stays. The memory-skills state
  * document (ERC-8490) changes with it, and the maintenance watcher records that in its next cycle.
+ *
+ * Which package is "new" depends on where the cell's skill directory is. A cell whose directory is the program's own
+ * (the quickstart's, the OG's checkout) reads the new package the moment the program is upgraded, and the directory
+ * differs from the token. A cell born by `foga join` carries its own copy of the packages (their hashes are what the
+ * chain holds; the files stay where the cell is, not where a version of the program is installed), so after an
+ * upgrade its directory still agrees with the token and the program's package is what differs: the update then
+ * refreshes the cell's copy from the program's package once the chain holds the new commitment — the old copy is
+ * kept beside it as `<name>.before-<hash>` — so the directory and the token move together. A copy the operator
+ * changed by hand is committed as it is, as before; a copy newer than the program's (an older program run against
+ * a cell that saw a newer one) is left alone. (1.0.2)
  */
 export const skill_update: ActCapability = {
   name: "skill_update",
   title: "Commit a skill's new package to the token the cell holds",
-  description: "When the skill directory's package differs from what the cell's ERC-8338 token commits to (the program upgraded the skill), update the token to the new package (version + 1, the old package as predecessor) through the account and re-commit the ERC-8444 skill record's descriptor; the configuration records the lineage. Refused when the token holds the directory's package already.",
+  description: "When the skill directory's package differs from what the cell's ERC-8338 token commits to (the program upgraded the skill), update the token to the new package (version + 1, the old package as predecessor) through the account and re-commit the ERC-8444 skill record's descriptor; the configuration records the lineage. A cell that carries its own copy of the packages (foga join) has the copy refreshed from the program's package when the token holds the copy's package already and the program's differs, the old copy kept beside it. Refused when the token holds the program's package already.",
   action: "act",
   visibility: "operator",
   principal: "cell",
   ercs: [8338, 8444],
   input: z.object({ skill: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "a skill directory name"), priceEth: z.string().regex(/^\d+(\.\d+)?$/).optional(), jobId: zJobId }),
-  output: z.object({ skill: z.string(), tokenId: zUint, version: z.number(), previousPackageHash: zBytes32, mdHash: zBytes32, packageHash: zBytes32, recordId: zBytes32.nullable(), operations: z.array(z.string()), jobId: z.string() }),
+  output: z.object({ skill: z.string(), tokenId: zUint, version: z.number(), previousPackageHash: zBytes32, mdHash: zBytes32, packageHash: zBytes32, recordId: zBytes32.nullable(), refreshedFrom: z.string().nullable(), previousCopy: z.string().nullable(), operations: z.array(z.string()), jobId: z.string() }),
   async plan({ node }, input) {
     const k = node.kernel;
     const cell = node.body;
@@ -99,16 +130,33 @@ export const skill_update: ActCapability = {
     gates.push(safetyGate(aidState, status, "plain"));
     if (!held) {
       gates.push(refused("policy", `the cell does not hold ${input.skill}; skill_mint mints it`));
-      return { job: { id: input.jobId ?? derivedJobId(`skill-update:${input.skill}`, { none: true }), kind: "skill-update", input: { skill: input.skill } }, gates, valueWei: 0n, steps: [], output: () => ({ skill: input.skill, tokenId: "0", version: 0, previousPackageHash: "0x" + "00".repeat(32), mdHash: "0x" + "00".repeat(32), packageHash: "0x" + "00".repeat(32), recordId: null, operations: [], jobId: "" }) };
+      return { job: { id: input.jobId ?? derivedJobId(`skill-update:${input.skill}`, { none: true }), kind: "skill-update", input: { skill: input.skill } }, gates, valueWei: 0n, steps: [], output: () => ({ skill: input.skill, tokenId: "0", version: 0, previousPackageHash: "0x" + "00".repeat(32), mdHash: "0x" + "00".repeat(32), packageHash: "0x" + "00".repeat(32), recordId: null, refreshedFrom: null, previousCopy: null, operations: [], jobId: "" }) };
     }
     const tokenId = BigInt(held.tokenId);
     const onchain = await k.skills.skillOf(tokenId);
-    const files = readSkillDir(join(node.skillsDir, input.skill));
-    const asHeld = buildSkillPackage(files, { version: held.version ?? 1, previousPackageHash: held.previousPackageHash });
-    if (asHeld.packageHash.toLowerCase() === onchain.packageHash.toLowerCase()) gates.push(refused("policy", `token ${tokenId} commits to the directory's package ${onchain.packageHash.slice(0, 10)}… (v${onchain.version}) already; nothing to update`));
+    const localDir = join(node.skillsDir, input.skill);
+    const local = readSkillDir(localDir);
+    const lineage = { version: held.version ?? 1, previousPackageHash: held.previousPackageHash };
+    const asHeld = buildSkillPackage(local, lineage);
+    let files = local;
+    let refresh: { from: string; backup: string } | null = null;
+    if (asHeld.packageHash.toLowerCase() === onchain.packageHash.toLowerCase()) {
+      // the directory agrees with the token: for a cell that carries its own copy, the program's package may have moved on
+      const programDir = programSkillDir(input.skill);
+      const ownCopy = programDir !== null && realpathSync(programDir) !== realpathSync(localDir);
+      const program = ownCopy ? buildSkillPackage(readSkillDir(programDir!), lineage) : null;
+      if (program && program.packageHash.toLowerCase() !== asHeld.packageHash.toLowerCase()) {
+        const order = compareSkillVersions(program.manifest.skillVersion, asHeld.manifest.skillVersion);
+        if (order < 0) gates.push(refused("policy", `token ${tokenId} commits to the directory's package ${onchain.packageHash.slice(0, 10)}… (v${onchain.version}, manifest ${String(asHeld.manifest.skillVersion)}) already, and the program's package of ${input.skill} is older (manifest ${String(program.manifest.skillVersion)}); nothing to update`));
+        else {
+          files = readSkillDir(programDir!);
+          refresh = { from: programDir!, backup: `${localDir}.before-${onchain.packageHash.slice(2, 10)}` };
+        }
+      } else gates.push(refused("policy", `token ${tokenId} commits to the directory's package ${onchain.packageHash.slice(0, 10)}… (v${onchain.version}) already${program ? ", the program's package is the same" : ""}; nothing to update`));
+    }
     const nextVersion = Number(onchain.version) + 1;
     const pkg = buildSkillPackage(files, { version: nextVersion, previousPackageHash: onchain.packageHash });
-    if (!gates.some((g) => !g.ok)) gates.push(ok("policy", `${input.skill}: token ${tokenId} v${onchain.version} ${onchain.packageHash.slice(0, 10)}… -> v${nextVersion} ${pkg.packageHash.slice(0, 10)}… (manifest ${String(pkg.manifest.skillVersion ?? "?")})`));
+    if (!gates.some((g) => !g.ok)) gates.push(ok("policy", `${input.skill}: token ${tokenId} v${onchain.version} ${onchain.packageHash.slice(0, 10)}… -> v${nextVersion} ${pkg.packageHash.slice(0, 10)}… (manifest ${String(pkg.manifest.skillVersion ?? "?")}${refresh ? "; the cell's copy is refreshed from the program's package" : ""})`));
     const packageURI = dataUriJcs({ skill: input.skill, version: pkg.version, mdHash: pkg.mdHash, packageHash: pkg.packageHash, rootCid: pkg.rootCid, previousPackageHash: onchain.packageHash, source: `${node.config.skills.dir}/${input.skill}` });
     const jobId = input.jobId ?? derivedJobId(`skill-update:${input.skill}`, { packageHash: pkg.packageHash, cell: cell.address, version: nextVersion });
     const steps: ActStep[] = [{ name: "update", kind: "plain", build: () => ({ target: k.skills.address, value: 0n, data: k.skills.encodeUpdate(tokenId, pkg), label: `updateSkill(${tokenId}, v${nextVersion})` }) }];
@@ -118,14 +166,25 @@ export const skill_update: ActCapability = {
       steps.push({ name: "record", kind: "plain", build: () => ({ target: k.ard.address, value: 0n, data: k.ard.encodeUpdateDescriptor(held.recordId!, descriptor), label: `ARD updateDescriptor(skill ${tokenId})` }) });
     }
     return {
-      job: { id: jobId, kind: "skill-update", input: { skill: input.skill, tokenId: tokenId.toString(), from: onchain.packageHash, to: pkg.packageHash, version: nextVersion } },
+      job: { id: jobId, kind: "skill-update", input: { skill: input.skill, tokenId: tokenId.toString(), from: onchain.packageHash, to: pkg.packageHash, version: nextVersion, ...(refresh ? { refreshedFrom: refresh.from } : {}) } },
       gates,
       valueWei: 0n,
       steps,
       output: (confirmed) => {
+        const result = { skill: input.skill, tokenId: tokenId.toString(), version: nextVersion, previousPackageHash: onchain.packageHash, mdHash: pkg.mdHash, packageHash: pkg.packageHash, recordId: held.recordId ?? null, refreshedFrom: refresh?.from ?? null, previousCopy: refresh?.backup ?? null, operations: confirmed.map((c) => c.key), jobId };
+        if (!confirmed.length) return result; // a dry run: what the update would commit; the directory and the configuration stay as they are
+        if (refresh) {
+          // the chain holds the program's package now: the cell's copy follows it, the old copy kept beside
+          const next = `${localDir}.next`;
+          rmSync(next, { recursive: true, force: true });
+          cpSync(refresh.from, next, { recursive: true });
+          rmSync(refresh.backup, { recursive: true, force: true });
+          renameSync(localDir, refresh.backup);
+          renameSync(next, localDir);
+        }
         node.config.skills.held[input.skill] = { ...held, packageHash: pkg.packageHash, version: nextVersion, previousPackageHash: onchain.packageHash };
         node.saveConfig();
-        return { skill: input.skill, tokenId: tokenId.toString(), version: nextVersion, previousPackageHash: onchain.packageHash, mdHash: pkg.mdHash, packageHash: pkg.packageHash, recordId: held.recordId ?? null, operations: confirmed.map((c) => c.key), jobId };
+        return result;
       },
     };
   },

@@ -33,7 +33,7 @@ export const CELL_USAGE = `
                                                  operator's scope and — 8490 — enrolls the cell, or — 8489 — opens its channel and grants it SUBMIT (a
                                                  one-key cell also anchors its publication and joins the market); read back; idempotent, no migration
   foga cell status --config <cell.config.json>   cell_status as the operator
-  foga cell skill update --skill <name> --config <cell.config.json> [--wallet <dir>]   commit the skill directory's new package to the token the cell holds
+  foga cell skill update --skill <name> --config <cell.config.json> [--wallet <dir>]   commit the skill's new package to the token the cell holds (a joined cell's own copy refreshed from the program's package)
                                                  (ERC-8338 updateSkill, version + 1; the ERC-8444 record re-committed) when the program upgraded the skill — the
                                                  runner refuses a held skill whose token commits to another package until then (skill_update; skill mint = skill_mint)
   foga cell spec --config <cell.config.json>     which version of the FOGA cell specification the account enforces and which the runtime adopted (spec_status)

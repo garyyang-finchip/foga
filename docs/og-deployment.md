@@ -131,14 +131,23 @@ The OG and the joined cells were born under version 1 of the cell specification,
 
 ```
 node bin/foga.js cell adopt --config /home/ec2-user/foga-og/og.config.json --wallet /home/ec2-user/foga-og/wallet   # the owner's key: version 2 published under the owner's specification, a runtime-enforced binding adopted through the account
-node bin/foga.js cell skill update --skill foga-probe --config /home/ec2-user/foga-og/og.config.json --wallet /home/ec2-user/foga-og/wallet   # the operator's key: updateSkill to 2.0.0, the ERC-8444 record re-committed
+node bin/foga.js cell skill update --skill foga-probe --config /home/ec2-user/foga-og/og.config.json --wallet /home/ec2-user/foga-og/wallet   # the operator's key, for a cell that holds the skill: updateSkill to 2.0.0, the ERC-8444 record re-committed
 sudo systemctl restart foga-og
 node bin/foga.js cell spec --config /home/ec2-user/foga-og/og.config.json           # operatesUnder 2: the account enforces v1, v2 adopted by the runtime
 node bin/foga.js node preflight --config /home/ec2-user/foga-og/og.config.json --wallet /home/ec2-user/foga-og/wallet
 curl -s https://foga.finchip.ai/.well-known/foga-cell.json | jq '{covenants, world, specification}'
 ```
 
-A cell joined with `foga join` does the same with its own configuration and wallet, after stopping the join and before starting it again (`npx -y @finchtech.ai/foga cell adopt …`, `… cell skill update --skill foga-probe …`). The upgrade changes the program version and the skills held, so the runtime and memory-skills documents drift and the maintenance watcher records an event cycle by itself; the publication is republished by `docs_publish` when the operator next runs it (the skill's new package hash enters the documents), and the flows watcher anchors it. A cell born under 1.0.0 — on Sepolia or anywhere — has version 2 at birth and needs none of this; `foga cell card` says `spec FOGA-Cell-v2` either way, with the account-versus-runtime note for the cells born before.
+The OG holds `finch-extract-verify` alone (token 4; its skills directory is the checkout's `scenarios/skills`), so the skill update above refuses with "the cell does not hold foga-probe" and nothing is missing. This was done on 2026-11-10: the OG adopted version 2 (`specification.adopted 2`, `operatesUnder 2` in its manifest) and the maintenance watcher recorded the event cycle that the upgrade's drift called for (state version 6).
+
+A cell joined with `foga join` does the same with its own configuration and wallet, after stopping the join and before starting it again:
+
+```
+npx -y @finchtech.ai/foga cell adopt --config ~/.foga/cells/sepolia/<cell>/cell.config.json --wallet ~/.foga/wallet
+npx -y @finchtech.ai/foga cell skill update --skill foga-probe --config ~/.foga/cells/sepolia/<cell>/cell.config.json --wallet ~/.foga/wallet
+```
+
+A joined cell carries its own copy of the skill packages (`skills/` in its directory; docs/join.md), so after the upgrade its copy still agrees with its token and the program's package is what differs: since 1.0.2 the update refreshes the copy from the program's package once the chain holds the new commitment — the old copy is kept beside it as `skills/foga-probe.before-<hash>` — and commits the program's package to the token (version + 1, the old package as predecessor, the record re-committed); under 1.0.0 and 1.0.1 it answered "nothing to update" for such a cell, and the token stayed on the old package. The upgrade changes the program version and the skills held, so the runtime and memory-skills documents drift and the maintenance watcher records an event cycle by itself; the publication is republished by `docs_publish` when the operator next runs it (the skill's new package hash enters the documents), and the flows watcher anchors it. A cell born under 1.0.0 — on Sepolia or anywhere — has version 2 at birth and needs none of this; `foga cell card` says `spec FOGA-Cell-v2` either way, with the account-versus-runtime note for the cells born before.
 
 ## The MCP registry listing
 

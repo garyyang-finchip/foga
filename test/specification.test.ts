@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { appendFileSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { getAddress, parseEther } from "ethers";
 import { Enforcement, FOGA_CELL_SPEC_SALT_NAME, FOGA_CELL_SPEC_VERSION, fogaCellSpecification, specIdOf } from "../src/core/asf.js";
 import { keccakJcs } from "../src/core/canonical.js";
+import { buildSkillPackage, readSkillDir } from "../src/core/pack/skillpack.js";
 import { cellCard, formatCard } from "../src/node/card.js";
 import { Node } from "../src/node/node.js";
 import { preflight } from "../src/node/preflight.js";
@@ -203,11 +204,51 @@ test("FOGA-Cell-v2: version 2 at birth, adopted by a cell born under version 1, 
       assert.equal(cfgS.skills.held["foga-probe"].previousPackageHash.toLowerCase(), before.packageHash.toLowerCase());
       const held = await nodeS.heldSkills();
       assert.equal(held.find((h) => h.name === "foga-probe")!.packageHash.toLowerCase(), after.packageHash.toLowerCase(), "rebuilt from the directory with the token's lineage");
-      const again = await catalog.invoke(nodeS, "skill_update", { skill: "foga-probe", jobId: "skill-update-again" }, OPERATOR_CALLER, { mode: "act" });
-      assert.equal(again.ok, false);
-      assert.match((again as { reason: string }).reason, /nothing to update/);
       const rec = await k.ard.recordOf(cfgS.skills.held["foga-probe"].recordId);
       assert.ok(rec, "the skill record stands, re-committed");
+
+      // --- the cell's own copy agrees with its token and the program's package differs (a cell born by `foga join` after the
+      //     program moved a skill on): the update refreshes the copy from the program's package once the chain holds it,
+      //     the old copy kept beside, the token at version + 1 with the committed package as predecessor (1.0.2)
+      const programDir = join("scenarios", "skills", "foga-probe");
+      const dry = await catalog.invoke(nodeS, "skill_update", { skill: "foga-probe", jobId: "skill-update-dry" }, OPERATOR_CALLER, { mode: "simulate" });
+      assert.equal(dry.ok, true, JSON.stringify(dry));
+      assert.equal(resolve((dry as { output: any }).output.refreshedFrom), resolve(programDir), "the dry run names the program's package");
+      assert.match(readFileSync(join(skillsCopy, "foga-probe", "SKILL.md"), "utf8"), /Changes in 2\.1\.0/, "a dry run touches nothing");
+      const refreshed = await catalog.invoke(nodeS, "skill_update", { skill: "foga-probe" }, OPERATOR_CALLER, { mode: "act" });
+      assert.equal(refreshed.ok, true, JSON.stringify(refreshed));
+      const r = (refreshed as { output: any }).output;
+      assert.equal(r.version, u.version + 1);
+      assert.equal(r.previousPackageHash.toLowerCase(), u.packageHash.toLowerCase());
+      assert.equal(resolve(r.refreshedFrom), resolve(programDir));
+      assert.equal(r.previousCopy, `${join(skillsCopy, "foga-probe")}.before-${u.packageHash.slice(2, 10)}`);
+      assert.ok(existsSync(r.previousCopy), "the old copy is kept beside the skill");
+      assert.match(readFileSync(join(r.previousCopy, "SKILL.md"), "utf8"), /Changes in 2\.1\.0/);
+      assert.doesNotMatch(readFileSync(join(skillsCopy, "foga-probe", "SKILL.md"), "utf8"), /Changes in 2\.1\.0/, "the copy is the program's package now");
+      assert.deepEqual(readSkillDir(join(skillsCopy, "foga-probe")), readSkillDir(programDir));
+      const programPkg = buildSkillPackage(readSkillDir(programDir), { version: r.version, previousPackageHash: u.packageHash });
+      assert.equal(r.packageHash.toLowerCase(), programPkg.packageHash.toLowerCase(), "the program's package with the token's lineage");
+      await k.blockNumber();
+      const afterRefresh = await k.skills.skillOf(BigInt(cell.skills["foga-probe"].tokenId));
+      assert.equal(afterRefresh.packageHash.toLowerCase(), r.packageHash.toLowerCase());
+      assert.equal(Number(afterRefresh.version), r.version);
+      const heldR = await nodeS.heldSkills();
+      assert.equal(heldR.find((h) => h.name === "foga-probe")!.packageHash.toLowerCase(), r.packageHash.toLowerCase(), "the refreshed copy agrees with the token");
+      const again = await catalog.invoke(nodeS, "skill_update", { skill: "foga-probe", jobId: "skill-update-again" }, OPERATOR_CALLER, { mode: "act" });
+      assert.equal(again.ok, false);
+      assert.match((again as { reason: string }).reason, /the program's package is the same; nothing to update/);
+
+      // --- a copy newer than the program's package (an older program run against a cell that saw a newer one) is left alone
+      const manifestPath = join(skillsCopy, "foga-probe", "manifest.json");
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      writeFileSync(manifestPath, JSON.stringify({ ...manifest, skillVersion: "9.9.9" }, null, 2) + "\n");
+      const newer = await catalog.invoke(nodeS, "skill_update", { skill: "foga-probe" }, OPERATOR_CALLER, { mode: "act" });
+      assert.equal(newer.ok, true, JSON.stringify(newer));
+      assert.equal((newer as { output: any }).output.refreshedFrom, null, "a changed copy is committed as it is");
+      const older = await catalog.invoke(nodeS, "skill_update", { skill: "foga-probe", jobId: "skill-update-older" }, OPERATOR_CALLER, { mode: "act" });
+      assert.equal(older.ok, false);
+      assert.match((older as { reason: string }).reason, /the program's package of foga-probe is older \(manifest 2\.0\.0\); nothing to update/);
+      assert.match(readFileSync(manifestPath, "utf8"), /9\.9\.9/, "the copy stays");
     } finally {
       nodeS.close();
     }
