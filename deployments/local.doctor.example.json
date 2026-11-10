@@ -1,24 +1,24 @@
 {
   "schema": "foga.doctor-report/1",
-  "at": "2026-11-09T16:29:45.140Z",
+  "at": "2026-11-10T09:52:40.280Z",
   "world": {
-    "worldId": "anvil-31337-20261109T162759Z",
+    "worldId": "anvil-31337-20261110T095112Z",
     "name": "local",
     "network": "anvil",
     "chainId": 31337,
     "mode": "deployed",
-    "bundleHash": "0x8a967c8f18919a0074c75adf786ef7d5de822d7ef704eea0b058d02cfc8c5c4f"
+    "bundleHash": "0xc01f2099206e968ac207672b375b6bc30f205fe3fdc668dd1e163a659b0d89e8"
   },
   "source": {
-    "rpc": "http://127.0.0.1:8545",
-    "collectedAt": "2026-11-09T16:29:45.053Z",
+    "rpc": "http://127.0.0.1:8601",
+    "collectedAt": "2026-11-10T09:52:40.162Z",
     "mode": "live"
   },
   "chain": {
     "chainId": 31337,
     "blockNumber": 287
   },
-  "bundleHash": "0x8a967c8f18919a0074c75adf786ef7d5de822d7ef704eea0b058d02cfc8c5c4f",
+  "bundleHash": "0xc01f2099206e968ac207672b375b6bc30f205fe3fdc668dd1e163a659b0d89e8",
   "layers": {
     "1": "chain and code: the address holds code on the expected chain",
     "2": "interfaces: ERC-165 declarations against the interfaces the contract is built from",
@@ -2216,8 +2216,8 @@
       "subject": "genesis",
       "check": "evidence",
       "verdict": "Pass",
-      "expected": "anvil-31337-20261109T162759Z (chain 31337)",
-      "actual": "anvil-31337-20261109T162759Z (chain 31337), until T9, 197 checks, 0 failed, ran 2026-11-09T16:29:16.938Z"
+      "expected": "anvil-31337-20261110T095112Z (chain 31337)",
+      "actual": "anvil-31337-20261110T095112Z (chain 31337), until T9, 197 checks, 0 failed, ran 2026-11-10T09:52:39.460Z"
     },
     {
       "layer": 5,
@@ -2324,8 +2324,8 @@
       "check": "semantic validation",
       "verdict": "Pass",
       "expected": "every genesis check that exercises the standard passes",
-      "actual": "18 pass, 0 fail, 1 skipped",
-      "detail": "18/18 checks pass over T0, T1, T2, T3, T7, T9; 1 skipped"
+      "actual": "19 pass, 0 fail, 0 skipped",
+      "detail": "19/19 checks pass over T0, T1, T2, T3, T7, T9"
     },
     {
       "layer": 5,
@@ -2333,8 +2333,8 @@
       "check": "semantic validation",
       "verdict": "Pass",
       "expected": "every genesis check that exercises the standard passes",
-      "actual": "10 pass, 0 fail, 2 skipped",
-      "detail": "10/10 checks pass over T0, T1, T2, T7, T9; 2 skipped"
+      "actual": "12 pass, 0 fail, 0 skipped",
+      "detail": "12/12 checks pass over T0, T1, T2, T7, T9"
     }
   ],
   "readouts": [

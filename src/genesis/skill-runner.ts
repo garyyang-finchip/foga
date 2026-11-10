@@ -70,6 +70,13 @@ export interface IsolationOptions {
   maxOutputBytes?: number;
   /** Directories the worker may read (Node's permission model, when not under the development loader). */
   readDirs?: string[];
+  /** Whether the worker needs the network (`foga-probe` calls the RPC); Node 25 and later restrict it under `--permission` unless `--allow-net` is passed. */
+  allowNet?: boolean;
+}
+
+/** Whether this Node knows `--allow-net`: Node 25 and later (the permission model restricts the network from there on). */
+function allowNetFlag(): boolean {
+  return process.allowedNodeEnvironmentFlags.has("--allow-net") || Number(process.versions.node.split(".")[0]) >= 25;
 }
 
 /**
@@ -77,7 +84,8 @@ export interface IsolationOptions {
  * is capped, stdout is capped, the run has a time limit, and — when the parent is not running under the development
  * loader — Node's permission model restricts the worker to reading the directories the job needs (the compiled
  * code, node_modules, the world file and bundle, the skills and the input directory). The worker cannot sign: it
- * never sees a key. Network is not restricted at the process level: `foga-probe` needs the RPC.
+ * never sees a key. The network is open to a worker that asks for it (`allowNet`: `foga-probe` needs the RPC) — on Node 25 and
+ * later, where the permission model restricts it, through `--allow-net`; the extract worker stays without it.
  */
 export async function runIsolated<T>(job: SkillJob, opts: IsolationOptions = {}): Promise<T> {
   const limit = opts.maxOutputBytes ?? 1024 * 1024;
@@ -85,6 +93,7 @@ export async function runIsolated<T>(job: SkillJob, opts: IsolationOptions = {})
   const args: string[] = [...process.execArgv, "--max-old-space-size=512"];
   if (!underLoader() && opts.readDirs?.length) {
     args.push("--permission");
+    if (opts.allowNet && allowNetFlag()) args.push("--allow-net");
     for (const d of new Set([...opts.readDirs, dirname(workerPath()), ...dependencyDirs()])) args.push(`--allow-fs-read=${resolve(d)}`);
   }
   args.push(workerPath());
@@ -132,7 +141,7 @@ export async function runIsolated<T>(job: SkillJob, opts: IsolationOptions = {})
 export async function runProbeIsolated(p: { worldPath: string; rpc: string; bundlePath?: string; input: ProbeInput; timeoutMs?: number }): Promise<{ answer: string; report: ProbeReport }> {
   const readDirs = [repoRoot(), dirname(resolve(p.worldPath))];
   if (p.bundlePath) readDirs.push(dirname(resolve(p.bundlePath)));
-  return runIsolated({ executor: "probe", worldPath: p.worldPath, rpc: p.rpc, bundlePath: p.bundlePath, input: p.input }, { timeoutMs: p.timeoutMs, readDirs });
+  return runIsolated({ executor: "probe", worldPath: p.worldPath, rpc: p.rpc, bundlePath: p.bundlePath, input: p.input }, { timeoutMs: p.timeoutMs, readDirs, allowNet: true });
 }
 
 /** Run `finch-extract-verify`'s deterministic path in the worker over a document inside `inputDir`. */

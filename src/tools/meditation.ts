@@ -264,7 +264,7 @@ export const meditate_pulse: ActCapability = {
       steps: [{ name: "pulse", kind: "plain", build: () => ({ target: k.meditation.address, value: 0n, data: k.meditation.encodePulse(subject, input.nextPlannedAt), label: `pulse(${subject}, ${input.nextPlannedAt})` }) }],
       output: async (confirmed) => {
         const [h, sig] = await Promise.all([k.meditation.headOf(subject), k.meditation.signalStatus(subject)]);
-        return { seq: (k.meditation.seqFromReceipt(confirmed[0].receipt) ?? h.recordCount).toString(), lastSignalAt: h.lastSignalAt, signal: sig.statusName, txHash: confirmed[0].txHash, jobId };
+        return { seq: (confirmed[0] ? k.meditation.seqFromReceipt(confirmed[0].receipt) ?? h.recordCount : h.recordCount).toString(), lastSignalAt: h.lastSignalAt, signal: sig.statusName, txHash: confirmed[0]?.txHash ?? "", jobId };
       },
     };
   },
@@ -420,7 +420,7 @@ export const meditate_controller: ActCapability = {
       steps: [step],
       output: async (confirmed) => {
         const h = await k.meditation.headOf(subject);
-        return { subject, controller: h.controller, controllerRights: h.controllerRights, previous: head.controller, by, txHash: confirmed[0].txHash, jobId };
+        return { subject, controller: h.controller, controllerRights: h.controllerRights, previous: head.controller, by, txHash: confirmed[0]?.txHash ?? "", jobId };
       },
     };
   },
@@ -458,7 +458,7 @@ export const meditate_demand: ActCapability = {
       gates,
       valueWei: 0n,
       steps: [{ name: input.withdraw ? "withdrawDemand" : "demand", kind: "plain", by: "guardian", route: "direct", build: () => ({ target: k.meditation.address, value: 0n, data: input.withdraw ? k.meditation.encodeWithdrawDemand(subject, layerMask) : k.meditation.encodeDemand(subject, layerMask, dueBy!), label: input.withdraw ? `withdrawDemand(${subject}, ${layerMask})` : `demand(${subject}, ${layerMask}, ${dueBy})` }) }],
-      output: (confirmed) => ({ subject, layerMask, dueBy, withdrawn: input.withdraw, txHash: confirmed[0].txHash, jobId }),
+      output: (confirmed) => ({ subject, layerMask, dueBy, withdrawn: input.withdraw, txHash: confirmed[0]?.txHash ?? "", jobId }),
     };
   },
 };
@@ -494,7 +494,7 @@ export const meditate_floor: ActCapability = {
       steps: [{ name: "setFloor", kind: "plain", by: "guardian", route: "direct", build: () => ({ target: k.meditation.address, value: 0n, data: k.meditation.encodeSetFloor(subject, floor), label: `setFloor(${subject}, ${input.requiredLayers}, ${input.pulseInterval}, ${input.maxInterval.join("/")})` }) }],
       output: async (confirmed) => {
         const [h, req] = await Promise.all([k.meditation.headOf(subject), k.meditation.requirementsOf(subject)]);
-        return { subject, floorVersion: h.floorVersion, requirements: req, txHash: confirmed[0].txHash, jobId };
+        return { subject, floorVersion: h.floorVersion, requirements: req, txHash: confirmed[0]?.txHash ?? "", jobId };
       },
     };
   },

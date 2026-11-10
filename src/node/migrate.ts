@@ -9,6 +9,7 @@ import { operatorScope } from "../genesis/operator-scope.js";
 import { Cell } from "../kernel/cell.js";
 import { saveCellConfig, type CellConfig } from "./config.js";
 import { NODE_SCOPE_GROUPS } from "./init.js";
+import { ownerMovesAssets } from "./one-key.js";
 import { ROLE, type Node } from "./node.js";
 
 export interface MigrateOptions {
@@ -59,6 +60,10 @@ export async function cellMigrate(node: Node, opts: MigrateOptions): Promise<Mig
   const P = `migrate.${agentId}`;
   const operations: string[] = [];
   const op = (key: string) => operations.push(key);
+  // the identity and the skill tokens leave the old account through the owner's execute: said before anything is sent
+  // when the old account would refuse that (a one-key cell on an account of revision 2 or earlier; one-key.ts)
+  const refusal = await ownerMovesAssets(node);
+  if (refusal) throw new Error(`cell migrate: ${refusal}`);
 
   // 0. the specification the successor binds to: the current version of the owner's specification (FOGA-Cell-v2; a
   // cell born under version 1 moves to version 2 here, since a new body fixes its requirement at deployment)

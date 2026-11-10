@@ -59,6 +59,8 @@ export const skill_mint: ActCapability = {
       valueWei: 0n,
       steps,
       output: (confirmed) => {
+        // a dry run confirms nothing: the package it would mint, and the configuration as it was
+        if (!confirmed.length) return { skill: input.skill, tokenId: "0", recordId: "0x" + "00".repeat(32), unitId: "0", mdHash: pkg.mdHash, packageHash: pkg.packageHash, offered: input.offer, operations: [], jobId };
         const tokenId = tokenOf(confirmed);
         const recordId = k.ard.recordIdFromReceipt(confirmed[1].receipt);
         const unitId = k.units.unitIdFromReceipt(confirmed[2].receipt);

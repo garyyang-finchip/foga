@@ -436,6 +436,8 @@ export const flow_anchor: ActCapability = {
       steps: p && channelId ? [{ name: "anchor", kind: "plain", build: () => ({ target: k.flows.addressOf(AIFP.anchor), value: 0n, data: k.flows.encodeAnchor(channelId, ACTIONS[p.action], p.objectRef, p.relations), label: `anchor(${channelId.slice(0, 10)}…, ${p.action}, ${p.objectRef.slice(0, 10)}…${p.supersedes ? `, supersedes ${p.supersedes.slice(0, 10)}…` : ""})` }) }] : [],
       output: async (confirmed) => {
         const c = confirmed[0];
+        // a dry run confirms nothing: what the anchor would be, and no fact recorded
+        if (!c) return { channelId: channelId!, objectRef: p!.objectRef, action: p!.action, supersedes: p!.supersedes, recordIndex: -1, version: p!.version, txHash: "", jobId };
         const recordIndex = k.flows.anchorIndexFromReceipt(c.receipt);
         const at = await k.flows.clock();
         recordAnchor(node, { objectRef: p!.objectRef, action: p!.action, recordIndex, txHash: c.txHash, at, version: p!.version, supersedes: p!.supersedes });
@@ -479,6 +481,8 @@ export const flow_disclose: ActCapability = {
       gasPerStep: 200_000n,
       steps: channelId && objectRef ? [{ name: "disclose", kind: "plain", build: () => ({ target: k.flows.addressOf(AIFP.channels), value: 0n, data: k.flows.encodeRecordDisclosure(channelId, DISCLOSURE_KIND.disclosed, objectRef, PUBLIC_AUDIENCE), label: `recordDisclosure(${channelId.slice(0, 10)}…, DISCLOSED, ${objectRef.slice(0, 10)}…, public)` }) }] : [],
       output: async (confirmed) => {
+        // a dry run confirms nothing, and records no disclosure the chain does not hold
+        if (!confirmed.length) return { channelId: channelId!, objectRef: objectRef!, audience: PUBLIC_AUDIENCE_CANONICAL, txHash: "", jobId };
         const at = await k.flows.clock();
         recordDisclosure(node, { objectRef: objectRef!, audience: PUBLIC_AUDIENCE_CANONICAL, txHash: confirmed[0].txHash, at });
         return { channelId: channelId!, objectRef: objectRef!, audience: PUBLIC_AUDIENCE_CANONICAL, txHash: confirmed[0].txHash, jobId };

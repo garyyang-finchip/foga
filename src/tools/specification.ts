@@ -126,6 +126,8 @@ export const spec_adopt: ActCapability = {
       gasPerStep: 600_000n,
       steps,
       output: async (confirmed) => {
+        // a dry run confirms nothing: what the adoption would be, and the configuration as it was
+        if (!confirmed.length) return { specId: specId!, version, contentHash: commitment.contentHash, bindingId: "0x" + "00".repeat(32), enforcement: enforcementNames(enforcement), published: publish, scopeOpened: missing.map((i) => scope.names[i]), txHashes: [], jobId };
         const adopt = confirmed.find((c) => c.key.endsWith(":adopt"))!;
         const bindingId = k.asf.bindingIdFromReceipt(adopt.receipt);
         node.config.identity.adopted = { specId: specId!, version, contentHash: commitment.contentHash, bindingId, enforcement, adoptedAt: new Date().toISOString() };

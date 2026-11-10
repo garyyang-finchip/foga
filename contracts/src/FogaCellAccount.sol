@@ -14,7 +14,8 @@ import {ASFLike, IASFBindingRegistryLike, IAIDRegistryLike} from "./interfaces/I
 ///         * operator scope (revision 2): an allow-list of target x selector the operator may call, an expiry
 ///           and a per-day native-value cap; asset-moving selectors (transfers, approvals, allowances) are never
 ///           open to the operator, whatever the allow-list says — moving assets is the owner's act; the owner
-///           may also act directly;
+///           may also act directly, and is asked first (revision 3): an account whose owner is also its
+///           operator — one key in every role, as a one-key wallet births a cell — acts as its owner;
 ///         * ERC-1271: a signature by the owner is the account's signature; a signature by the operator counts
 ///           only when the owner has enabled operator signing, the operator is in scope and the safety gate is
 ///           satisfied at the time of the check — so a suspended cell signs nothing through its operator;
@@ -27,8 +28,10 @@ import {ASFLike, IASFBindingRegistryLike, IAIDRegistryLike} from "./interfaces/I
 ///         the allow-list.
 contract FogaCellAccount {
     /// @notice Revision of the account's authorization model (2: operator allow-list, asset selectors closed to
-    ///         the operator, operator signing off by default). Accounts of revision 1 cannot be upgraded.
-    uint8 public constant ACCOUNT_VERSION = 2;
+    ///         the operator, operator signing off by default; 3: `execute` asks for the owner before the operator,
+    ///         so one key holding both roles acts as the owner). An account keeps the revision it was deployed
+    ///         with: none can be upgraded in place.
+    uint8 public constant ACCOUNT_VERSION = 3;
 
     // ---------------------------------------------------------------------------- roles and config
 
@@ -195,14 +198,16 @@ contract FogaCellAccount {
 
     // ---------------------------------------------------------------------------- execution
 
-    /// @notice Act as the cell. The operator (within its allow-list, expiry and daily value cap) or the owner may
-    ///         call; every call passes the safety gate and, for commitment-class selectors, the AID-state gate.
+    /// @notice Act as the cell. The owner or the operator (within its allow-list, expiry and daily value cap) may
+    ///         call; every call passes the safety gate and, for commitment-class selectors, the AID-state gate. The
+    ///         owner is asked first (revision 3): an account whose owner is also its operator — one key in every
+    ///         role, as a one-key wallet births a cell — acts as its owner, so its own asset moves are not refused
+    ///         as the operator's, and its calls are not held to the operator's allow-list, expiry or daily cap.
     function execute(address target, uint256 value, bytes calldata data) external returns (bytes memory ret) {
         bytes4 selector = data.length >= 4 ? bytes4(data[:4]) : bytes4(0);
-        if (msg.sender == operator) {
+        if (msg.sender != owner) {
+            if (msg.sender != operator) revert NotOperatorOrOwner();
             _checkOperatorScope(target, selector, value);
-        } else if (msg.sender != owner) {
-            revert NotOperatorOrOwner();
         }
         bool underDerisk = _gate(target, selector);
         bool ok;

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { BindingStateName, Restriction } from "../core/asf.js";
 import { keccakJcs } from "../core/canonical.js";
 import { ownerExecuteScope } from "../genesis/operator-scope.js";
+import { ownerMovesAssets } from "../node/one-key.js";
 import { ok, refused, type Gate } from "../node/policy.js";
 import { derivedJobId, zAddress, zBytes32, zJobId, zUint } from "./common.js";
 import type { ActCapability, ActStep } from "./types.js";
@@ -50,9 +51,12 @@ export const operator_rotate: ActCapability = {
       valueWei: 0n,
       steps,
       output: (confirmed) => {
-        node.config.identity.operator = getAddress(input.operator);
-        node.saveConfig();
-        return { operator: getAddress(input.operator), previous: getAddress(previous), txHash: confirmed[0].txHash, jobId };
+        // the configuration follows the chain: a confirmed setOperator changes it, a simulation (nothing confirmed) does not
+        if (confirmed.length) {
+          node.config.identity.operator = getAddress(input.operator);
+          node.saveConfig();
+        }
+        return { operator: getAddress(input.operator), previous: getAddress(previous), txHash: confirmed[0]?.txHash ?? "", jobId };
       },
     };
   },
@@ -92,7 +96,7 @@ export const guardian_suspend: ActCapability = {
       gates,
       valueWei: 0n,
       steps: [{ name: "suspend", by: "guardian", route: "direct", build: () => ({ target: k.asf.bindingRegistryAddress, value: 0n, data: k.asf.encodeSuspend(bindingId!, mask, responseRef, reasonRef), label: `suspend(${bindingId!.slice(0, 10)}…, ${mask})` }) }],
-      output: async (confirmed) => ({ bindingId: bindingId!, restrictions: mask, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0].txHash, jobId }),
+      output: async (confirmed) => ({ bindingId: bindingId!, restrictions: mask, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0]?.txHash ?? "", jobId }),
     };
   },
 };
@@ -125,7 +129,7 @@ export const guardian_resume: ActCapability = {
       gates,
       valueWei: 0n,
       steps: [{ name: "resume", by: "guardian", route: "direct", build: () => ({ target: k.asf.bindingRegistryAddress, value: 0n, data: k.asf.encodeResume(bindingId!, keccakJcs({ kind: "reason", summary: input.reason })), label: `resume(${bindingId!.slice(0, 10)}…)` }) }],
-      output: async (confirmed) => ({ bindingId: bindingId!, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0].txHash, jobId }),
+      output: async (confirmed) => ({ bindingId: bindingId!, state: BindingStateName[(await k.asf.bindingOf(bindingId!)).state] ?? "?", txHash: confirmed[0]?.txHash ?? "", jobId }),
     };
   },
 };
@@ -150,9 +154,12 @@ export const binding_present: ActCapability = {
       valueWei: 0n,
       steps: [{ name: "present", by: "owner", route: "direct", build: () => ({ target: cell.address, value: 0n, data: cell.iface.encodeFunctionData("presentBindings", [input.bindingIds]), label: "presentBindings" }) }],
       output: async (confirmed) => {
-        node.config.identity.bindingId = input.bindingIds[0];
-        node.saveConfig();
-        return { bindingIds: input.bindingIds, verdict: (await cell.status()).verdictName, txHash: confirmed[0].txHash, jobId };
+        // the configuration follows the chain: a confirmed presentBindings changes it, a simulation (nothing confirmed) does not
+        if (confirmed.length) {
+          node.config.identity.bindingId = input.bindingIds[0];
+          node.saveConfig();
+        }
+        return { bindingIds: input.bindingIds, verdict: (await cell.status()).verdictName, txHash: confirmed[0]?.txHash ?? "", jobId };
       },
     };
   },
@@ -180,13 +187,17 @@ export const identity_transfer: ActCapability = {
       if (getAddress(owner) !== getAddress(cell.address)) gates.push(refused("policy", `agent ${agentId} is held by ${owner}, not by the cell`));
       else gates.push(ok("policy", `agent ${agentId} held by the cell; moving to ${input.to}`));
     }
+    // an asset move is the owner's act, and the account must take the caller for the owner: an account of revision 2 or
+    // earlier whose owner is also its operator asks for the operator first and refuses the move (ownerMovesAssets)
+    const oneKeyBeforeRevision3 = await ownerMovesAssets(node);
+    if (oneKeyBeforeRevision3) gates.push(refused("policy", oneKeyBeforeRevision3));
     const jobId = input.jobId ?? derivedJobId("identity-transfer", { agentId, to: input.to });
     return {
       job: { id: jobId, kind: "admin", input: { agentId, to: input.to } },
       gates,
       valueWei: 0n,
       steps: [{ name: "transfer", by: "owner", route: "execute", build: () => ({ target: k.identity.address, value: 0n, data: k.identity.encodeTransfer(cell.address, input.to, BigInt(agentId!)), label: `transferFrom(cell, ${input.to}, ${agentId})` }) }],
-      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: confirmed[0].txHash, jobId }),
+      output: (confirmed) => ({ agentId: agentId!, from: getAddress(cell.address), to: getAddress(input.to), txHash: confirmed[0]?.txHash ?? "", jobId }),
     };
   },
 };

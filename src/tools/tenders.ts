@@ -229,7 +229,7 @@ export const tender_submit: ActCapability = {
       steps: [{ name: "submit", kind: "commitment", build: () => intent }],
       output: (confirmed) => {
         const c = confirmed[0];
-        return { tokenId: input.tokenId, submissionId: k.tenders.submissionIdFromReceipt(c.receipt).toString(), txHash: c.txHash, operationId: `job:${jobId}:submit`, jobId };
+        return { tokenId: input.tokenId, submissionId: c ? k.tenders.submissionIdFromReceipt(c.receipt).toString() : "0", txHash: c?.txHash ?? "", operationId: `job:${jobId}:submit`, jobId };
       },
     };
   },
@@ -281,7 +281,7 @@ export const tender_settle: ActCapability = {
         const released = escrowBefore > escrowAfter ? escrowBefore - escrowAfter : 0n;
         const credited = creditAfter > creditBefore ? creditAfter - creditBefore : 0n;
         const paid = s.status === SubmissionStatus.Accepted && released > credited ? released - credited : 0n;
-        return { tokenId: input.tokenId, submissionId: input.submissionId, txHash: c.txHash, operationId: `job:${jobId}:settle`, jobId, paidWei: paid.toString(), creditWei: creditAfter.toString(), status: s.status };
+        return { tokenId: input.tokenId, submissionId: input.submissionId, txHash: c?.txHash ?? "", operationId: `job:${jobId}:settle`, jobId, paidWei: paid.toString(), creditWei: creditAfter.toString(), status: s.status };
       },
     };
   },
@@ -311,7 +311,7 @@ export const credit_withdraw: ActCapability = {
       gates,
       valueWei: 0n,
       steps: [{ name: "withdraw", kind: "derisk", build: () => ({ target: k.tenders.address, value: 0n, data: k.tenders.encodeWithdrawCredit(id, node.body.address), label: `withdrawCredit(${input.tokenId}, cell)` }) }],
-      output: (confirmed) => ({ tokenId: input.tokenId, withdrawnWei: credit.toString(), txHash: confirmed[0].txHash, operationId: `job:${jobId}:withdraw`, jobId }),
+      output: (confirmed) => ({ tokenId: input.tokenId, withdrawnWei: credit.toString(), txHash: confirmed[0]?.txHash ?? "", operationId: `job:${jobId}:withdraw`, jobId }),
     };
   },
 };
