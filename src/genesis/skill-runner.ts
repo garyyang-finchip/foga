@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { repoRoot } from "../util/fs.js";
 import type { ExtractReport } from "./extract.js";
 import type { SkillJob } from "./skill-worker.js";
@@ -26,10 +27,32 @@ export async function verifiedPackage(kernel: Kernel, dir: string, tokenId: bigi
   return pkg;
 }
 
+/**
+ * The worker module beside this one, as a filesystem path. `fileURLToPath`, not the URL's `pathname`: the pathname of a
+ * `file:` URL is `/C:/Users/…` on Windows, which Node then reads as a path on the current drive (`C:\C:\Users\…`,
+ * MODULE_NOT_FOUND at the worker's spawn — the first Windows run of the genesis found it), and keeps a directory's
+ * spaces percent-encoded on every platform.
+ */
 function workerPath(): string {
   const here = import.meta.url;
   const ext = here.endsWith(".ts") ? ".ts" : ".js";
-  return new URL(`./skill-worker${ext}`, here).pathname;
+  return fileURLToPath(new URL(`./skill-worker${ext}`, here));
+}
+
+/**
+ * The environment the worker gets: the PATH alone — and on Windows the variables Node itself needs to start and to
+ * reach the network (`SystemRoot`, `windir`, the temp directory), without which `child_process.spawn` of node fails
+ * or `getaddrinfo` does. Nothing that could carry a key.
+ */
+function workerEnv(): Record<string, string> {
+  const env: Record<string, string> = { PATH: process.env.PATH ?? "" };
+  if (process.platform === "win32") {
+    for (const name of ["SystemRoot", "SYSTEMROOT", "windir", "TEMP", "TMP", "USERPROFILE", "PATHEXT", "COMSPEC"]) {
+      const v = process.env[name];
+      if (v !== undefined) env[name] = v;
+    }
+  }
+  return env;
 }
 
 /**
@@ -98,7 +121,7 @@ export async function runIsolated<T>(job: SkillJob, opts: IsolationOptions = {})
   }
   args.push(workerPath());
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(process.execPath, args, { stdio: ["pipe", "pipe", "pipe"], env: { PATH: process.env.PATH ?? "" } });
+    const child = spawn(process.execPath, args, { stdio: ["pipe", "pipe", "pipe"], env: workerEnv() });
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     let outBytes = 0;

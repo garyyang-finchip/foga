@@ -3,8 +3,9 @@
 // is an alias of, so a cell that installs the alias runs the same program a cell that installs the main package runs.
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const main = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 for (const dir of readdirSync(join(root, "alias"))) {
   const file = join(root, "alias", dir, "package.json");

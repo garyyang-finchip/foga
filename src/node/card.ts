@@ -67,7 +67,7 @@ export function cellCard(node: Node, o: { version: string }): CellCard {
     identity: {
       account: id.account ?? null,
       agentId: id.agentId ?? null,
-      registry: has("identity8004/IdentityRegistry"),
+      registry: has("identity8004"),
       owner: id.owner,
       operator: id.operator,
       guardian: id.guardian,

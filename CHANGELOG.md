@@ -4,6 +4,13 @@
 
 - (nothing yet)
 
+## 1.0.4 — 2026-11-10 (the first Windows run: the skill worker's path, and the card's ERC-8004 registry)
+
+Two findings from testing 0.7.4 on Windows (quickstart and MCP ran; the genesis stopped in T3), both still present in 1.0.3 and both fixed here; nothing else changes.
+
+- **The skill worker starts on Windows** (`src/genesis/skill-runner.ts`). The worker module's path was taken from the URL's `pathname`, which for a `file:` URL on Windows is `/C:/Users/…` — Node read it as a path on the current drive (`C:\C:\Users\…`) and the worker died at its spawn with `MODULE_NOT_FOUND`, so T3's `foga-probe` run and every `skill_run` failed. The path is `fileURLToPath` now, which also decodes a directory with spaces on every platform. The worker's environment, the PATH alone until now, carries on Windows the variables Node needs to start and to reach the network (`SystemRoot`, `windir`, the temp directory, `PATHEXT`, `COMSPEC`); still nothing that could carry a key. `scripts/alias-sync.mjs` had the same `pathname`.
+- **The card names the ERC-8004 registry** (`src/node/card.ts`). `foga cell card` looked the registry up under `identity8004/IdentityRegistry`; the world files key it `identity8004`, so `identity.registry` was `null` in the JSON and the `identity` line said no registry on every platform since the card exists (0.7.0). The on-chain registration was never affected. `test/specification.test.ts` asserts the card's registry against the kernel's.
+
 ## 1.0.3 — 2026-11-10 (a one-key cell moves its own assets; a simulation changes nothing; the probe worker on Node 25)
 
 Three findings from the first outside review of the repository (pull requests #1–#4 by unicore-gpu, opened against 0.6.2 and 0.7.4), taken up on 1.0.2 as described here; the pull requests themselves are closed, their changes superseded by this release.

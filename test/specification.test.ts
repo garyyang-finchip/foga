@@ -76,6 +76,8 @@ test("FOGA-Cell-v2: version 2 at birth, adopted by a cell born under version 1, 
       assert.match((refusedD as { reason: string }).reason, /bound to version 2 already/);
       // the twelve-covenant base set: the local world carries all of it
       const card = cellCard(nodeD, { version: "test" });
+      assert.equal(card.identity.registry, k.identity.address, "the card names the world's ERC-8004 registry (the key is identity8004)");
+      assert.match(formatCard(card), new RegExp(`identity {2}ERC-8004 agent \\d+ in registry ${k.identity.address}`));
       assert.deepEqual(card.covenants.program, FOGA_COVENANTS);
       assert.equal(card.covenants.program.length, 13);
       assert.deepEqual(card.covenants.missing, []);
