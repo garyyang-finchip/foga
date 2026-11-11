@@ -148,6 +148,25 @@ export class Tenders {
     return BigInt(await this.contract().submissionCountOf(tokenId));
   }
 
+  /**
+   * Every submission of a tender, ids 1 to the count. A node can answer a read from a state newer than the block the
+   * read names — anvil 1.7.1 under automine does, about one call in a thousand (a call tagged with the head is served
+   * after the next block landed) — so the count can announce an id the next read, at the same tag, lacks: "nonexistent
+   * submission". The count is then read again and the walk repeated; what the chain says twice is returned.
+   */
+  async submissions(tokenId: bigint): Promise<Submission[]> {
+    for (let attempt = 1; ; attempt++) {
+      const count = await this.submissionCount(tokenId);
+      const out: Submission[] = [];
+      try {
+        for (let i = 1n; i <= count; i++) out.push(await this.submissionOf(tokenId, i));
+        return out;
+      } catch (e) {
+        if (attempt >= 3 || !/nonexistent submission/.test((e as Error)?.message ?? "")) throw e;
+      }
+    }
+  }
+
   async terms(tokenId: bigint): Promise<TenderTerms> {
     const t = await this.contract().tenderTermsOf(tokenId);
     return { asset: t.asset, rewardPerCompletion: BigInt(t.rewardPerCompletion), maxCompletions: BigInt(t.maxCompletions), submitBy: BigInt(t.submitBy), settleBy: BigInt(t.settleBy), epochLength: BigInt(t.epochLength), maxCompletionsPerEpoch: BigInt(t.maxCompletionsPerEpoch), judgmentWindow: BigInt(t.judgmentWindow) };

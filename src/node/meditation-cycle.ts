@@ -473,12 +473,8 @@ async function tasksRolesRoutine(node: Node, r: LayerResult, doc: LayerDocument,
   const stale: string[] = [];
   for (const t of inFlight) {
     const id = BigInt(t.tokenId);
-    const [count, cancelled] = await Promise.all([k.tenders.submissionCount(id), k.tenders.isCancelled(id)]);
-    let settled = false;
-    for (let i = 1n; i <= count; i++) {
-      const s = await k.tenders.submissionOf(id, i);
-      if (s.fulfiller.toLowerCase() === node.body.address.toLowerCase() && s.status === 1) settled = true;
-    }
+    const [subs, cancelled] = await Promise.all([k.tenders.submissions(id), k.tenders.isCancelled(id)]);
+    const settled = subs.some((s) => s.fulfiller.toLowerCase() === node.body.address.toLowerCase() && s.status === 1);
     if (settled || cancelled) stale.push(`${t.tokenId} (${settled ? "settled on chain" : "cancelled"})`);
   }
   r.checks.push({ name: "in-flight-tenders", result: stale.length ? "finding" : "pass", details: inFlight.length ? `${inFlight.length} submitted and unsettled in the store${stale.length ? `; the chain says otherwise for ${stale.join(", ")}` : ""}` : "none in flight" });

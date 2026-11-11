@@ -302,12 +302,8 @@ export async function runLoopD(opts: LoopDOptions): Promise<LoopDEvidence> {
     const submitKey = (tokenId: string) => new RegExp(`^job:tender:${tokenId}:c\\d+:submit$`);
     const takingJob = (tokenId: string, jobId: string | null) => jobId === `precheck:${tokenId}` || new RegExp(`^tender:${tokenId}:c\\d+$`).test(jobId ?? "");
     const settledOnChain = async (tokenId: string) => {
-      const count = Number(await k.tenders.submissionCount(BigInt(tokenId)).catch(() => 0n));
-      for (let i = 1; i <= count; i++) {
-        const s = await k.tenders.submissionOf(BigInt(tokenId), BigInt(i));
-        if (getAddress(s.fulfiller) === account && s.status === 1) return true;
-      }
-      return false;
+      const subs = await k.tenders.submissions(BigInt(tokenId)).catch(() => []);
+      return subs.some((s) => getAddress(s.fulfiller) === account && s.status === 1);
     };
 
     // the orchestrator's reads are pinned to the last block its kernel saw; the pin moves with each look at the head

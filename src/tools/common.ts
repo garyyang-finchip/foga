@@ -45,13 +45,12 @@ export interface TenderView {
 export async function readTender(node: Node, tokenId: bigint, opts: { counterparty?: boolean } = {}): Promise<TenderView> {
   const k = node.kernel;
   const token = k.tenders.contract();
-  const [terms, authority, escrow, cancelled, completions, count, demander, taskURI, binding] = await Promise.all([
+  const [terms, authority, escrow, cancelled, completions, demander, taskURI, binding] = await Promise.all([
     k.tenders.terms(tokenId),
     k.tenders.acceptanceAuthorityOf(tokenId),
     k.tenders.escrowBalanceOf(tokenId),
     k.tenders.isCancelled(tokenId),
     token.completionsOf(tokenId).then((v: bigint) => BigInt(v)),
-    k.tenders.submissionCount(tokenId),
     token.ownerOf(tokenId).then((a: string) => String(a)),
     token.taskURI(tokenId).then((u: string) => String(u)),
     token.taskOf(tokenId),
@@ -65,12 +64,8 @@ export async function readTender(node: Node, tokenId: bigint, opts: { counterpar
       task = null;
     }
   }
-  const submissions: TenderView["submissions"] = [];
-  // submission ids start at 1 (TaskToken: the count is the last id)
-  for (let i = 1n; i <= count; i++) {
-    const s = await k.tenders.submissionOf(tokenId, i);
-    submissions.push({ id: i.toString(), fulfiller: s.fulfiller, status: s.status, machineSettled: s.machineSettled, resultHash: s.resultHash });
-  }
+  // submission ids start at 1 (TaskToken: the count is the last id); the count and the entries read as one (core/tenders.ts)
+  const submissions: TenderView["submissions"] = (await k.tenders.submissions(tokenId)).map((s, i) => ({ id: (i + 1).toString(), fulfiller: s.fulfiller, status: s.status, machineSettled: s.machineSettled, resultHash: s.resultHash }));
   let counterpartyLevel: number | null = null;
   if (opts.counterparty && node.config.identity.standing) {
     const st = node.config.identity.standing;
