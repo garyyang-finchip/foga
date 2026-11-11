@@ -156,16 +156,17 @@ jobs:
       - name: What the quickstart wrote
         run: node scripts/release-smoke.mjs quickstart "${{ runner.temp }}/quickstart" "${{ runner.temp }}/wallet" "${{ runner.temp }}/quickstart.out"
 
+      # the evidence is copied into one directory first: on a Windows runner the installed package (C:\npm\prefix) and the
+      # workspace (D:\a) are on different drives, and an artifact upload needs one root
+      - name: Collect the leg's evidence (the genesis evidence and doctor report, the quickstart's marker, connect.md and summary; never a key)
+        if: always()
+        run: node scripts/release-smoke.mjs collect "${{ runner.temp }}/evidence" "${{ runner.temp }}/quickstart" "${{ runner.temp }}/quickstart.out"
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: evidence-${{ matrix.leg.name }}-node${{ matrix.node }}
-          path: |
-            ${{ steps.where.outputs.root }}/deployments/local.genesis.json
-            ${{ steps.where.outputs.root }}/deployments/local.doctor.json
-            ${{ runner.temp }}/quickstart.out
-            ${{ runner.temp }}/quickstart/quickstart.json
-            ${{ runner.temp }}/quickstart/connect.md
+          path: ${{ runner.temp }}/evidence
           if-no-files-found: ignore
           retention-days: 14
 
