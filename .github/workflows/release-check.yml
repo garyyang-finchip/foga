@@ -1,0 +1,185 @@
+name: release check
+
+# The cross-platform release gate: the npm tarball of this tree (or a published version, on demand) installed and run the
+# way a user runs it — `foga demo --genesis T9`, `foga quickstart --exit` — on Linux (x64, arm64), macOS (Apple silicon,
+# Intel) and Windows (PowerShell, Git Bash), on every supported Node line. ci.yml is the engineering gate (the suite, the
+# contracts, the genesis with both ZK paths, Loop D, the pack smoke) on one Linux box; this is the gate on what ships,
+# where it ships. A release is tagged when both are green. scripts/release-smoke.mjs holds the assertions.
+#
+# On demand, `published` checks a version already on the registry instead of the tree: the @finchtech.ai/foga alias —
+# what `npx -y @finchtech.ai/foga …` runs — and the @finchip.ai/foga it pins, installed from the registry on every leg.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      published:
+        description: "A published version to check from the npm registry instead of this tree (e.g. 1.0.5); empty checks the tree"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.published || 'tree' }}
+  cancel-in-progress: true
+
+jobs:
+  pack:
+    name: pack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      mode: ${{ steps.registry.outputs.mode || steps.tree.outputs.mode }}
+      version: ${{ steps.registry.outputs.version || steps.tree.outputs.version }}
+      tarball: ${{ steps.tree.outputs.tarball }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: The published version (the alias pins it; both on the registry)
+        if: ${{ inputs.published }}
+        id: registry
+        env:
+          PUBLISHED: ${{ inputs.published }}
+        run: node scripts/release-smoke.mjs registry "$PUBLISHED"
+
+      - name: Install dependencies (compiles the CLI through `prepare`)
+        if: ${{ !inputs.published }}
+        run: npm ci
+
+      - name: One version everywhere; the tarball as `npm publish` would send it, holding what a run needs and nothing it must not
+        if: ${{ !inputs.published }}
+        id: tree
+        run: node scripts/release-smoke.mjs pack "$RUNNER_TEMP/tarball"
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !inputs.published }}
+        with:
+          name: tarball
+          path: ${{ runner.temp }}/tarball/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  use:
+    name: ${{ matrix.leg.name }}, node ${{ matrix.node }}
+    needs: pack
+    runs-on: ${{ matrix.leg.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24, 26]
+        leg:
+          - { name: linux-x64, os: ubuntu-24.04, shell: bash }
+          - { name: linux-arm64, os: ubuntu-24.04-arm, shell: bash }
+          - { name: macos-arm64, os: macos-15, shell: bash }
+          - { name: macos-x64, os: macos-15-intel, shell: bash }
+          - { name: windows-pwsh, os: windows-2025, shell: pwsh }
+          - { name: windows-git-bash, os: windows-2025, shell: bash }
+    defaults:
+      run:
+        shell: ${{ matrix.leg.shell }}
+    steps:
+      # the checkout is for scripts/release-smoke.mjs alone; the program under test is the installed package
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install Foundry v1.7.1 (anvil) on Linux and macOS
+        if: runner.os != 'Windows'
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+          cache: false
+
+      - name: Install Foundry v1.7.1 (anvil) on Windows the way the README says - the release's win32 zip, its folder on PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "foundry"
+          Invoke-WebRequest -Uri "https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_win32_amd64.zip" -OutFile (Join-Path $env:RUNNER_TEMP "foundry.zip")
+          Expand-Archive -Path (Join-Path $env:RUNNER_TEMP "foundry.zip") -DestinationPath $dir -Force
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
+
+      - name: anvil --version
+        run: anvil --version
+
+      - uses: actions/download-artifact@v8
+        if: needs.pack.outputs.mode == 'tree'
+        with:
+          name: tarball
+          path: ${{ runner.temp }}/tarball
+
+      - name: Install the tree's tarball globally (what `npm install -g @finchip.ai/foga` installs)
+        if: needs.pack.outputs.mode == 'tree'
+        run: npm install -g --no-audit --no-fund "${{ runner.temp }}/tarball/${{ needs.pack.outputs.tarball }}"
+
+      - name: Install the published alias globally (what `npm install -g @finchtech.ai/foga` installs)
+        if: needs.pack.outputs.mode == 'registry'
+        run: npm install -g --no-audit --no-fund "@finchtech.ai/foga@${{ needs.pack.outputs.version }}"
+
+      - name: npx -y '@finchtech.ai/foga@<version>' --help (the one-line form, quoted as PowerShell needs it)
+        if: needs.pack.outputs.mode == 'registry'
+        run: npx -y "@finchtech.ai/foga@${{ needs.pack.outputs.version }}" --help
+
+      - name: foga --help
+        run: foga --help
+
+      - name: foga cell list --public
+        run: foga cell list --public
+
+      - name: Where the package landed
+        id: where
+        run: node scripts/release-smoke.mjs where
+
+      - name: foga demo --genesis T9 (anvil started by the program, the local world, the doctor, T0-T9 with the skill worker in T3; what the Windows reports ran)
+        run: foga demo --genesis T9
+
+      - name: The genesis evidence (no check failed; the chain-side checks passed; the skill worker ran)
+        run: node scripts/release-smoke.mjs genesis
+
+      - name: foga quickstart --exit (the wallet made, a cell born - its channel opened, its flow documents written - the node served, both entrances checked, the MCP configurations written)
+        run: foga quickstart --dir "${{ runner.temp }}/quickstart" --wallet "${{ runner.temp }}/wallet" --port 8547 --listen 127.0.0.1:8797 --exit > "${{ runner.temp }}/quickstart.out"
+
+      - name: What the quickstart wrote
+        run: node scripts/release-smoke.mjs quickstart "${{ runner.temp }}/quickstart" "${{ runner.temp }}/wallet" "${{ runner.temp }}/quickstart.out"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidence-${{ matrix.leg.name }}-node${{ matrix.node }}
+          path: |
+            ${{ steps.where.outputs.root }}/deployments/local.genesis.json
+            ${{ steps.where.outputs.root }}/deployments/local.doctor.json
+            ${{ runner.temp }}/quickstart.out
+            ${{ runner.temp }}/quickstart/quickstart.json
+            ${{ runner.temp }}/quickstart/connect.md
+          if-no-files-found: ignore
+          retention-days: 14
+
+  gate:
+    name: release gate
+    needs: [pack, use]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every leg green
+        env:
+          PACK: ${{ needs.pack.result }}
+          USE: ${{ needs.use.result }}
+        run: |
+          echo "pack: $PACK; legs: $USE"
+          test "$PACK" = success && test "$USE" = success
