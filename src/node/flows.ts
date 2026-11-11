@@ -4,7 +4,7 @@ import { getAddress } from "ethers";
 import { endpointsOf } from "../a2a/card.js";
 import { ACTIONS, AIFP, OUTCOME, PUBLIC_AUDIENCE, PUBLIC_AUDIENCE_CANONICAL, RELATIONS, ROLES, ZERO32, outcomeName, transportBinding, type BindingDecl, type OutcomeName, type RoleName } from "../core/aifp.js";
 import { dataUriJcs, keccakJcs } from "../core/canonical.js";
-import { CELL_SOURCE, TENDER_MARKET, fogaDescriptorStatic, fogaParadigm, paradigmFile, type FogaParadigm } from "../core/paradigms.js";
+import { CELL_SOURCE, TENDER_MARKET, fogaDescriptorStatic, fogaParadigm, paradigmFileName, type FogaParadigm } from "../core/paradigms.js";
 import { exists, readJson } from "../util/fs.js";
 import { configPath } from "./config.js";
 import { documentsDir, readManifest, type DocumentsManifest } from "./documents.js";
@@ -147,7 +147,9 @@ export function writeFlowDocuments(node: Node, paradigms?: FogaParadigm[]): void
       return [] as FogaParadigm[];
     }
   })();
-  for (const p of list) writeFileSync(join(dir, FLOW_FILES.paradigmsDir, paradigmFile(p.name).split("/").pop()!), JSON.stringify(p.descriptor, null, 2) + "\n");
+  // the descriptor's file name from the table, not from its path: a path split on "/" was the whole path on Windows
+  // (backslashes), and the birth's first Windows run failed here with ENOENT after the channel was opened
+  for (const p of list) writeFileSync(join(dir, FLOW_FILES.paradigmsDir, paradigmFileName(p.name)), JSON.stringify(p.descriptor, null, 2) + "\n");
 }
 
 export function recordChannel(node: Node, fact: ChannelFact): void {

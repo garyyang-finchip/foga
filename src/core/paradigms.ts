@@ -37,6 +37,11 @@ export function paradigmFile(name: FogaParadigmName): string {
   return join(repoRoot(), "scenarios", "flows", FILES[name]);
 }
 
+/** The descriptor's file name alone (`cell-source.v1.json`), for a copy served beside the cell's documents. */
+export function paradigmFileName(name: FogaParadigmName): string {
+  return FILES[name];
+}
+
 /** The descriptor as shipped, with `${<world contract id>}` placeholders filled from the world's address book (lowercase). */
 export function fogaDescriptor(name: FogaParadigmName, world: Pick<World, "address" | "has">): Record<string, unknown> {
   const text = readFileSync(paradigmFile(name), "utf8");

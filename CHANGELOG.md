@@ -4,6 +4,10 @@
 
 - (nothing yet)
 
+## 1.0.5 — 2026-11-11 (the second Windows run: the flow documents at the birth)
+
+- **The birth writes its flow documents on Windows** (`src/node/flows.ts`, `src/core/paradigms.ts`). `writeFlowDocuments` took each paradigm descriptor's file name by splitting its path on `/`; a Windows path has backslashes, so the "name" was the whole absolute path and the write failed with `ENOENT` — right after the cell's channel was opened on chain, in `foga quickstart` and, by the same step, `foga cell init` and `foga join` (the second Windows run found it in the quickstart and held the Sepolia join back, rightly: a resumed birth would have failed at the same step again). The name now comes from the paradigm table (`paradigmFileName`), with no path taken apart anywhere. Nothing else changes; a cell born before is unaffected.
+
 ## 1.0.4 — 2026-11-10 (the first Windows run: the skill worker's path, and the card's ERC-8004 registry)
 
 Two findings from testing 0.7.4 on Windows (quickstart and MCP ran; the genesis stopped in T3), both still present in 1.0.3 and both fixed here; nothing else changes.
