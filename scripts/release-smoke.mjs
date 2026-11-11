@@ -17,10 +17,14 @@
 //   node scripts/release-smoke.mjs quickstart <dir> <wallet> [out]    the quickstart's directory, wallet and summary: every file a user is
 //                                                                     told about is there (the flow documents included), the MCP client
 //                                                                     configuration names the wallet's key, the key files are private
+//   node scripts/release-smoke.mjs collect <dest> [<dir> [out]]       copy the leg's evidence into one directory for the artifact upload: the
+//                                                                     demo's genesis evidence and doctor report from the installed package, the
+//                                                                     quickstart's marker, connect.md and summary (never a key); missing files
+//                                                                     are named, not an error
 //
 // Exit 0 when every check holds, 1 on the first that does not (the line says which), 2 on usage.
 import { execSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -44,11 +48,16 @@ function readJson(path) {
 }
 
 /** The installed package's root: a global install of @finchip.ai/foga, or of the @finchtech.ai/foga alias (the package then nested under it). */
-function installedRoot() {
+function installedRootOrNull() {
   const globalRoot = execSync("npm root -g", { encoding: "utf8" }).trim();
   const candidates = [join(globalRoot, "@finchip.ai", "foga"), join(globalRoot, "@finchtech.ai", "foga", "node_modules", "@finchip.ai", "foga")];
   for (const dir of candidates) if (existsSync(join(dir, "package.json"))) return dir;
-  fail(`@finchip.ai/foga is not installed globally (looked under ${globalRoot})`);
+  return null;
+}
+function installedRoot() {
+  const root = installedRootOrNull();
+  if (!root) fail(`@finchip.ai/foga is not installed globally (looked under ${execSync("npm root -g", { encoding: "utf8" }).trim()})`);
+  return root;
 }
 
 function output(pairs) {
@@ -197,7 +206,37 @@ if (command === "pack") {
     if (secret.length >= 32 && out.toLowerCase().includes(secret.toLowerCase())) fail("the summary carries the wallet's private key");
     ok("the wallet's key is not in the summary");
   }
+} else if (command === "collect") {
+  // the installed package lives on another drive than the workspace on a Windows runner (C:\npm\prefix vs D:\a), and an
+  // artifact upload needs one root: copy what is worth keeping into one directory first
+  const [destArg, dirArg, outArg] = args;
+  if (!destArg) fail("usage: release-smoke collect <dest> [<quickstart dir> [summary.out]]");
+  const dest = resolve(destArg);
+  mkdirSync(dest, { recursive: true });
+  const wanted = [];
+  try {
+    const root = installedRootOrNull();
+    if (root) for (const f of ["local.genesis.json", "local.doctor.json", "local.json"]) wanted.push([join(root, "deployments", f), `demo.${f}`]);
+  } catch {
+    /* no installed package: nothing from the demo */
+  }
+  if (dirArg) for (const f of ["quickstart.json", "connect.md"]) wanted.push([join(resolve(dirArg), f), `quickstart.${f}`]);
+  if (outArg) wanted.push([resolve(outArg), "quickstart.out"]);
+  let copied = 0;
+  for (const [from, name] of wanted) {
+    if (!existsSync(from)) {
+      console.log(`release-smoke: --   ${from} is not there`);
+      continue;
+    }
+    if (/^quickstart\./.test(name)) {
+      // the summary and connect.md carry the cell's Bearer key: a key to a chain that ended with the run, still not for an artifact
+      writeFileSync(join(dest, name), readFileSync(from, "utf8").replace(/foga\.agent\.[A-Za-z0-9_-]+/g, "foga.agent.<redacted>"));
+    } else copyFileSync(from, join(dest, name));
+    copied++;
+    ok(`${name} <- ${from}`);
+  }
+  ok(`${copied} file(s) collected in ${dest}`);
 } else {
-  console.error("usage: node scripts/release-smoke.mjs pack <dest> | registry <version> | where | genesis [evidence.json] | quickstart <dir> <wallet> [summary.out]");
+  console.error("usage: node scripts/release-smoke.mjs pack <dest> | registry <version> | where | genesis [evidence.json] | quickstart <dir> <wallet> [summary.out] | collect <dest> [<dir> [summary.out]]");
   process.exit(2);
 }
