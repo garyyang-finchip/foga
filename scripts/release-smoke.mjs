@@ -20,7 +20,7 @@
 //
 // Exit 0 when every check holds, 1 on the first that does not (the line says which), 2 on usage.
 import { execSync } from "node:child_process";
-import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -72,8 +72,15 @@ if (command === "pack") {
   const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
   if (!new RegExp(`^## ${version.replace(/[.]/g, "\\.")}( |$)`, "m").test(changelog)) fail(`CHANGELOG.md has no "## ${version}" entry`);
   ok(`version ${version} in package.json, package-lock.json, server.json, the alias and the CHANGELOG`);
-  // the tarball, as `npm publish` would send it
-  const packed = JSON.parse(execSync(`npm pack --json --pack-destination "${dest}"`, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], maxBuffer: 64 * 1024 * 1024 }))[0];
+  // the tarball, as `npm publish` would send it (npm pack does not create a missing --pack-destination: ENOENT)
+  mkdirSync(dest, { recursive: true });
+  let packOutput;
+  try {
+    packOutput = execSync(`npm pack --json --pack-destination "${dest}"`, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], maxBuffer: 64 * 1024 * 1024 });
+  } catch (e) {
+    fail(`npm pack failed (exit ${e.status}): ${String(e.stdout ?? e.message).slice(0, 600)}`);
+  }
+  const packed = JSON.parse(packOutput)[0];
   const files = new Set(packed.files.map((f) => f.path));
   ok(`${packed.filename}: ${packed.entryCount} files, ${(packed.size / 1024 / 1024).toFixed(1)} MB packed, ${(packed.unpackedSize / 1024 / 1024).toFixed(1)} MB unpacked`);
   // what a run needs: the launcher, the compiled CLI with the skill worker it spawns, the bundle, the worlds, the shipped
