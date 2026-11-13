@@ -12,6 +12,35 @@ import { cellSourceParadigmId, cellTransportBindings, channelMetadataUri, record
 import { enrollmentPlan, recordEnrollment } from "./meditation.js";
 import type { Node } from "./node.js";
 import { ROLE } from "./node.js";
+import { version as programVersion } from "../util/version.js";
+
+/**
+ * The facts the birth records at its start and at its end (1.0.8). The account is saved the moment it is deployed — a
+ * resume needs it — so an account alone says the birth began, not that it ended.
+ */
+export const INIT_STARTED_FACT = "init.started";
+export const INIT_COMPLETE_FACT = "init.complete";
+
+export type BirthState = "unborn" | "born" | "interrupted";
+
+/**
+ * Where a configuration's cell stands: `unborn` (no account), `born` (the birth ran to its end), or `interrupted` (this
+ * store's birth began and did not reach its end — `cellInit` resumes it from the journal, sending nothing twice). A
+ * birth under 1.0.8 or later leaves its start and its end on record; one that started and did not end is interrupted
+ * whatever the configuration already holds. A cell born before 1.0.8 has neither fact and is read from the fields the
+ * birth fills late (the agent id, the binding, the record, the unit). An account whose deployment this store never
+ * journaled came from elsewhere (a configuration copied without its store): nothing here to resume, so it counts as born.
+ */
+export function birthState(node: Node): BirthState {
+  const id = node.config.identity;
+  if (!id.account) return "unborn";
+  const k = node.kernel;
+  if (k.fact(INIT_COMPLETE_FACT)) return "born";
+  if (k.fact(INIT_STARTED_FACT)) return "interrupted";
+  if (k.store.get("init.deploy")?.status !== "confirmed") return "born";
+  if (id.agentId && id.bindingId && id.recordId && id.unitId) return "born";
+  return "interrupted";
+}
 
 export { NODE_SCOPE_GROUPS } from "../genesis/operator-scope.js";
 
@@ -58,6 +87,9 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   const ownerSigner = ROLE.owner;
   const operations: string[] = [];
   const done = (key: string) => operations.push(key);
+  // the start of the birth, on record once (a resume keeps the first): with the end recorded below, a later join or init
+  // knows an account that is not the end of a birth from one that is
+  if (!k.fact(INIT_STARTED_FACT)) k.setFact(INIT_STARTED_FACT, { program: programVersion, at: new Date().toISOString() });
 
   // 0. the specification the cell adopts: the owner's, published when the config names none. The registry derives
   // the id from the publisher and the salt, so an owner who has published the specification before (an earlier cell
@@ -259,6 +291,8 @@ export async function cellInit(node: Node, opts: InitOptions = {}): Promise<Init
   const status = await cell.status();
   log(`  born: agent ${agentId}, anchor ${state}, binding ${status.verdictName}, record ${recordId.slice(0, 10)}…, unit ${unitId}`);
   if (state !== "ACTIVE" || status.verdictName !== "Satisfied") throw new Error(`the cell was born but is not ready: anchor ${state}, binding ${status.verdictName} [${status.reasonNames.join(",")}]`);
+  // the end of the birth, on record: a join that finds the account later asks for this before it calls the cell born
+  k.setFact(INIT_COMPLETE_FACT, { account: address, agentId: agentId.toString(), program: programVersion, at: new Date().toISOString() });
   return { account: address, agentId: agentId.toString(), bindingId, recordId, unitId: unitId.toString(), documentDigest: commitment2.digest, specId, operations, maintenance, flows };
 }
 

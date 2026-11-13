@@ -9,7 +9,7 @@ import { adviseCell, formatAdvice } from "./advise.js";
 import { cellCard, formatCard, type CellCard } from "./card.js";
 import { loadCellConfig, newCellConfig, saveCellConfig } from "./config.js";
 import { marketOf } from "./flows.js";
-import { cellInit } from "./init.js";
+import { birthState, cellInit } from "./init.js";
 import { Node } from "./node.js";
 import { ensureWallet, ensuredKey, walletDir, type EnsuredWallet } from "./wallet.js";
 import { defaultCatalog, OPERATOR_CALLER } from "../tools/index.js";
@@ -230,20 +230,29 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
     log(`join: funded — ${identity} holds ${formatEther(balance)} ETH`);
   } else log(`join: ${identity} holds ${formatEther(balance)} ETH`);
 
-  // --- the birth: the owner's act; resumable, never repeated
+  // --- the birth: the owner's act; resumable, never repeated. The account is saved the moment it is deployed, so an
+  // account in the configuration says the birth began, not that it ended (the binding adopted, the registration, the
+  // record, the unit, the enrollment, the channel come after it): the store says which, and an interrupted birth is
+  // resumed from its journal, nothing sent twice. A join that took an account for a birth minted nothing: the account
+  // refuses every act until its safety binding is presented (ASF LengthMismatch: one clause, no binding).
   let born = loadCellConfig(configPath).config.identity.account ?? null;
   let agentId: string | null = loadCellConfig(configPath).config.identity.agentId ?? null;
-  if (!born) {
+  {
     const node = await Node.open({ configPath, rpc, keys: { owner: ensuredKey(wallet, "owner") }, allowUnborn: true, log: () => {} });
     try {
-      const r = await cellInit(node, { capitalWei: o.capitalWei, log: (line) => log(`join: ${line}`) });
-      born = r.account;
-      agentId = r.agentId;
-      log(`join: cell ${name} born as ${born} (ERC-8004 agent ${agentId}) in ${r.operations.length} operations`);
+      const state = birthState(node);
+      if (state === "born") log(`join: cell ${name} is ${born}${agentId ? ` (agent ${agentId})` : ""}, born before`);
+      else {
+        if (state === "interrupted") log(`join: cell ${name} has its account ${born}, but the birth did not reach its end; resuming it from the journal (nothing is sent twice)`);
+        const r = await cellInit(node, { capitalWei: o.capitalWei, log: (line) => log(`join: ${line}`) });
+        born = r.account;
+        agentId = r.agentId;
+        log(`join: cell ${name} born as ${born} (ERC-8004 agent ${agentId}) in ${r.operations.length} operations${state === "interrupted" ? ", the birth resumed" : ""}`);
+      }
     } finally {
       node.close();
     }
-  } else log(`join: cell ${name} is ${born}${agentId ? ` (agent ${agentId})` : ""}, born before`);
+  }
 
   // --- the skills: minted by the operator and offered; the documents committed on chain
   const catalog = defaultCatalog();
