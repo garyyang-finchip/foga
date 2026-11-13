@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -47,9 +48,9 @@ test("join: a cell that lives — born, equipped, published, served; resumed; an
       const worldsDir = join(dir, "worlds");
       // the CLI runs asynchronously here: the server answering it lives in this process
       const status = await fogaAsync(RPC, ["genesis", "status", "--world", `http://127.0.0.1:${addr.port}/chain/world/local.json`, "--store", join(dir, "none.sqlite")], { FOGA_WORLDS_DIR: worldsDir });
-      assert.match(status.stdout + status.stderr, /world .* from http:\/\/127\.0\.0\.1:\d+\/chain\/world\/local\.json \(sha256 [0-9a-f]{16}…\) kept at /);
-      const worldId = JSON.parse(served).worldId as string;
-      assert.equal(readFileSync(join(worldsDir, `${worldId}.json`), "utf8"), served);
+      assert.match(status.stdout + status.stderr, /world .* \(chain 31337\) from http:\/\/127\.0\.0\.1:\d+\/chain\/world\/local\.json \(sha256 [0-9a-f]{16}…\) kept at /);
+      const { worldId, chainId } = JSON.parse(served) as { worldId: string; chainId: number };
+      assert.equal(readFileSync(join(worldsDir, `${chainId}-${worldId}-${createHash("sha256").update(served).digest("hex").slice(0, 12)}.json`), "utf8"), served, "kept by chain, world and content");
       assert.notEqual(status.code, 0, "no store there yet: the command still ends as it did before, after the world was resolved");
       const refused = await fogaAsync(RPC, ["genesis", "status", "--world", "http://example.invalid/w.json"], { FOGA_WORLDS_DIR: worldsDir });
       assert.notEqual(refused.code, 0);
@@ -99,13 +100,21 @@ test("join: a cell that lives — born, equipped, published, served; resumed; an
       await first.stop();
     }
 
-    // --- the same command again: resumed, nothing sent twice
+    // --- the same command again: resumed, nothing sent twice. This time the book is said to have come from a URL (what
+    // the CLI passes after a fetch): the cell, which had no provenance, records it; join.json names the book it reads
     const store = join(dir, "cell", "cell.ops.sqlite");
     const sizeBefore = readFileSync(store).length;
-    const again = await runJoin({ world: worldPath, rpc: RPC, wallet: walletDir, dir: join(dir, "cell"), listen: null, exit: true, log, out: () => {} });
+    const bookUrl = "https://example.org/chain/world/local.json";
+    const again = await runJoin({ world: worldPath, worldUrl: bookUrl, rpc: RPC, wallet: walletDir, dir: join(dir, "cell"), listen: null, exit: true, log, out: () => {} });
     assert.equal(again.resumed, true);
     assert.equal(again.account, first.account, "the same cell");
     assert.equal(again.agentId, first.agentId);
+    assert.equal(JSON.parse(readFileSync(first.configPath, "utf8")).worldSource, bookUrl, "the configuration records where the book came from");
+    const record = JSON.parse(readFileSync(join(dir, "cell", "join.json"), "utf8"));
+    assert.equal(record.worldSource, bookUrl);
+    assert.equal(record.world.worldId, JSON.parse(readFileSync(worldPath, "utf8")).worldId);
+    assert.equal(record.world.chainId, 31337);
+    assert.equal(record.world.sha256, createHash("sha256").update(readFileSync(join(dir, "cell", "world.json"))).digest("hex"), "join.json names the book the cell reads: its own copy, by content");
     const { DatabaseSync } = await import("node:sqlite");
     const db = new DatabaseSync(store, { readOnly: true });
     const ops = (db.prepare("select count(*) as c from ops").get() as { c: number }).c;
@@ -148,6 +157,67 @@ test("join: a cell that lives — born, equipped, published, served; resumed; an
   } finally {
     if (running) await running.stop();
     anvil.kill();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/**
+ * A cell has one world (1.0.9): a join into a directory whose cell lives in another world is refused before anything
+ * is read from the chain, with both worlds named; the same world in a newer revision is said and not adopted — the
+ * cell keeps reading its copy. No chain is involved: the RPC is a stub that answers a chain id and an empty balance,
+ * so the funded path stops at the funding gate.
+ */
+test("join: a cell has one world — another world's book is refused, a revision of its own is said and not adopted", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "foga-join-worlds-"));
+  const answer = (req: { method: string; id: number }) => ({ jsonrpc: "2.0", id: req.id, result: req.method === "eth_chainId" ? "0xee69b" : req.method === "eth_getBalance" ? "0x0" : null });
+  const rpc = createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      const parsed = JSON.parse(body) as { method: string; id: number } | { method: string; id: number }[];
+      res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(Array.isArray(parsed) ? parsed.map(answer) : answer(parsed)));
+    });
+  });
+  await new Promise<void>((r) => rpc.listen(0, "127.0.0.1", r));
+  try {
+    const rpcUrl = `http://127.0.0.1:${(rpc.address() as { port: number }).port}`;
+    const contracts = { "8338/SkillToken": { address: "0x0000000000000000000000000000000000000001" } };
+    const worldA = { schema: "foga.world/1", worldId: "achain-976411-20260101T000000Z", name: "achain", network: "achain", chainId: 976411, contracts };
+    const worldB = { ...worldA, worldId: "bchain-976411-20260202T000000Z", name: "bchain", network: "bchain" };
+    const worldA2 = { ...worldA, contracts: { ...contracts, "8414/TaskToken": { address: "0x0000000000000000000000000000000000000002" } } };
+    const file = (name: string, w: unknown) => {
+      const p = join(dir, name);
+      writeFileSync(p, JSON.stringify(w, null, 2) + "\n");
+      return p;
+    };
+    const a = file("a.json", worldA);
+    const b = file("b.json", worldB);
+    const a2 = file("a2.json", worldA2);
+    const walletDir = join(dir, "wallet");
+    const cell = join(dir, "cell");
+    const lines: string[] = [];
+    const log = (line: string) => lines.push(line);
+
+    // the first join configures the cell in world A and stops at the funding gate (the stub holds nothing)
+    await assert.rejects(runJoin({ world: a, rpc: rpcUrl, wallet: walletDir, dir: cell, wait: false, listen: null, log }), /not funded yet/);
+    assert.equal(JSON.parse(readFileSync(join(cell, "world.json"), "utf8")).worldId, worldA.worldId);
+
+    // world B's book into the same directory: refused, both worlds named, nothing changed
+    await assert.rejects(runJoin({ world: b, rpc: rpcUrl, wallet: walletDir, dir: cell, wait: false, listen: null, log }), /lives in world achain-976411-20260101T000000Z \(chain 976411\), and the address book given is world bchain-976411-20260202T000000Z \(chain 976411\)[\s\S]*A cell has one world/);
+    assert.equal(JSON.parse(readFileSync(join(cell, "world.json"), "utf8")).worldId, worldA.worldId, "the cell's copy is untouched");
+
+    // a newer revision of world A: said, not adopted — the cell keeps its copy, and the join goes on to the gate
+    lines.length = 0;
+    await assert.rejects(runJoin({ world: a2, rpc: rpcUrl, wallet: walletDir, dir: cell, wait: false, listen: null, log }), /not funded yet/);
+    assert.ok(lines.some((l) => /differs from the cell's copy \(sha256 [0-9a-f]{64}\) of the same world achain-976411-20260101T000000Z; the cell keeps reading its copy/.test(l)), lines.join("\n"));
+    assert.equal(readFileSync(join(cell, "world.json"), "utf8"), readFileSync(a, "utf8"), "the first revision, byte for byte");
+
+    // the fields a world file contributes to the default directory are checked before any directory is made
+    const bad = file("bad.json", { ...worldA, network: "../../elsewhere" });
+    await assert.rejects(runJoin({ world: bad, rpc: rpcUrl, wallet: walletDir, wait: false, listen: null, log }), /network is not a usable name/);
+    await assert.rejects(runJoin({ world: a, rpc: rpcUrl, wallet: walletDir, name: "../escape", wait: false, listen: null, log }), /--name "\.\.\/escape" cannot name the cell's directory/);
+  } finally {
+    rpc.close();
     rmSync(dir, { recursive: true, force: true });
   }
 });

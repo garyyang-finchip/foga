@@ -1,5 +1,5 @@
 import { endpointsOf } from "../a2a/card.js";
-import { chainById, packagedWorld } from "../core/chains.js";
+import { chainById, packagedWorldId } from "../core/chains.js";
 import { anchors, cellChannelId, marketFact, marketOf } from "./flows.js";
 import { readPolicy, readState } from "./meditation.js";
 import { FOGA_COVENANTS } from "./propagation.js";
@@ -86,10 +86,20 @@ export function cellCard(node: Node, o: { version: string }): CellCard {
     endpoints: { mcp: ep.mcp, a2a: ep.a2a, web: ep.web, manifest: base ? `${base}/.well-known/foga-cell.json` : null, card: base ? `${base}/.well-known/agent-card.json` : null },
     maintenance: maintenanceOf(node),
     flows: flowsOf(node),
-    // the one line another agent needs: by chain name when the package ships this world, otherwise by the world's own
-    // address book (a file or, since 1.0.9, an https URL a project publishes) and that chain's RPC
-    program: { package: PACKAGE_NAME, version: o.version, join: chain && packagedWorld(chain) ? `npx -y ${PACKAGE_NAME} join --chain ${chain.name}` : `npx -y ${PACKAGE_NAME} join --world <this world's address book: a file or https URL> --rpc <an RPC of chain ${node.chainId}>` },
+    program: { package: PACKAGE_NAME, version: o.version, join: joinLine(cfg.worldSource ?? null, world.file.worldId, node.chainId) },
   };
+}
+
+/**
+ * The one line another agent needs to become a cell of this world: `--chain <name>` only when the world the package
+ * ships for this chain is this very world (a second world on a chain the table knows — a project's own deployment on
+ * Sepolia, say — is not reached by the chain's name); otherwise the world's own address book (the URL this cell was
+ * joined from when there is one, else a placeholder for the file or URL its project publishes) and an RPC of the chain.
+ */
+export function joinLine(worldSource: string | null, worldId: string, chainId: number): string {
+  const chain = chainById(chainId);
+  if (chain && packagedWorldId(chain) === worldId) return `npx -y ${PACKAGE_NAME} join --chain ${chain.name}`;
+  return `npx -y ${PACKAGE_NAME} join --world ${worldSource ?? "<this world's address book: a file or https URL>"} --rpc <an RPC of chain ${chainId}>`;
 }
 
 function flowsOf(node: Node): CellCard["flows"] {

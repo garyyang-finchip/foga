@@ -83,6 +83,24 @@ export function transientRpcError(e: unknown): boolean {
   return !chainAnswered(e);
 }
 
+/** The words the engine itself uses for a programming error: a property of undefined, a call of what is not a function, a name never defined. */
+const DEFECT_WORDS = /Cannot read propert|Cannot set propert|Cannot destructure|Cannot convert undefined or null|undefined is not an object|null is not an object|is not a function|is not iterable|is not a constructor|is not defined|Invalid array length|Maximum call stack size/;
+
+/**
+ * True for a defect in the probe's own code — the engine's TypeError, RangeError or ReferenceError for a property read
+ * off undefined, a call of what is not a function, a name never defined — as opposed to the endpoint's or the data's
+ * failure, which the same classes also carry: `fetch failed` is a TypeError (with a `cause`), and ethers reports a
+ * malformed argument as a TypeError and overrun return data as a RangeError (each with a `code`). A defect is raised
+ * at once with its own words; the others go the way of every transport failure, retried and then named. (1.0.9: a
+ * cell without standing gave the ERC-8419 section no `kya`, and the TypeError was retried as the RPC's silence.)
+ */
+export function probeDefect(e: unknown): boolean {
+  if (!(e instanceof TypeError || e instanceof RangeError || e instanceof ReferenceError)) return false;
+  const x = e as { code?: unknown; cause?: unknown; message: string };
+  if (typeof x.code === "string" || x.cause !== undefined) return false;
+  return DEFECT_WORDS.test(x.message);
+}
+
 /**
  * The `foga-probe` skill: thirteen sections (ERC-8004 plus the twelve; `foga.probe/2` since 1.0.0 — ERC-8489 and
  * ERC-8490 added, the eleven of `foga.probe/1` unchanged), every read pinned to `input.block`, every value rendered so
@@ -131,9 +149,9 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
       try {
         return await fn();
       } catch (e) {
-        // a defect in the probe itself (a TypeError, a RangeError) is neither the chain's answer nor the endpoint's
-        // silence: it is thrown at once with its own words, not retried as a transport failure
-        if (e instanceof TypeError || e instanceof RangeError || e instanceof ReferenceError) throw new Error(`probe: ${(e as Error).message} (a defect in the probe, not the endpoint)`);
+        // a defect in the probe itself is neither the chain's answer nor the endpoint's silence: it is thrown at once
+        // with its own words, not retried as a transport failure (probeDefect says which errors those are)
+        if (probeDefect(e)) throw new Error(`probe: ${(e as Error).message} (a defect in the probe, not the endpoint)`);
         if (!transientRpcError(e)) return null;
         if (attempt >= PROBE_RETRIES) {
           const words = describe(e);

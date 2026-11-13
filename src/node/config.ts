@@ -310,6 +310,8 @@ export const CellConfigSchema = z.object({
   schema: z.literal("foga.cell-config/1"),
   name: z.string().min(1).max(64),
   world: z.string().min(1),
+  /** The URL the world's address book was fetched from, when `foga join --world` was given one (1.0.9); the cell's copy in `world` is what it reads. */
+  worldSource: z.string().url().optional(),
   rpc: z.string().url().optional(),
   bundle: z.string().optional(),
   /** The operation store of this cell (operations, jobs, decisions, facts). */
@@ -365,11 +367,12 @@ export function configPath(loaded: LoadedConfig, p: string): string {
 }
 
 /** A starting config for a new cell: the roles and the world, nothing the chain has decided yet. */
-export function newCellConfig(p: { name: string; world: string; store: string; owner: string; operator: string; guardian: string; rpc?: string; skillsDir?: string; inputDir?: string; description?: string }): CellConfig {
+export function newCellConfig(p: { name: string; world: string; worldSource?: string; store: string; owner: string; operator: string; guardian: string; rpc?: string; skillsDir?: string; inputDir?: string; description?: string }): CellConfig {
   return CellConfigSchema.parse({
     schema: "foga.cell-config/1",
     name: p.name,
     world: p.world,
+    worldSource: p.worldSource,
     rpc: p.rpc,
     store: p.store,
     identity: { owner: p.owner, operator: p.operator, guardian: p.guardian, safety: { version: 1 } },

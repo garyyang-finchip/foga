@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot } from "../util/fs.js";
 
@@ -93,6 +93,18 @@ export function packagedWorld(chain: ChainInfo): string | null {
   if (!chain.world) return null;
   const path = join(repoRoot(), chain.world);
   return existsSync(path) ? path : null;
+}
+
+/** The worldId of the world the package ships for a chain; null when it ships none or the file cannot be read. */
+export function packagedWorldId(chain: ChainInfo): string | null {
+  const path = packagedWorld(chain);
+  if (!path) return null;
+  try {
+    const id = (JSON.parse(readFileSync(path, "utf8")) as { worldId?: unknown }).worldId;
+    return typeof id === "string" ? id : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The RPC for a chain: the one given, the chain's own variable, the general one, then the first public endpoint. */

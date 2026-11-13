@@ -18,7 +18,7 @@ test("runner: a verifier refusal for a not-yet-committed answer lapses; a mismat
 });
 
 import { AbiCoder } from "ethers";
-import { PROBE_RPC_FAILURE, PROBE_STATE_GONE, RECENT_BLOCKS, blocksBehind, transientRpcError } from "../src/genesis/probe.js";
+import { PROBE_RPC_FAILURE, PROBE_STATE_GONE, RECENT_BLOCKS, blocksBehind, probeDefect, transientRpcError } from "../src/genesis/probe.js";
 import { chainAnswered, isRevertError, rpcErrorText } from "../src/kernel/provider.js";
 
 /** What ethers hands the probe for a failed eth_call: every JSON-RPC error becomes a CALL_EXCEPTION ("missing revert data") with the node's words in info.error. */
@@ -60,6 +60,51 @@ test("probe: a revert makes a null section; an eth_call the node did not answer 
   assert.equal(chainAnswered(callFailure({ code: 3, message: "execution reverted", data: "0x5f9d6a8e" })), true);
   assert.match(rpcErrorText(callFailure({ code: -32000, message: "missing trie node 7a3f" })), /^missing trie node 7a3f/, "the node's words come first");
   assert.ok(PROBE_RPC_FAILURE !== PROBE_STATE_GONE && !PROBE_STATE_GONE.startsWith(PROBE_RPC_FAILURE), "the two failures are told apart by their first words");
+});
+
+/**
+ * A defect in the probe's own code is raised at once with its own words (1.0.9: a cell without standing handed the
+ * ERC-8419 section no `kya`, and "Cannot read properties of undefined" was retried seven times as the RPC's silence).
+ * The classes a defect comes in also carry the transport's and the data's failures — undici's `fetch failed` is a
+ * TypeError, ethers' INVALID_ARGUMENT a TypeError and BUFFER_OVERRUN a RangeError — and those stay what they were:
+ * transient, retried, then named as the endpoint's.
+ */
+test("probe: the engine's own errors are defects, raised at once; the same classes from the transport or the data are not", () => {
+  const defect = (e: unknown) => {
+    try {
+      if (typeof e === "function") e();
+      else throw e;
+    } catch (thrown) {
+      return probeDefect(thrown);
+    }
+    return false;
+  };
+  // the engine's words, as the code produces them
+  assert.equal(defect(() => (undefined as unknown as { issuers: string[] }).issuers), true, "a property of undefined");
+  assert.equal(defect(() => (null as unknown as { x: number }).x), true, "a property of null");
+  assert.equal(defect(() => ({} as unknown as { f(): void }).f()), true, "not a function");
+  assert.equal(defect(() => [...(5 as unknown as number[])]), true, "not iterable");
+  assert.equal(defect(() => new Array(-1)), true, "an invalid array length");
+  assert.equal(defect(new ReferenceError("kya is not defined")), true, "a name never defined");
+  assert.equal(
+    defect(() => {
+      const { b } = null as unknown as { b: number };
+      return b;
+    }),
+    true,
+    "a destructure of null",
+  );
+  // the transport and the data, in the same classes
+  const fetchFailed = new TypeError("fetch failed");
+  (fetchFailed as Error & { cause?: unknown }).cause = new Error("ECONNRESET");
+  assert.equal(defect(fetchFailed), false, "undici: fetch failed (a cause attached)");
+  assert.equal(transientRpcError(fetchFailed), true, "and it is transient, as before");
+  const invalidArgument = Object.assign(new TypeError("invalid BigNumberish value"), { code: "INVALID_ARGUMENT" });
+  assert.equal(defect(invalidArgument), false, "ethers: a malformed value (a code attached)");
+  const overrun = Object.assign(new RangeError("data out-of-bounds"), { code: "BUFFER_OVERRUN" });
+  assert.equal(defect(overrun), false, "ethers: return data too short (a code attached)");
+  assert.equal(defect(new Error("Cannot read properties of undefined (reading 'x')")), false, "a plain Error is never a defect, whatever its words");
+  assert.equal(defect(new TypeError("Failed to parse URL from ")), false, "a TypeError with other words is the transport's");
 });
 
 import { runFailureLapsed } from "../src/node/runner.js";

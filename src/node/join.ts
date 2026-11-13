@@ -18,6 +18,7 @@ import { cleanEnv, ownCli, waitForHttp } from "../demo/loop-d.js";
 import { nextFreePort, portInUse } from "../demo/anvil.js";
 import { repoRoot } from "../util/fs.js";
 import { PACKAGE_NAME, version } from "../util/version.js";
+import { checkWorldJson, safeSegment, sha256Of } from "../world/source.js";
 
 /**
  * `foga join`: one command from a key to a cell that lives on a public chain — the persistent counterpart of the
@@ -36,7 +37,7 @@ export interface JoinOptions {
   chain?: string;
   /** A deployed world's address book (a path), instead of the packaged one of `--chain`. */
   world?: string;
-  /** The URL the address book was fetched from, when `--world` was given as one (src/world/source.ts); recorded in join.json. */
+  /** The URL the address book was fetched from, when `--world` was given as one (src/world/source.ts); recorded in the configuration and join.json. */
   worldUrl?: string | null;
   rpc?: string;
   /** The cell's name (its ERC-8004 registration and documents carry it). Default `cell-<first four hex of the identity>`. */
@@ -121,15 +122,16 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
   const out = o.out ?? ((text: string) => console.log(text));
   const root = repoRoot();
 
-  // --- the chain and its world: by name from the package, or a deployed address book given by path
+  // --- the chain and its world: by name from the package, or a deployed address book given by path (or fetched from
+  // a URL by the caller, src/world/source.ts). Whatever it came from, the file is checked the same way before any of
+  // its fields names a directory: schema, worldId, chainId, network, contracts
   let chain: ChainInfo | null;
   let worldSource: string;
   if (o.world) {
     worldSource = resolve(o.world);
     if (!existsSync(worldSource)) throw new Error(`world file ${worldSource} not found`);
-    const file = JSON.parse(readFileSync(worldSource, "utf8")) as { schema?: string; chainId?: number; network?: string };
-    if (file.schema !== "foga.world/1") throw new Error(`${worldSource} is not a world file (foga.world/1)`);
-    chain = chainById(Number(file.chainId)) ?? (file.network ? chainByName(file.network) : null);
+    const checked = checkWorldJson(readFileSync(worldSource, "utf8"), worldSource);
+    chain = chainById(checked.chainId) ?? (checked.network ? chainByName(checked.network) : null);
   } else {
     const name = (o.chain ?? "sepolia").toLowerCase();
     chain = chainByName(name);
@@ -138,7 +140,9 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
     if (!packaged) throw new Error(`no world ships for ${chain.name}: deploy one (foga world deploy --world worlds/${chain.name}.json --rpc <url>) and pass its address book with --world <file>`);
     worldSource = packaged;
   }
-  const worldFile = JSON.parse(readFileSync(worldSource, "utf8")) as { worldId: string; network: string; chainId: number; contracts: Record<string, unknown> };
+  const worldText = readFileSync(worldSource, "utf8");
+  const worldFile = JSON.parse(worldText) as { worldId: string; network?: string; chainId: number; contracts: Record<string, unknown> };
+  if (!safeSegment(worldFile.network)) throw new Error(`${worldSource}: the world file's network is not a usable name (letters, digits, '.', '_' and '-' only)`);
   const network = worldFile.network;
   const local = network === "anvil";
   const rpcResolved = resolveRpc(chain, o.rpc);
@@ -155,13 +159,25 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
 
   // --- the cell's home: never cleared; a second join here resumes
   const name = o.name ?? `cell-${identity.slice(2, 6).toLowerCase()}`;
+  if (!o.dir && !safeSegment(name)) throw new Error(`--name ${JSON.stringify(name)} cannot name the cell's directory (letters, digits, '.', '_' and '-' only); pass --dir <directory> to keep that name`);
   const dir = resolve(o.dir ?? join(fogaHome(), "cells", network, name));
   mkdirSync(dir, { recursive: true });
   const configPath = join(dir, "cell.config.json");
   const worldPath = join(dir, "world.json");
   const keysDir = join(dir, "keys");
   mkdirSync(keysDir, { recursive: true, mode: 0o700 });
-  if (!existsSync(worldPath)) writeFileSync(worldPath, readFileSync(worldSource));
+  // a cell has one world. The copy made at the first join is what the cell reads from then on; a later join must bring
+  // the same world (the same book, or a newer revision of it, which is said and not adopted — the cell's copy is the one
+  // its contracts are read from, and replacing it is the operator's deliberate act, not a side effect of a resume)
+  if (!existsSync(worldPath)) writeFileSync(worldPath, worldText);
+  else {
+    const kept = readFileSync(worldPath, "utf8");
+    const keptFile = JSON.parse(kept) as { worldId?: unknown; chainId?: unknown };
+    if (keptFile.worldId !== worldFile.worldId || keptFile.chainId !== worldFile.chainId) {
+      throw new Error(`the cell in ${dir} lives in world ${String(keptFile.worldId)} (chain ${String(keptFile.chainId)}), and the address book given is world ${worldFile.worldId} (chain ${worldFile.chainId}). A cell has one world: pass the book of the world it lives in to resume it, or --dir <another directory> (and --name) for a new cell in this one.`);
+    }
+    if (kept !== worldText) log(`join: the address book given (sha256 ${sha256Of(worldText)}) differs from the cell's copy (sha256 ${sha256Of(kept)}) of the same world ${worldFile.worldId}; the cell keeps reading its copy, ${worldPath} — replace it by hand to adopt the new revision`);
+  }
   // the skill packages and the fixtures travel with the cell: their hashes are what the chain holds, their files
   // must stay where the cell is, not where this version of the package happens to be installed
   for (const sub of ["skills", "fixtures"]) {
@@ -174,6 +190,7 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
     const cfg = newCellConfig({
       name,
       world: "world.json",
+      worldSource: o.worldUrl ?? undefined,
       store: "cell.ops.sqlite",
       owner: wallet.wallet.addresses.owner ?? identity,
       operator: wallet.wallet.addresses.operator ?? identity,
@@ -210,6 +227,16 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
       saveCellConfig(configPath, loaded.config);
     }
   }
+  if (o.worldUrl && resumed) {
+    // where the book came from is provenance: recorded once, when the cell has none; a different URL for the same
+    // world later (a mirror, a move) is said, not written over the first
+    const loaded = loadCellConfig(configPath);
+    if (!loaded.config.worldSource) {
+      loaded.config.worldSource = o.worldUrl;
+      saveCellConfig(configPath, loaded.config);
+    } else if (loaded.config.worldSource !== o.worldUrl) log(`join: the cell's address book came from ${loaded.config.worldSource}; this join read the same world from ${o.worldUrl} (the configuration keeps the first)`);
+  }
+  const cellWorldSha = sha256Of(readFileSync(worldPath, "utf8"));
 
   // --- the funding gate: nothing is sent until the identity can pay for its birth
   const minWei = o.minWei ?? (local ? 0n : PUBLIC_MIN);
@@ -415,7 +442,9 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
   lines.push(o.exit ? "Started with --exit: stopping the node." : `Ctrl-C stops the node; the cell stays. Start it again with the same command, or:  ${launcher.command} ${launcher.args.join(" ")} node serve --config ${configPath} --wallet ${wallet.wallet.dir}`);
   const summary = lines.join("\n");
   writeFileSync(join(dir, "connect.md"), `# foga join\n\n\`\`\`\n${summary}\n\`\`\`\n`);
-  writeFileSync(join(dir, JOIN_MARKER), JSON.stringify({ schema: "foga.join/1", joinedAt: new Date().toISOString(), package: PACKAGE_NAME, version, network, chainId: worldFile.chainId, worldId: worldFile.worldId, rpc: rpcResolved.source === "public" ? null : rpc, worldSource: o.worldUrl ?? null, cell: name, account: born, agentId, wallet: wallet.wallet.dir, listen, publicUrl: o.publicUrl ?? null, run: o.run ?? null }, null, 2) + "\n");
+  // `world` is the book the cell reads — its own copy, by id, chain and content — and `worldSource` where this join's
+  // book came from; the two can differ in content when a newer revision was offered to a resumed cell and said no to
+  writeFileSync(join(dir, JOIN_MARKER), JSON.stringify({ schema: "foga.join/1", joinedAt: new Date().toISOString(), package: PACKAGE_NAME, version, network, chainId: worldFile.chainId, worldId: worldFile.worldId, world: { worldId: worldFile.worldId, chainId: worldFile.chainId, sha256: cellWorldSha, file: worldPath }, rpc: rpcResolved.source === "public" ? null : rpc, worldSource: o.worldUrl ?? null, cell: name, account: born, agentId, wallet: wallet.wallet.dir, listen, publicUrl: o.publicUrl ?? null, run: o.run ?? null }, null, 2) + "\n");
   out(summary);
 
   return { dir, configPath, worldPath, rpc, chainId: worldFile.chainId, network, account: born!, agentId, resumed, nodeUrl, card, stop, ended };
