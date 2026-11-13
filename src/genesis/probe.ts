@@ -19,7 +19,12 @@ export interface ProbeInput {
    * a lookback; being part of the input, it binds both runs to the same range.
    */
   lookback?: number;
-  kya: { schemeId: string; issuers: string[] };
+  /**
+   * The KYA question: the scheme and the issuers whose attestations count. Absent — a cell probing itself before any
+   * standing was attested (`foga node preflight`), or a demander that asks nothing about standing — the ERC-8419
+   * section says so and reads nothing; both runs of the probe see the same input, so the report is still the same.
+   */
+  kya?: { schemeId: string; issuers: string[] };
 }
 
 export interface ProbeReport {
@@ -126,6 +131,9 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
       try {
         return await fn();
       } catch (e) {
+        // a defect in the probe itself (a TypeError, a RangeError) is neither the chain's answer nor the endpoint's
+        // silence: it is thrown at once with its own words, not retried as a transport failure
+        if (e instanceof TypeError || e instanceof RangeError || e instanceof ReferenceError) throw new Error(`probe: ${(e as Error).message} (a defect in the probe, not the endpoint)`);
         if (!transientRpcError(e)) return null;
         if (attempt >= PROBE_RETRIES) {
           const words = describe(e);
@@ -173,6 +181,7 @@ export async function runProbe(world: World, input: ProbeInput): Promise<{ repor
   });
 
   checks.erc8419 = await section(async () => {
+    if (!input.kya) return { schemeId: null, issuers: [], level: null, expiresAt: null, assertionId: null, note: "no scheme in the input: standing not asked" };
     const kya = world.contract("8419/KYARegistry");
     const issuers = input.kya.issuers.map((a) => getAddress(a));
     const r = await kya.resolve(accountSubject(world.chainId, subject), input.kya.schemeId, issuers, at);

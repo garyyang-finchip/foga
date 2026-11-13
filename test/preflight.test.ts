@@ -65,6 +65,24 @@ test("preflight: reconciles the account, keys, standing, skills, documents and p
     } finally {
       node.close();
     }
+
+    // --- a cell with no standing yet (the shape of every cell at birth): the standing row warns, and the probe still
+    // runs in the worker — its input then carries no kya block, which the ERC-8419 section records instead of
+    // dereferencing (1.0.9; before it, this check failed with "the RPC failed 7 times (Cannot read ... 'issuers')")
+    const standing = cfg.identity.standing;
+    delete cfg.identity.standing;
+    writeFileSync(cell.configPath, JSON.stringify(cfg, null, 2));
+    const unattested = await Node.open({ configPath: cell.configPath, rpc: RPC, keys: {}, log: () => {} });
+    try {
+      const report = await preflight(unattested, { env: { FOGA_OPERATOR_KEY_FILE: operatorKeyFile, PATH: process.env.PATH } as NodeJS.ProcessEnv, network: false });
+      const by = (check: string) => report.rows.find((r) => r.check === check);
+      assert.equal(by("the cell's KYA standing is attested and current")?.verdict, "Warn");
+      assert.equal(by("foga-probe runs in the worker")?.verdict, "Pass", by("foga-probe runs in the worker")?.detail);
+    } finally {
+      unattested.close();
+    }
+    cfg.identity.standing = standing;
+    writeFileSync(cell.configPath, JSON.stringify(cfg, null, 2));
     cfg.skills.offered = ["foga-probe", "finch-extract-verify", "foga-oracle"];
     cfg.runtime.http.publicUrl = "http://127.0.0.1:1"; // nobody listens there
     writeFileSync(cell.configPath, JSON.stringify(cfg, null, 2));

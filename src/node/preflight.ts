@@ -238,7 +238,7 @@ export async function preflight(node: Node, o: PreflightOptions = {}): Promise<P
       try {
         const started = Date.now();
         const block = await k.blockNumber();
-        const run = await runProbeIsolated({ worldPath: node.worldPath, rpc: node.rpc, bundlePath: node.bundlePath, input: { subject: cell.address, block, lookback: 9000, kya: cfg.identity.standing ? { schemeId: cfg.identity.standing.schemeId, issuers: cfg.identity.standing.issuers } : undefined } as never, timeoutMs: 60_000 });
+        const run = await runProbeIsolated({ worldPath: node.worldPath, rpc: node.rpc, bundlePath: node.bundlePath, input: { subject: cell.address, block, lookback: 9000, kya: cfg.identity.standing ? { schemeId: cfg.identity.standing.schemeId, issuers: cfg.identity.standing.issuers } : undefined }, timeoutMs: 60_000 });
         row("skills", "foga-probe runs in the worker", run.answer ? "Pass" : "Fail", `probed ${cell.address} at block ${block} in ${Date.now() - started} ms`);
       } catch (e) {
         row("skills", "foga-probe runs in the worker", "Fail", (e as Error).message);

@@ -10,6 +10,7 @@ import { loadWallet, walletKey, type WalletInfo, type WalletRole } from "./node/
 import { Watchers, formatTick } from "./node/watchers.js";
 import { defaultCatalog, OPERATOR_CALLER, PUBLIC_CALLER, type Caller, type Mode } from "./tools/index.js";
 import { exists, repoRoot } from "./util/fs.js";
+import { resolveWorldSource } from "./world/source.js";
 import { fail } from "./util/log.js";
 
 /**
@@ -227,7 +228,9 @@ export async function cellCommand(cmd: string | undefined, rest: string[], flags
     const outDir = dirname(out);
     const root = repoRoot();
     const defaultDir = (sub: string) => (outDir.startsWith(root) ? relative(outDir, join(root, sub)) || "." : join(root, sub));
-    const cfg = newCellConfig({ name: need("name"), world: relative(outDir, resolve(need("world"))), store: relative(outDir, resolve(need("store"))), owner: need("owner"), operator: need("operator"), guardian: need("guardian"), rpc: str(flags, "rpc"), skillsDir: str(flags, "skills") ?? defaultDir("scenarios/skills"), inputDir: str(flags, "input-dir") ?? defaultDir("scenarios/fixtures") });
+    // --world is a path or an https:// URL of a published address book; a URL is fetched once and kept under ~/.foga/worlds/
+    const worldPath = (await resolveWorldSource(need("world"), { log: (line) => console.error(line) })).path;
+    const cfg = newCellConfig({ name: need("name"), world: relative(outDir, worldPath), store: relative(outDir, resolve(need("store"))), owner: need("owner"), operator: need("operator"), guardian: need("guardian"), rpc: str(flags, "rpc"), skillsDir: str(flags, "skills") ?? defaultDir("scenarios/skills"), inputDir: str(flags, "input-dir") ?? defaultDir("scenarios/fixtures") });
     saveCellConfig(out, cfg);
     console.log(`cell config written to ${out}; fill presence and policy as you like, then: foga cell init --config ${out}`);
     return;

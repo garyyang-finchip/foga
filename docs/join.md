@@ -85,6 +85,14 @@ npx -y @finchip.ai/foga join --world base-sepolia.json --rpc <url>   # the same 
 
 `foga join --chain <name>` for a chain in the table without a shipped world says this. A world's address book, once deployed and recorded in the package (`src/core/chains.ts`), makes that chain joinable by name for everyone.
 
+A chain FOGA's table does not know at all needs no release (1.0.9): the project that runs it publishes its address book, and `--world` takes the URL.
+
+```
+npx -y @finchip.ai/foga join --world https://raw.githubusercontent.com/<project>/<repo>/main/chain/world/<world>.json --rpc <that chain's RPC>
+```
+
+The file is fetched once per command, checked to be a world file (`foga.world/1`, a worldId, a chainId, the contracts), kept under `~/.foga/worlds/<worldId>.json` (`FOGA_HOME`, or `FOGA_WORLDS_DIR`, honoured) and the command runs on that file as it runs on a path: the join copies it into the cell's directory, the sha256 of the bytes received is printed and `join.json` records the URL as `worldSource`. Only `https://` is accepted (the file names every contract the cell will trust; `http://127.0.0.1` and `localhost` are the one exception, for a rehearsal). `foga genesis preflight|run|status`, `foga doctor`, `foga loop-d run`, `foga demo demander`, `foga cell new` and `foga world verify` take the same URL. The chain's RPC is still named explicitly: a published world says where its contracts are, not which endpoint to trust. The package stays what it was: its table, its default chain and the bare `foga join` do not change when another project publishes a world; the project's repository, not FOGA, says where that world is.
+
 ## Compared with the quickstart
 
 | | `foga quickstart` | `foga join` |

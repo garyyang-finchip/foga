@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -10,7 +11,7 @@ import { anvilKeys } from "../src/genesis/roles.js";
 import { formatCard } from "../src/node/card.js";
 import { fundingMessage, runJoin } from "../src/node/join.js";
 import { ensureWallet } from "../src/node/wallet.js";
-import { anvilPath, foga, startAnvil } from "./helpers/anvil-cell.js";
+import { anvilPath, foga, fogaAsync, startAnvil } from "./helpers/anvil-cell.js";
 
 /**
  * `foga join` on a local world: the persistent public-chain birth, end to end — the wallet, the funding gate, the
@@ -36,6 +37,26 @@ test("join: a cell that lives — born, equipped, published, served; resumed; an
     const worldPath = join(dir, "world.json");
     const deployed = foga(RPC, ["world", "deploy", "--world", "worlds/local.json", "--rpc", RPC, "--out", worldPath]);
     assert.equal(deployed.code, 0, `world deploy failed:\n${deployed.stderr.slice(-1500)}`);
+    // --- the address book by URL (1.0.9): served from a local http server (the one exception to https), the CLI fetches
+    // it once, keeps it under FOGA_WORLDS_DIR named by worldId and runs on that file; what it kept is what was served
+    const served = readFileSync(worldPath, "utf8");
+    const server = createServer((_req, res) => res.writeHead(200, { "content-type": "application/json" }).end(served));
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    try {
+      const addr = server.address() as { port: number };
+      const worldsDir = join(dir, "worlds");
+      // the CLI runs asynchronously here: the server answering it lives in this process
+      const status = await fogaAsync(RPC, ["genesis", "status", "--world", `http://127.0.0.1:${addr.port}/chain/world/local.json`, "--store", join(dir, "none.sqlite")], { FOGA_WORLDS_DIR: worldsDir });
+      assert.match(status.stdout + status.stderr, /world .* from http:\/\/127\.0\.0\.1:\d+\/chain\/world\/local\.json \(sha256 [0-9a-f]{16}…\) kept at /);
+      const worldId = JSON.parse(served).worldId as string;
+      assert.equal(readFileSync(join(worldsDir, `${worldId}.json`), "utf8"), served);
+      assert.notEqual(status.code, 0, "no store there yet: the command still ends as it did before, after the world was resolved");
+      const refused = await fogaAsync(RPC, ["genesis", "status", "--world", "http://example.invalid/w.json"], { FOGA_WORLDS_DIR: worldsDir });
+      assert.notEqual(refused.code, 0);
+      assert.match(refused.stdout + refused.stderr, /must be https/);
+    } finally {
+      server.close();
+    }
     const walletDir = join(dir, "wallet");
     const w = ensureWallet(walletDir, { name: "t" });
     const identity = w.wallet.addresses.signer;

@@ -1,5 +1,5 @@
 import { endpointsOf } from "../a2a/card.js";
-import { chainById } from "../core/chains.js";
+import { chainById, packagedWorld } from "../core/chains.js";
 import { anchors, cellChannelId, marketFact, marketOf } from "./flows.js";
 import { readPolicy, readState } from "./meditation.js";
 import { FOGA_COVENANTS } from "./propagation.js";
@@ -86,7 +86,9 @@ export function cellCard(node: Node, o: { version: string }): CellCard {
     endpoints: { mcp: ep.mcp, a2a: ep.a2a, web: ep.web, manifest: base ? `${base}/.well-known/foga-cell.json` : null, card: base ? `${base}/.well-known/agent-card.json` : null },
     maintenance: maintenanceOf(node),
     flows: flowsOf(node),
-    program: { package: PACKAGE_NAME, version: o.version, join: `npx -y ${PACKAGE_NAME} join --chain ${chain?.name ?? "<chain>"}` },
+    // the one line another agent needs: by chain name when the package ships this world, otherwise by the world's own
+    // address book (a file or, since 1.0.9, an https URL a project publishes) and that chain's RPC
+    program: { package: PACKAGE_NAME, version: o.version, join: chain && packagedWorld(chain) ? `npx -y ${PACKAGE_NAME} join --chain ${chain.name}` : `npx -y ${PACKAGE_NAME} join --world <this world's address book: a file or https URL> --rpc <an RPC of chain ${node.chainId}>` },
   };
 }
 

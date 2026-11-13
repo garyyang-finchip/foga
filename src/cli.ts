@@ -10,6 +10,7 @@ import { runDoctor } from "./doctor/doctor.js";
 import { exists, readJson, repoRoot, writeJson } from "./util/fs.js";
 import { fail, log } from "./util/log.js";
 import { attachWorld, deployWorld, loadWorldConfig, missingPlanSteps } from "./world/deploy.js";
+import { isWorldUrl, resolveWorldSource } from "./world/source.js";
 import { loadBundle } from "./bundle/load.js";
 
 const USAGE = `foga — Finch OG Agent toolchain (Phase 1 world layer; Phase 2 cells and the genesis T0-T9, local and public chains; Phase 3 a cell as a node)
@@ -23,7 +24,7 @@ usage:
                                                  lists and deploy the reference contracts it does not (deployer = W);
                                                  --no-flows leaves the ERC-8489 bootstrap (paradigms, market) to foga flow bootstrap
   foga world attach --world <config.json> [--out <file>]   address book only, no transactions (every contract listed)
-  foga world verify --world <world.json> --sourcify [--dry-run] [--only <id,id>] [--server <url>] [--out <dir>] [--build-info <dir>]
+  foga world verify --world <world.json | https://…> --sourcify [--dry-run] [--only <id,id>] [--server <url>] [--out <dir>] [--build-info <dir>]
                                                  submit every contract the world deployed from the bundle to Sourcify, with the standard JSON input of its
                                                  compiler run (.foga-build/out/<repo>/build-info, written by npm run bundle:verify); a local chain is a dry run
   foga wallet new [--name <n> | --dir <dir>] [--cell]   the first step: a key of your own — one signer in a 0600 file, your identity, which fills
@@ -39,15 +40,15 @@ usage:
   foga keys export --role <role> [--out <file>]  write one role's key to a 0600 file for a node that holds that key alone
                                                  (default ~/.foga/keys/<role>.key; the node reads it from FOGA_OPERATOR_KEY_FILE)
   foga keys check                                check the current environment as a node would: its operator key alone, nothing that derives other roles
-  foga doctor --world <world.json> [--rpc <url>] [--out <report.json>] [--genesis <evidence.json>]
+  foga doctor --world <world.json | https://…> [--rpc <url>] [--out <report.json>] [--genesis <evidence.json>]
   foga doctor --world <config.json> --attach [--rpc <url>] [--out <report.json>]
   foga doctor --world <...> --export-probe <probe.json>      write the JSON-RPC probe plan instead of calling an RPC
   foga doctor --world <...> --import-results <results.json>  evaluate results collected by a relay (offline replay)
   foga doctor [--world <world.json>] --loop-d <evidence.json> [--compare <evidence2.json>] [--out <report.json>]
                                                  the Loop D verdicts from a run's evidence (beside layer 5 when --world is given; alone otherwise)
   foga probe relay-script                        print a dependency-free node script that runs a probe plan
-  foga genesis preflight --world <world.json> [--rpc <url>]   check RPC, keys, balances against the floors, escrow admin, proving material; sends nothing
-  foga genesis run --world <world.json> [--rpc <url>] [--until T0..T9] [--store <file.sqlite>] [--out <evidence.json>]
+  foga genesis preflight --world <world.json | https://…> [--rpc <url>]   check RPC, keys, balances against the floors, escrow admin, proving material; sends nothing
+  foga genesis run --world <world.json | https://…> [--rpc <url>] [--until T0..T9] [--store <file.sqlite>] [--out <evidence.json>]
                    [--zk auto|require|skip] [--crash-after <opKey>] [--crash-before <opKey>]
                                                  run the genesis scenario (idempotent; re-run to resume)
   foga genesis status --world <world.json> [--store <file.sqlite>]    list the operations the store holds
@@ -55,16 +56,18 @@ usage:
                                                  one command to a live cell: the wallet (made on the first run, reused after), anvil, the local world, a cell born with
                                                  the wallet's keys and its two skills, two tenders, the node serving HTTP and MCP, and the MCP client configurations
                                                  printed with every path filled in (~/.foga/quickstart)
-  foga join [--chain sepolia | --world <deployed.json>] [--rpc <url>] [--name <cell>] [--dir <dir>] [--wallet <dir>]
+  foga join [--chain sepolia | --world <deployed.json | https://…>] [--rpc <url>] [--name <cell>] [--dir <dir>] [--wallet <dir>]
             [--listen <host:port> | --no-serve] [--public-url <url>] [--run stub|anthropic] [--no-wait] [--min-wei <n>] [--capital-wei <n>] [--exit]
                                                  one command to a cell that lives on a public chain: the wallet (made once, the same address on every chain), the
                                                  chain's world from the package, a wait for the identity to be funded, the birth, the skills minted and offered, the
-                                                 documents on chain, the node served (or run with a model); resumable, in ~/.foga/cells/<network>/<name>, never cleared
+                                                 documents on chain, the node served (or run with a model); resumable, in ~/.foga/cells/<network>/<name>, never cleared.
+                                                 --world takes a path or an https:// URL of a published address book (fetched once, kept in ~/.foga/worlds/): a
+                                                 world on a chain FOGA's table does not know is joined with --world <url> --rpc <that chain's rpc>
   foga demo [--port <n>] [--keep] [--genesis <T0..T9>]   start anvil, deploy the local world, run the doctor (and the genesis)
   foga demo --loop-d [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery] [--port <n>] [--keep]
                                                  the above, then Loop D: a new cell born, a demander minting cases a-g, the node with a model (or served for an
                                                  outside agent), the recovery drill, the guardian's suspension; evidence to deployments/loop-d.local.json, judged by the doctor
-  foga loop-d run --world <world.json> --rpc <url> [--dir <dir>] [--out <evidence.json>] [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery]
+  foga loop-d run --world <world.json | https://…> --rpc <url> [--dir <dir>] [--out <evidence.json>] [--model stub|anthropic|external] [--model-name <name>] [--seed <n>] [--no-recovery]
                   [--listen <host:port>] [--wait <s>] [--idle <s>]
                                                  Loop D on a world that exists (FOGA_FUNDER_KEY funds the cell's roles on a non-local chain); with --model external the
                                                  node is served and an outside agent — any model, any runtime — works the tenders through /mcp or /api with the key printed
@@ -194,9 +197,10 @@ async function main(): Promise<void> {
 
   if (group === "world" && cmd === "verify") {
     if (!flags.sourcify) fail("foga world verify --sourcify --world <world.json> (Sourcify is the one verifier wired so far)");
-    const worldPath = str(flags, "world") ?? fail("--world <world.json> is required (a deployed world)");
+    const worldArg = str(flags, "world") ?? fail("--world <world.json> is required (a deployed world)");
+    const worldPath = (await resolveWorldSource(worldArg, { log: (line) => console.error(line) })).path;
     const { verifyWorld } = await import("./world/sourcify.js");
-    const { report, outDir } = await verifyWorld({ worldPath: resolve(worldPath), server: str(flags, "server"), dryRun: flags["dry-run"] ? true : undefined, only: str(flags, "only")?.split(","), outDir: str(flags, "out") ? resolve(str(flags, "out")!) : undefined, buildInfoRoot: str(flags, "build-info") ? resolve(str(flags, "build-info")!) : undefined, log: (line) => console.error(line) });
+    const { report, outDir } = await verifyWorld({ worldPath, server: str(flags, "server"), dryRun: flags["dry-run"] ? true : undefined, only: str(flags, "only")?.split(","), outDir: str(flags, "out") ? resolve(str(flags, "out")!) : undefined, buildInfoRoot: str(flags, "build-info") ? resolve(str(flags, "build-info")!) : undefined, log: (line) => console.error(line) });
     for (const r of report.results) console.log(`  ${r.outcome.padEnd(12)} ${r.id.padEnd(32)} ${r.address}  ${r.contractIdentifier} (${r.compilerVersion})${r.outcome === "dry-run" ? "" : `  ${r.detail}`}`);
     for (const m of report.missing) console.log(`  missing      ${m.id.padEnd(32)} ${m.reason}`);
     console.log(`sourcify: ${Object.entries(report.summary).map(([k, v]) => `${v} ${k}`).join(", ") || "nothing to do"}${report.missing.length ? `, ${report.missing.length} missing` : ""}; report ${relative(root, join(outDir, "report.json"))}`);
@@ -241,7 +245,8 @@ async function main(): Promise<void> {
       return;
     }
     if (!worldPath) fail("--world <world.json> is required (or --loop-d <evidence.json> alone)");
-    worldPath = resolve(worldPath);
+    if (flags.attach && isWorldUrl(worldPath)) fail("--attach takes a world configuration by path; a URL names a deployed world's address book");
+    worldPath = (await resolveWorldSource(worldPath, { log: (line) => console.error(line) })).path;
     if (flags.attach) {
       const cfg = loadWorldConfig(worldPath);
       const bundle = loadBundle();
@@ -423,13 +428,14 @@ async function main(): Promise<void> {
   }
 
   if (group === "genesis" && cmd === "preflight") {
-    const worldPath = str(flags, "world");
-    if (!worldPath) fail("--world <world.json> is required (a deployed world)");
-    const world = readJson<{ network: string }>(resolve(worldPath));
+    const worldArg = str(flags, "world");
+    if (!worldArg) fail("--world <world.json> is required (a deployed world)");
+    const worldPath = (await resolveWorldSource(worldArg, { log: (line) => console.log(line) })).path;
+    const world = readJson<{ network: string }>(worldPath);
     const rpc = str(flags, "rpc") ?? process.env.FOGA_RPC_URL ?? (world.network === "anvil" ? "http://127.0.0.1:8545" : undefined);
     if (!rpc) fail("no RPC: pass --rpc or set FOGA_RPC_URL");
     const { preflight } = await import("./genesis/preflight.js");
-    const problems = await preflight({ worldPath: resolve(worldPath), rpc, log: (line) => console.log(line) });
+    const problems = await preflight({ worldPath, rpc, log: (line) => console.log(line) });
     if (problems.length) {
       console.log("\nproblems:");
       for (const p of problems) console.log(`  - ${p}`);
@@ -439,8 +445,9 @@ async function main(): Promise<void> {
   }
 
   if (group === "genesis" && cmd === "run") {
-    const worldPath = str(flags, "world");
-    if (!worldPath) fail("--world <world.json> is required (a deployed world)");
+    const worldArg = str(flags, "world");
+    if (!worldArg) fail("--world <world.json> is required (a deployed world)");
+    const worldPath = (await resolveWorldSource(worldArg, { log: (line) => console.log(line) })).path;
     const { runGenesis } = await import("./genesis/run.js");
     const { failed } = await runGenesis({
       worldPath,
@@ -458,8 +465,9 @@ async function main(): Promise<void> {
   }
 
   if (group === "genesis" && cmd === "status") {
-    const worldPath = str(flags, "world");
-    if (!worldPath) fail("--world <world.json> is required");
+    const worldArg = str(flags, "world");
+    if (!worldArg) fail("--world <world.json> is required");
+    const worldPath = (await resolveWorldSource(worldArg, { log: (line) => console.log(line) })).path;
     const { OperationStore } = await import("./kernel/store.js");
     const name = worldPath.replace(/^.*\//, "").replace(/\.json$/, "");
     const storePath = resolve(str(flags, "store") ?? join(root, "deployments", `${name}.genesis.sqlite`));
@@ -478,7 +486,7 @@ async function main(): Promise<void> {
     const { mintCases } = await import("./demo/demander.js");
     const { anvilKeys } = await import("./genesis/roles.js");
     const need = (k: string) => str(flags, k) ?? fail(`--${k} is required`);
-    const worldPath = resolve(need("world"));
+    const worldPath = (await resolveWorldSource(need("world"), { log: (line) => console.error(line) })).path;
     const worldFile = readJson<{ network?: string }>(worldPath);
     const key = process.env.FOGA_DEMANDER_KEY ?? (worldFile.network === "anvil" ? anvilKeys().W : undefined);
     if (!key) fail("FOGA_DEMANDER_KEY is required on a non-local world");
@@ -492,9 +500,10 @@ async function main(): Promise<void> {
 
   if (group === "loop-d" && cmd === "run") {
     const { runLoopD, defaultLoopDDir } = await import("./demo/loop-d.js");
-    const worldPath = str(flags, "world") ?? fail("--world <world.json> is required");
+    const worldArg = str(flags, "world") ?? fail("--world <world.json> is required");
+    const worldPath = (await resolveWorldSource(worldArg, { log: (line) => console.error(line) })).path;
     const rpc = str(flags, "rpc") ?? process.env.FOGA_RPC_URL ?? fail("--rpc <url> is required");
-    await runLoopD({ rpc, worldPath: resolve(worldPath), dir: str(flags, "dir") ? resolve(str(flags, "dir")!) : defaultLoopDDir(), evidencePath: resolve(str(flags, "out") ?? join(root, "deployments", "loop-d.local.json")), funderKey: process.env.FOGA_FUNDER_KEY, ...loopDFlags(flags) });
+    await runLoopD({ rpc, worldPath, dir: str(flags, "dir") ? resolve(str(flags, "dir")!) : defaultLoopDDir(), evidencePath: resolve(str(flags, "out") ?? join(root, "deployments", "loop-d.local.json")), funderKey: process.env.FOGA_FUNDER_KEY, ...loopDFlags(flags) });
     return;
   }
 
@@ -530,9 +539,11 @@ async function main(): Promise<void> {
     if (run && run !== "stub" && run !== "anthropic") fail("--run must be stub or anthropic");
     let result;
     try {
+      const worldSrc = str(flags, "world") ? await resolveWorldSource(str(flags, "world")!, { log: (line) => console.error(`join: ${line}`) }) : null;
       result = await runJoin({
         chain: str(flags, "chain"),
-        world: str(flags, "world"),
+        world: worldSrc?.path,
+        worldUrl: worldSrc?.url ?? null,
         rpc: str(flags, "rpc"),
         name: str(flags, "name"),
         dir: str(flags, "dir"),

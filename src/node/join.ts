@@ -34,8 +34,10 @@ import { PACKAGE_NAME, version } from "../util/version.js";
 export interface JoinOptions {
   /** The chain by name (`sepolia`; docs/join.md). Default sepolia. */
   chain?: string;
-  /** A deployed world's address book, instead of the packaged one of `--chain`. */
+  /** A deployed world's address book (a path), instead of the packaged one of `--chain`. */
   world?: string;
+  /** The URL the address book was fetched from, when `--world` was given as one (src/world/source.ts); recorded in join.json. */
+  worldUrl?: string | null;
   rpc?: string;
   /** The cell's name (its ERC-8004 registration and documents carry it). Default `cell-<first four hex of the identity>`. */
   name?: string;
@@ -413,7 +415,7 @@ export async function runJoin(o: JoinOptions = {}): Promise<JoinResult> {
   lines.push(o.exit ? "Started with --exit: stopping the node." : `Ctrl-C stops the node; the cell stays. Start it again with the same command, or:  ${launcher.command} ${launcher.args.join(" ")} node serve --config ${configPath} --wallet ${wallet.wallet.dir}`);
   const summary = lines.join("\n");
   writeFileSync(join(dir, "connect.md"), `# foga join\n\n\`\`\`\n${summary}\n\`\`\`\n`);
-  writeFileSync(join(dir, JOIN_MARKER), JSON.stringify({ schema: "foga.join/1", joinedAt: new Date().toISOString(), package: PACKAGE_NAME, version, network, chainId: worldFile.chainId, worldId: worldFile.worldId, rpc: rpcResolved.source === "public" ? null : rpc, cell: name, account: born, agentId, wallet: wallet.wallet.dir, listen, publicUrl: o.publicUrl ?? null, run: o.run ?? null }, null, 2) + "\n");
+  writeFileSync(join(dir, JOIN_MARKER), JSON.stringify({ schema: "foga.join/1", joinedAt: new Date().toISOString(), package: PACKAGE_NAME, version, network, chainId: worldFile.chainId, worldId: worldFile.worldId, rpc: rpcResolved.source === "public" ? null : rpc, worldSource: o.worldUrl ?? null, cell: name, account: born, agentId, wallet: wallet.wallet.dir, listen, publicUrl: o.publicUrl ?? null, run: o.run ?? null }, null, 2) + "\n");
   out(summary);
 
   return { dir, configPath, worldPath, rpc, chainId: worldFile.chainId, network, account: born!, agentId, resumed, nodeUrl, card, stop, ended };

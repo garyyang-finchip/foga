@@ -28,6 +28,8 @@ A doctor run is two steps: a deterministic **probe plan** (every JSON-RPC reques
 ```bash
 # local world just deployed
 npm run foga -- doctor --world deployments/local.json --out deployments/local.doctor.json
+# a published address book by URL (1.0.9): fetched once, kept under ~/.foga/worlds/, read like a file
+npm run foga -- doctor --world https://raw.githubusercontent.com/<project>/<repo>/main/chain/world/<world>.json --rpc <url> --out <report.json>
 
 # Sepolia, attached from the config, live (the address book only: the ERC-8471 stack and two eligibility modules are not in the
 # config and are added by `foga world deploy`; run the doctor on deployments/sepolia.json after that for the complete world)
